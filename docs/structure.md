@@ -50,7 +50,7 @@
 |프로젝트/backend/src/realtime/|(구현 단계) Socket.IO 연결 인증, 방, 이벤트 보내기 (api.md 6.8)|
 |프로젝트/backend/src/utils/|(구현 단계) 입력 검사, 날짜(한국 시간 오늘), 메일 본문, 공휴일 API 호출|
 |프로젝트/backend/tests/|(구현 단계) 백엔드 테스트 (Vitest + supertest, test.md)|
-|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard 만 먼저 넣었다 (screen.md 시안 작성 규칙). 나머지는 구현 단계에서 더한다|
+|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard, vuedraggable(작업 시안의 칸반 드래그에 sortablejs 를 쓴다)만 먼저 넣었다 (screen.md 시안 작성 규칙, D-146). 나머지는 구현 단계에서 더한다|
 |프로젝트/frontend/package-lock.json|npm 이 만든 의존성 잠금 파일|
 |프로젝트/frontend/node_modules/|npm 설치 폴더 (git 제외). 시안이 상대 경로로 bootstrap 등을 불러온다|
 |프로젝트/frontend/vite.config.js, index.html|(구현 단계) Vite 설정(5173, /api·/socket.io 프록시), 시작 HTML|

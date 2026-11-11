@@ -121,7 +121,6 @@ function renderTodos() {
 }
 
 // ---------- 칸반 ----------
-let dragTaskId = null;
 function cardHtml(task) {
   const full = periodFull(task);
   const overdue = isOverdue(task);
@@ -161,16 +160,12 @@ function renderKanban() {
       const card = document.createElement('div');
       card.className = `task-card${task.id === ui.selectedTaskId ? ' is-selected' : ''}`;
       card.dataset.id = task.id;
-      card.draggable = !ui.myOnly;
       card.innerHTML = cardHtml(task);
       card.addEventListener('click', () => openDetail(task.id));
-      card.addEventListener('dragstart', (event) => { dragTaskId = task.id; event.dataTransfer.effectAllowed = 'move'; setTimeout(() => card.classList.add('is-dragging'), 0); });
-      card.addEventListener('dragend', () => { dragTaskId = null; clearDropMarks(); renderKanban(); });
       list.appendChild(card);
     });
-    list.addEventListener('dragover', (event) => onDragOver(event, column, list));
-    list.addEventListener('dragleave', (event) => { if (!column.contains(event.relatedTarget)) { clearDropMarks(); } });
-    list.addEventListener('drop', (event) => onDrop(event, status, list));
+    list.dataset.status = status;
+    makeSortable(list);
     column.appendChild(list);
     columns.appendChild(column);
   });
@@ -178,34 +173,31 @@ function renderKanban() {
   $('kanban').classList.toggle('is-drag-locked', ui.myOnly);
 }
 
-// ---------- 드래그 (같은 공간: 순서만, 다른 공간: 상태 변경 + 수정 내역, D-013, D-069) ----------
-function clearDropMarks() {
-  document.querySelectorAll('.drop-ghost').forEach((ghost) => ghost.remove());
-  document.querySelectorAll('.kanban-column.is-drop-target').forEach((column) => column.classList.remove('is-drop-target'));
+// ---------- 드래그 (SortableJS, 실제 화면의 vuedraggable 과 같은 라이브러리) ----------
+// 같은 공간: 순서만 (수정 내역 없음, D-013). 다른 공간: 상태 변경 + 수정 내역, 놓은 자리 (D-069)
+function makeSortable(list) {
+  Sortable.create(list, {
+    group: 'kanban',
+    draggable: '.task-card',
+    animation: 150,
+    delay: 150,
+    delayOnTouchOnly: true, // 터치는 0.15초 누르고 있어야 드래그 시작 (TaskView_screen.md 반응형 기준)
+    forceFallback: true, // 끌고 있는 카드 모양(그림자 + 기울임)을 직접 그린다
+    fallbackOnBody: true,
+    ghostClass: 'is-ghost',
+    fallbackClass: 'is-dragging',
+    emptyInsertThreshold: 40, // 빈 공간에도 놓기 쉽게
+    disabled: ui.myOnly || ui.loading, // 내 작업만 보기 중에는 순서 변경 불가 (D-126)
+    onStart: () => document.querySelectorAll('.column-empty').forEach((el) => el.classList.add('is-hidden')),
+    onEnd: onSortEnd,
+  });
 }
-function dropIndex(list, clientY) {
-  const cards = [...list.querySelectorAll('.task-card:not(.is-dragging)')];
-  const index = cards.findIndex((card) => clientY < card.getBoundingClientRect().top + card.offsetHeight / 2);
-  return index === -1 ? cards.length : index;
-}
-function onDragOver(event, column, list) {
-  if (dragTaskId === null) { return; }
-  event.preventDefault();
-  clearDropMarks();
-  column.classList.add('is-drop-target');
-  const cards = [...list.querySelectorAll('.task-card:not(.is-dragging)')];
-  const index = dropIndex(list, event.clientY);
-  const ghost = document.createElement('div');
-  ghost.className = 'drop-ghost';
-  if (cards[index]) { list.insertBefore(ghost, cards[index]); } else { list.appendChild(ghost); }
-  list.querySelector('.column-empty')?.classList.add('is-hidden');
-}
-function onDrop(event, status, list) {
-  event.preventDefault();
-  if (dragTaskId === null) { return; }
-  const index = dropIndex(list, event.clientY);
-  const task = data.tasks.find((item) => item.id === dragTaskId);
+function onSortEnd(event) {
+  const task = data.tasks.find((item) => item.id === Number(event.item.dataset.id));
+  const status = event.to.dataset.status;
+  const index = event.newDraggableIndex;
   const before = task.status;
+  if (before === status && event.oldDraggableIndex === index) { renderKanban(); return; }
   data.tasks.splice(data.tasks.indexOf(task), 1);
   const others = data.tasks.filter((item) => item.status === status);
   task.status = status;
@@ -213,8 +205,6 @@ function onDrop(event, status, list) {
   if (before !== status) {
     data.logs[task.id].unshift(makeLog(task, `상태 변경 (${STATUS_LABEL[before]} → ${STATUS_LABEL[status]})`, nowText(), ME));
   }
-  dragTaskId = null;
-  clearDropMarks();
   renderKanban();
   if (ui.selectedTaskId === task.id && ui.panel === 'detail-read') { renderDetail(); }
 }
@@ -573,8 +563,8 @@ const STATES = {
   'starting': { label: '작업 시작 중', run: () => { selectFirstTodo(); setLoading($('btn-start'), '작업 시작'); } },
   'dragging': { label: '카드 드래그 중 (모양)', run: () => {
     document.querySelector('.task-card[data-id="4"]').classList.add('is-dragging');
-    const ghost = document.createElement('div');
-    ghost.className = 'drop-ghost';
+    const ghost = document.querySelector('.task-card[data-id="1"]').cloneNode(true);
+    ghost.classList.add('is-ghost');
     document.querySelector('.task-card[data-id="6"]').before(ghost);
   } },
   'detail-read': { label: '작업 상세 (읽기)', run: () => openDetail(2) },
