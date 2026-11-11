@@ -45,7 +45,8 @@
   - 승인 뒤 설계 변경: D-148 내보내기로 작업자에서 빠진 기록은 내보낸 회원 닉네임 (D-101 변경)
   - 동작하는 시안 (D-146): 시안 10개 모두 동작하게 완료 (2026-11-11). 나머지 9개는 이전 세션에서 만든 동작 코드를 Chrome headless 로 "4. 동작"마다 눌러 확인하고, 빠진 3곳을 고침 (로그인 입력 시 오류 지우기, 비밀번호 찾기 새 비밀번호 blur 검사, 팀 탈퇴·해체 뒤 안내 토스트와 팀 목록에서 빼기). 모든 시안·모든 상태 콘솔 오류 0. 사용자 승인 완료 (2026-11-11)
   - 승인 뒤 기능 추가: 일일보고 (14번째 핵심 기능, D-150~D-161). grilling 으로 결정 → 설계 문서 작성 완료 (overview.md 8.15, database.md report_templates·daily_reports·users.is_report_carry_over, api.md 6.12·6.6·6.8·6.11, spec.md Tiptap·sanitize-html, structure.md, MainLayout_screen.md 탭, DailyReportView_screen.md 새로 작성). 설계 승인 완료 (2026-11-11). 시안 daily_report_view.html + .js 완성 (Tiptap 묶음 D-162, 상태 32개, Chrome headless 로 동작·콘솔 오류 확인, 다른 시안 팀 탭에 일일보고 추가). 사용자 요청으로 표 셀 배경색·정렬 추가 (D-163). 와이어프레임 승인 완료 (2026-11-11)
-  - 구현: 시작 전. 사용자 준비(DB·계정·.env·Gmail 앱 비밀번호·공휴일 API 키·Node 24) 확인 후 우선순위 1(회원가입)부터
+  - 구현: 시작 전. 사용자가 "아직 구현 단계로 넘어가지 마"라고 함 (2026-11-11). 사용자가 시작하라고 할 때까지 코드를 만들지 않는다
+  - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 구현을 시작하면서 AI 가 .env.example(키 이름만)을 만든 뒤 사용자가 작성 (아직 없음). DB(todolist) 생성 여부는 확인하지 않음
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 없음
 - 메모:
@@ -74,13 +75,14 @@
 
 ## 세션 인계
 
-- **마지막 갱신**: 2026-11-11
-- **현재 상태**: 설계·와이어프레임 승인 완료 (2026-11-11). 3. 구현 시작 전 (코드 없음). 아직 승인받은 단계는 없다. 코드는 없다
-- **다음에 할 일**: 사용자 준비 사항 확인 → 구현 우선순위 1(회원가입)부터 기능마다 test.md 완료 체크리스트
+- **마지막 갱신**: 2026-11-11 (세션 종료)
+- **현재 상태**: 핵심 기능 14개(일일보고 포함, D-150~D-163) 설계·와이어프레임 승인 완료 (2026-11-11). 시안 11개 모두 동작하는 시안. 3. 구현 시작 전 (코드 없음). 사용자가 구현 시작을 보류함
+- **다음에 할 일**: 사용자가 구현 시작을 말하면 → DB(todolist) 생성 여부 확인, backend/.env.example 작성 후 사용자에게 .env 작성 안내 → 구현 우선순위 1(회원가입)부터 기능마다 test.md 완료 체크리스트. 그 전에는 구현하지 않는다
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
-  - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)는 사용자가 공공데이터포털에서 발급받아야 한다 (D-107, 구현 전까지)
+  - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)
   - git: 커밋과 푸시는 AI가 한다. 커밋 메시지에 서명 줄을 붙이지 않는다 (D-086)
+  - 시안 검사: Chrome headless 를 Node 24 내장 WebSocket 으로 조작 (CDP). 일일보고 시안의 Tiptap 묶음은 frontend 에서 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)
   - 이 컴퓨터의 기본 Node 는 14. 프로젝트는 Node 24 (nvm 의 v24.22.2). 사용자 상태 표시줄(남은 컨텍스트)은 ~/.claude/statusline.ps1
 
 ---
