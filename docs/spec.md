@@ -36,6 +36,8 @@
 |bootstrap-icons|1.13.2|아이콘|
 |pretendard|1.3.9|기본 글꼴 (OFL-1.1, 동적 서브셋) (D-043)|
 |vuedraggable|4.1.0 (next 태그, Vue 3용, sortablejs 1.14.0 포함)|칸반 드래그|
+|@tiptap/vue-3, @tiptap/pm, @tiptap/starter-kit, @tiptap/extension-table, @tiptap/extension-text-style|3.32.0 (2026-10-13, 같은 버전으로 맞춤)|일일보고 리치 에디터 (D-155). starter-kit(굵게·기울임·취소선·목록·구분선·링크), table(표), text-style(글자 색). 읽기 전용 보기도 같은 편집기로 그린다 (v-html 쓰지 않음)|
+|sanitize-html|2.18.1|백엔드. 일일보고 HTML 을 허용한 태그·속성만 남기고 정화 (D-155, api.md 6.12)|
 |@fullcalendar/vue3, @fullcalendar/core|7.1.4|월간 캘린더 (D-002). v7은 temporal-polyfill 피어 의존성 필요, @fullcalendar/daygrid는 6.1.22까지만 있어 v7 구성은 캘린더 작업 때 공식 문서로 확인|
 |vitest, supertest, @vue/test-utils, jsdom|1. 스택 표|테스트|
 

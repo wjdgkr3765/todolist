@@ -87,12 +87,13 @@ CREATE TABLE users (
 ## 4. 실제 사용할 테이블 생성 코드
 <!-- 실제 테이블 생성 코드를 이 아래에 작성 -->
 
-- 생성 순서 (FK 때문에): users → login_tokens → email_verifications → teams → team_members → todos → tasks → task_assignees → task_logs → task_log_assignees → notifications → team_invite_declines
+- 생성 순서 (FK 때문에): users → login_tokens → email_verifications → teams → team_members → todos → tasks → task_assignees → task_logs → task_log_assignees → notifications → team_invite_declines → report_templates → daily_reports
 - 만료 데이터 정리 (D-122): 로그인할 때 만료된 login_tokens(모든 회원), 인증번호를 보낼 때 하루 지난 email_verifications, 초대·거절할 때 24시간 지난 team_invite_declines 를 함께 지운다
 - 회원 탈퇴 처리 순서는 api.md 6.11 POST /api/users/me/withdraw 에 있다
 
 ### users (회원)
 - 탈퇴하면 행을 하드 삭제한다 (D-041). 작업·수정 내역은 user_id 대신 그 시점 닉네임을 따로 저장해 표시한다
+- is_report_carry_over: 일일보고 "지난 보고 이어받기" 켜기/끄기. 모든 팀에 같이 적용 (D-156)
 - 로그인 실패 제한: 비밀번호를 연속 5번 틀리면 lock_expire_date = 그때 + 10분, login_fail_count 는 0으로. 로그인에 성공하면 login_fail_count 를 0으로 (D-049)
 
 ```sql
@@ -104,6 +105,7 @@ CREATE TABLE users (
     email            NVARCHAR(100) NOT NULL UNIQUE,                   -- 이메일
     phone            NVARCHAR(11)  NOT NULL UNIQUE,                   -- 전화번호 (숫자 11자리, 인증 보류 D-005)
     login_fail_count INT           NOT NULL DEFAULT 0,                -- 연속으로 비밀번호를 틀린 횟수 (0~4, D-049)
+    is_report_carry_over BIT       NOT NULL DEFAULT 0,                -- 일일보고 지난 보고 이어받기 켜짐 여부 (D-156)
     lock_expire_date DATETIME2     NULL,                              -- 로그인 잠금이 풀리는 시각 (UTC, 잠금 없으면 NULL)
     create_date      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- 가입 시각 (UTC)
 
@@ -354,7 +356,7 @@ CREATE INDEX idx_task_log_assignees_task_log_id ON task_log_assignees (task_log_
 
 ### teams (팀)
 - 팀 정보는 팀 이름만. 1~20자, 다른 팀과 이름이 같아도 된다 (D-071)
-- 팀을 해체하면 행을 지운다. 팀과 관련된 정보(team_members, notifications, team_invite_declines, 팀 todos·tasks 와 그 작업자·수정 내역)도 함께 지워진다 (ON DELETE CASCADE, D-075). 단 작업과 이어진 알림은 먼저 지운다 (notifications 참고)
+- 팀을 해체하면 행을 지운다. 팀과 관련된 정보(team_members, notifications, team_invite_declines, 팀 todos·tasks 와 그 작업자·수정 내역, report_templates, daily_reports)도 함께 지워진다 (ON DELETE CASCADE, D-075). 단 작업과 이어진 알림은 먼저 지운다 (notifications 참고)
 
 ```sql
 CREATE TABLE teams (
@@ -454,6 +456,63 @@ CREATE TABLE team_invite_declines (
     FOREIGN KEY (user_id) REFERENCES users(id),
     UNIQUE (team_id, user_id)
 );
+```
+
+### report_templates (일일보고 양식)
+- 팀마다 1개 (D-152). 팀을 만들 때 기본 양식으로 함께 만든다 (api.md 6.6 POST /api/teams). 설정 테이블이라 create_date 를 두지 않는다
+- header: 머리말 0~100자. `{날짜}` 는 보고일(M/D)로 바꿔 보고에 넣는다
+- sections: 구역 목록 JSON 배열 (1~20개, 순서대로). 형식과 검사는 api.md 6.12 "구역 형식 (TemplateSection)". 한 양식 안에서 구역 제목은 서로 달라야 한다
+- 팀을 해체하면 함께 지운다 (ON DELETE CASCADE)
+
+```sql
+CREATE TABLE report_templates (
+    id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
+    header      NVARCHAR(100) NOT NULL DEFAULT '',               -- 머리말 (0~100자, {날짜} 자리표시 가능)
+    sections    NVARCHAR(MAX) NOT NULL,                          -- 구역 목록 JSON (TemplateSection[], 1~20개)
+    team_id     BIGINT        NOT NULL UNIQUE,                   -- 팀 (팀마다 1개)
+    update_date DATETIME2     NULL,                              -- 마지막으로 양식을 저장한 시각 (UTC, 기본 양식이면 NULL)
+
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    CHECK (ISJSON(sections) = 1)
+);
+```
+
+### daily_reports (일일보고)
+- 한 회원이 팀마다 하루(report_date, 한국 시간 날짜)에 1개 (D-157). user_id 가 있는 행에 (team_id, user_id, report_date) UNIQUE 필터 인덱스
+- status: draft(임시저장, 본인만 봄) / submitted(제출, 팀원이 봄). submitted 는 draft 로 돌아가지 않는다
+- header·sections: 처음 저장할 때의 양식으로 만든 구역 구성과 내용 (D-152). 양식이 바뀌어도 이 값은 그대로다. sections 는 ReportSection[] JSON (api.md 6.12). 내용 HTML 은 서버가 허용한 태그만 남긴 값이다 (D-155)
+- nickname: 마지막으로 저장한 때의 작성자 닉네임. 회원이 탈퇴해도 남는다 (D-160)
+- submit_date: 처음 제출한 시각. "지난 보고 이후" 완료 범위의 기준 (D-154). update_date: 제출한 뒤 마지막으로 수정 제출한 시각 (있으면 "수정됨 · 시각", D-157). 임시저장한 시각은 draft_date
+- 팀 탈퇴·내보내기는 행을 남긴다. 회원이 탈퇴하면 그 회원의 draft 행은 지우고 submitted 행은 user_id 를 NULL 로 바꾼다 (D-160). 팀을 해체하면 함께 지운다 (ON DELETE CASCADE)
+
+```sql
+CREATE TABLE daily_reports (
+    id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
+    report_date DATE          NOT NULL,                          -- 보고일 (한국 시간 날짜)
+    status      NVARCHAR(10)  NOT NULL,                          -- 상태 (draft / submitted)
+    nickname    NVARCHAR(8)   NOT NULL,                          -- 작성자의 마지막 저장 시점 닉네임 (D-160)
+    header      NVARCHAR(100) NOT NULL DEFAULT '',               -- 머리말 ({날짜}를 바꾼 값)
+    sections    NVARCHAR(MAX) NOT NULL,                          -- 구역 구성과 내용 JSON (ReportSection[])
+    team_id     BIGINT        NOT NULL,                          -- 팀
+    user_id     BIGINT        NULL,                              -- 작성자 (회원 탈퇴하면 NULL)
+    draft_date  DATETIME2     NULL,                              -- 마지막 임시저장 시각 (UTC)
+    submit_date DATETIME2     NULL,                              -- 처음 제출한 시각 (UTC, 제출 전이면 NULL)
+    update_date DATETIME2     NULL,                              -- 마지막 수정 제출 시각 (UTC, 수정 제출 전이면 NULL)
+    create_date DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- 처음 저장한 시각 (UTC)
+
+    FOREIGN KEY (team_id) REFERENCES teams(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    CHECK (status IN ('draft', 'submitted')),
+    CHECK (ISJSON(sections) = 1),
+    CHECK (
+        (status = 'draft' AND submit_date IS NULL AND update_date IS NULL AND user_id IS NOT NULL)
+        OR (status = 'submitted' AND submit_date IS NOT NULL)
+    )
+);
+
+CREATE UNIQUE INDEX idx_daily_reports_team_id_user_id ON daily_reports (team_id, user_id, report_date) WHERE user_id IS NOT NULL;
+CREATE INDEX idx_daily_reports_team_id ON daily_reports (team_id, report_date);
+CREATE INDEX idx_daily_reports_user_id ON daily_reports (user_id);
 ```
 
 ### 히스토리

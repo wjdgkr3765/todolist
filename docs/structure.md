@@ -33,6 +33,7 @@
 |프로젝트/frontend/src/views/FindIdView_screen.md|아이디 찾기 화면 설계 문서|
 |프로젝트/frontend/src/views/FindPasswordView_screen.md|비밀번호 찾기 화면 설계 문서|
 |프로젝트/frontend/src/views/ProfileView_screen.md|회원정보 수정 화면 설계 문서|
+|프로젝트/frontend/src/views/DailyReportView_screen.md|일일보고 화면 설계 문서 (D-150)|
 |프로젝트/frontend/src/layouts/|공통 레이아웃 Vue 파일과 화면 설계 문서|
 |프로젝트/frontend/src/layouts/MainLayout_screen.md|공통 레이아웃 화면 설계 문서|
 |프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
@@ -42,13 +43,13 @@
 |프로젝트/backend/.env.example|(구현 단계) 환경 변수 이름만 적고 값은 비운다 (DB 접속, DB_INSTANCE, DB_PORT, MAIL_USER, 메일 비밀번호, HOLIDAY_API_KEY, NODE_ENV 등, security.md 1번)|
 |프로젝트/backend/sql/schema.sql|(구현 단계) database.md 4번의 테이블 생성 SQL. 사용자가 SSMS 에서 실행한다|
 |프로젝트/backend/src/server.js|(구현 단계) HTTP 서버와 Socket.IO 시작 (포트 3000)|
-|프로젝트/backend/src/app.js|(구현 단계) Express 앱과 공통 처리 (본문 100kb 제한, 보안 응답 헤더, 공통 오류 응답, api.md 1)|
+|프로젝트/backend/src/app.js|(구현 단계) Express 앱과 공통 처리 (본문 100kb 제한(일일보고 저장·양식 저장은 512kb), 보안 응답 헤더, 공통 오류 응답, api.md 1)|
 |프로젝트/backend/src/config/|(구현 단계) DB 연결(mssql), 메일 발송(nodemailer), 환경 변수 읽기|
 |프로젝트/backend/src/middlewares/|(구현 단계) 로그인 확인(requireLogin), 오류 처리|
 |프로젝트/backend/src/routes/|(구현 단계) API 경로. api.md 6.x 구역마다 파일 하나 (예: teams.js, notifications.js)|
 |프로젝트/backend/src/services/|(구현 단계) 업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다|
 |프로젝트/backend/src/realtime/|(구현 단계) Socket.IO 연결 인증, 방, 이벤트 보내기 (api.md 6.8)|
-|프로젝트/backend/src/utils/|(구현 단계) 입력 검사, 날짜(한국 시간 오늘), 메일 본문, 공휴일 API 호출|
+|프로젝트/backend/src/utils/|(구현 단계) 입력 검사, 날짜(한국 시간 오늘), 메일 본문, 공휴일 API 호출, 일일보고 HTML 정화(sanitize-html, D-155)|
 |프로젝트/backend/tests/|(구현 단계) 백엔드 테스트 (Vitest + supertest, test.md)|
 |프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard, vuedraggable(작업 시안의 칸반 드래그에 sortablejs 를 쓴다)만 먼저 넣었다 (screen.md 시안 작성 규칙, D-146). 나머지는 구현 단계에서 더한다|
 |프로젝트/frontend/package-lock.json|npm 이 만든 의존성 잠금 파일|
@@ -61,7 +62,7 @@
 |프로젝트/frontend/src/realtime/|(구현 단계) socket.io-client 연결과 이벤트 받기 (api.md 6.8)|
 |프로젝트/frontend/src/components/|(구현 단계) 여러 화면이 쓰는 조각: AuthBrandPanel, KanbanBoard, TaskDetailPanel, TaskLogModal, 토스트, 확인창 등|
 |프로젝트/frontend/src/assets/styles/theme.css|(구현 단계) 공통 디자인 값 (overview.md 9)|
-|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|(구현 단계) 화면 10개. overview.md 5 화면 목록과 같다|
+|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|(구현 단계) 화면 11개. overview.md 5 화면 목록과 같다|
 |프로젝트/frontend/tests/|(구현 단계) 프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
 |프로젝트/skills-lock.json|npx skills 로 설치한 스킬 목록과 해시|

@@ -9,10 +9,10 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 ## 1. 개요
 
 - **기본 경로**: /api (개발 시 프론트엔드 Vite 개발 서버 5173 → 백엔드 3000 으로 프록시)
-- **데이터 형식**: JSON (UTF-8), 요청 본문 최대 100kb (초과 시 400 INVALID_INPUT)
+- **데이터 형식**: JSON (UTF-8), 요청 본문 최대 100kb (초과 시 400 INVALID_INPUT). 일일보고 저장·양식 저장 API 만 512kb (6.12, D-161)
 - **인증 방식**: 로그인 쿠키 `todo_session` (httpOnly, SameSite=Strict). 토큰은 DB에 해시로 저장 (D-028, 6.3 로그인 쿠키)
 - **날짜 형식**: ISO 8601, UTC (2026-01-01T00:00:00Z). 기간(DATE)은 YYYY-MM-DD
-- **오늘 날짜**: 서버가 "오늘"을 정해야 할 때(마감 임박 알림, D-128)는 한국 시간(Asia/Seoul) 날짜를 쓴다
+- **오늘 날짜**: 서버가 "오늘"을 정해야 할 때(마감 임박 알림 D-128, 일일보고 D-158)는 한국 시간(Asia/Seoul) 날짜를 쓴다
 - **성공 상태**: 모든 API 는 성공 시 200
 - 정의되지 않은 경로 404 NOT_FOUND, JSON 본문 형식 오류·100kb 초과 400 INVALID_INPUT, 처리되지 않은 서버 오류 500 INTERNAL_ERROR
 - 보안 응답 헤더: 모든 응답에 `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY` 를 붙이고 `X-Powered-By` 는 끈다 (security.md 11 의 27번). CORS 는 열지 않는다 (개발은 Vite 프록시, 같은 출처)
@@ -94,6 +94,8 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 | 404 | USER_NOT_FOUND | 초대한 이메일로 가입된 회원이 없음 (D-092) |
 | 409 | ALREADY_TEAM_MEMBER | 초대한 회원이 이미 그 팀의 팀원임 |
 | 409 | INVITATION_DUPLICATED | 그 회원에게 답을 기다리는 그 팀의 초대가 이미 있음 (D-093) |
+| 409 | REPORT_NOT_TODAY | 오늘(한국 시간)이 아닌 날짜의 일일보고를 저장하려 함. 자정이 지난 경우 (D-158) |
+| 409 | REPORT_ALREADY_SUBMITTED | 이미 제출한 일일보고를 임시저장하려 함 (D-157) |
 
 ---
 
@@ -434,11 +436,11 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **사용 테이블**: teams, team_members
 
 #### POST /api/teams
-- **설명**: 팀 만들기 (D-073). 만든 회원을 관리자(owner)로 넣고 그 회원의 팀 목록 맨 위(sort_order 0, 다른 팀은 1씩 밂)에 둔다 (D-089). 가입된 팀 수 확인 + 팀 저장 + 관리자 저장 + 순서 밀기를 한 트랜잭션
+- **설명**: 팀 만들기 (D-073). 만든 회원을 관리자(owner)로 넣고 그 회원의 팀 목록 맨 위(sort_order 0, 다른 팀은 1씩 밂)에 둔다 (D-089). 일일보고 기본 양식(6.12)도 만든다 (D-152). 가입된 팀 수 확인 + 팀 저장 + 관리자 저장 + 순서 밀기 + 기본 양식 저장을 한 트랜잭션
 - **요청**: `name` string 필수 — 팀 이름 규칙
 - **응답 data**: 만든 Team (myRole = owner)
 - **오류**: 400 INVALID_INPUT, 401, 409 TEAM_LIMIT_EXCEEDED
-- **사용 테이블**: users, teams, team_members
+- **사용 테이블**: users, teams, team_members, report_templates
 
 #### POST /api/teams/{id}/move
 - **설명**: 좌측 네비 팀 목록 드래그 (D-089). 내 팀 목록에서 그 팀을 index 자리에 놓는다. 다른 회원의 순서에는 영향이 없다
@@ -502,7 +504,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **요청**: `name` string 필수 — 확인용 팀 이름 (앞뒤 공백을 지우고 비교, 1~20자)
 - **응답 data**: `isDeleted` true
 - **오류**: 400 INVALID_INPUT, 400 TEAM_NAME_MISMATCH, 401, 403, 404
-- **사용 테이블**: teams, notifications (그 팀 작업의 알림을 먼저 지운다). team_members, notifications, team_invite_declines, 팀 todos·tasks·task_assignees·task_logs·task_log_assignees 는 ON DELETE CASCADE
+- **사용 테이블**: teams, notifications (그 팀 작업의 알림을 먼저 지운다). team_members, notifications, team_invite_declines, 팀 todos·tasks·task_assignees·task_logs·task_log_assignees, report_templates, daily_reports 는 ON DELETE CASCADE
 
 ### 6.7 팀 초대/알림
 
@@ -582,7 +584,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 ### 6.8 실시간 반영 (Socket.IO)
 
 #### 연결 (공통)
-- 범위 (D-104): 팀 작업 페이지(할일·칸반)의 변경, 새 알림 배지, 팀에서 내보내짐·팀 해체. 개인 공간은 실시간 반영하지 않는다
+- 범위 (D-104, D-159): 팀 작업 페이지(할일·칸반)의 변경, 팀 일일보고의 제출·수정 제출, 새 알림 배지, 팀에서 내보내짐·팀 해체. 개인 공간은 실시간 반영하지 않는다
 - 경로 /socket.io (개발 시 Vite 개발 서버가 백엔드 3000 으로 WebSocket 프록시). 같은 출처에서만 연결하고 CORS 를 열지 않는다
 - 인증: 연결할 때 로그인 쿠키 `todo_session` 을 requireLogin 과 같은 방법으로 확인한다. 없거나 만료되었으면 연결을 거부한다 (화면은 다음 API 의 401 로 로그인 화면으로 간다)
 - 끊기: 로그아웃하거나 다른 곳에서 새로 로그인하면(D-050) 그 회원의 연결을 모두 끊는다. 토큰 만료 시각이 되면 끊는다
@@ -596,6 +598,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 |---|---|---|---|
 | `team:todos-changed` | `team:{팀 id}` | 팀 할일 추가·수정·삭제, [작업 시작] | `teamId` number, `todoId` number, `action` string (create / update / delete / start), `actorUserId` number |
 | `team:tasks-changed` | `team:{팀 id}` | 팀 작업 생성([작업 시작])·수정·드래그·삭제, 팀원이 나가 작업자에서 빠짐 (D-100) | `teamId` number, `taskIds` number[] (바뀐 작업), `action` string (create / update / move / delete / assignee-removed), `actorUserId` number |
+| `team:reports-changed` | `team:{팀 id}` | 팀원이 일일보고를 제출하거나 수정 제출함 (임시저장은 보내지 않는다, D-159) | `teamId` number, `reportDate` string (YYYY-MM-DD), `reportId` number, `userId` number, `action` string (submit / update), `actorUserId` number |
 | `notifications:changed` | `user:{회원 id}` | 그 회원에게 초대·작업자 지정 알림이 옴, 초대가 취소됨, 그 회원의 알림이 지워짐(작업 삭제 등), 그 회원이 수락·거절·읽음·지우기 처리 (다른 탭 맞춤). 마감 임박 알림은 알림을 불러올 때 생기므로 보내지 않는다 | `unreadCount` number |
 | `teams:changed` | `user:{회원 id}` | 그 회원이 팀에서 내보내짐, 팀이 해체됨, 그 회원이 팀을 만들거나 가입하거나 탈퇴함 (다른 탭 맞춤) | `teamId` number, `reason` string (removed / dissolved / joined / left) |
 
@@ -718,13 +721,136 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **요청**: `password` string 필수 — 현재 비밀번호 1~15자
 - **응답 data**: `isWithdrawn` boolean — 항상 true. 로그인 쿠키를 만료시킨다
 - **오류**: 400 INVALID_INPUT, 400 CURRENT_PASSWORD_MISMATCH, 401, 409 TEAM_OWNER_CANNOT_WITHDRAW (error 에 막는 팀 이름을 담는다: `teams` { teamId, name }[]), 423 LOGIN_LOCKED
-- **사용 테이블**: users, login_tokens, email_verifications, teams, team_members, todos, tasks, task_assignees, task_logs, task_log_assignees, notifications, team_invite_declines
+- **사용 테이블**: users, login_tokens, email_verifications, teams, team_members, todos, tasks, task_assignees, task_logs, task_log_assignees, notifications, team_invite_declines, daily_reports
 - **처리 순서**: 입력 검사 → 현재 비밀번호 확인 → 한 트랜잭션에서 내 users 행과 내 team_members 행을 잠그고
   1. 다른 팀원이 있는 팀의 관리자면 409 TEAM_OWNER_CANNOT_WITHDRAW (D-131)
   2. 나 혼자인 팀을 해체한다 (팀 해체와 같은 처리: 그 팀 작업의 알림을 먼저 지우고 teams 삭제, D-131)
   3. 남은 팀마다 팀 탈퇴와 같은 작업자 정리를 한다 (작업자에서 빼고 "작업자 변경" 기록, 닉네임은 탈퇴하는 회원, D-041, D-100, D-148) → 내 team_members 삭제
   4. 내가 받은 알림 삭제, 내가 보낸 알림의 sender_user_id 를 NULL 로 (sender_nickname 은 남김)
   5. 내 개인 작업의 알림 삭제 → 개인 tasks 삭제 (수정 내역 함께) → 개인 todos 삭제
-  6. 내 team_invite_declines, login_tokens, 내 이메일의 email_verifications 삭제 → users 삭제
+  6. 내 일일보고 중 draft 행 삭제, submitted 행은 user_id 를 NULL 로 (닉네임은 남김, D-160)
+  7. 내 team_invite_declines, login_tokens, 내 이메일의 email_verifications 삭제 → users 삭제
 - 커밋 뒤: 내 실시간 연결을 끊고, 작업자를 정리한 팀에 `team:tasks-changed` (assignee-removed), 초대를 보냈던 받는 회원들에게는 알림이 그대로라 보내지 않는다
 - 같은 아이디·이메일·전화번호로 다시 가입할 수 있고, 예전 기록과 연결되지 않는다 (D-041)
+
+### 6.12 일일보고
+
+#### 일일보고 공통
+- 모두 회원 전용 (requireLogin). 경로의 팀에 로그인한 회원이 속하지 않았거나 팀이 없으면 404 NOT_FOUND (6.6 팀 공통과 같음)
+- 오늘: 한국 시간(Asia/Seoul) 날짜. 날짜 경계(0시)도 한국 시간이다 (D-158)
+- 보고는 한 회원이 팀마다 하루에 1개. 쓰기·수정은 오늘 보고만 (D-157, D-158)
+- 저장 API(보고 저장, 양식 저장)는 요청 본문 최대 512kb. 넘으면 400 INVALID_INPUT
+- HTML 정화 (D-155): 보고 내용과 양식의 기본 내용은 서버가 sanitize-html 로 아래만 남기고 나머지 태그·속성은 지운 뒤 저장한다. 화면이 보낸 HTML 을 그대로 믿지 않는다
+  - 태그: p, br, strong, em, s, span, ul, ol, li, table, tbody, tr, th, td, hr, a
+  - 속성: span 의 style 은 `color: #RRGGBB` 만, th·td 의 colspan·rowspan (1~10 정수), a 의 href 는 http·https·mailto 만 (그 밖은 a 를 지우고 글자만 남김). a 에는 서버가 target="_blank", rel="noopener noreferrer" 를 붙인다
+- 글자 수: 구역 내용은 태그를 뺀 글자 5,000자 이하, HTML 은 구역마다 20,000자 이하, 보고 하나의 HTML 합계 100,000자 이하. 넘으면 400 INVALID_INPUT (D-161)
+- 구역 형식 (TemplateSection, 양식의 구역):
+  | 필드 | 타입 | 설명 |
+  |---|---|---|
+  | title | string | 구역 제목. 앞뒤 공백을 지우고 1~30자. 한 양식 안에서 서로 달라야 한다 |
+  | type | string | stats(통계) / tasks(작업 목록) / text(글) |
+  | statuses | string[] | tasks 만. waiting / progress / done 중 1개 이상 (중복 없음). 다른 종류면 빈 배열 |
+  | doneRange | DoneRange 또는 null | stats, 그리고 statuses 에 done 이 있는 tasks 만. 나머지는 null |
+  | defaultHtml | string | text 만. 기본 내용 (정화한 HTML, 빈 문자열 가능). 다른 종류면 빈 문자열 |
+- 완료 범위 (DoneRange, D-154): `kind` string — sinceLastReport / weekday / monthDay / lastWeek / lastMonth, `weekday` number — weekday 만 1(월)~7(일), `day` number — monthDay 만 1~31. 해당 없는 값은 null
+
+  | kind | 완료로 옮겨진 시각(done_date)의 범위 (한국 시간) |
+  |---|---|
+  | sinceLastReport | 이 팀의 내 submitted 보고 중 오늘 전 보고일의 가장 마지막 보고의 submit_date 이후. 없으면 지금 완료 공간의 작업 (히스토리 제외) |
+  | weekday | 오늘 전의 가장 가까운 그 요일 0시 이후 (오늘이 그 요일이면 7일 전) |
+  | monthDay | 오늘 전의 가장 가까운 그 날짜 0시 이후 (오늘이 그 날짜면 지난 달. 그 달에 없는 날짜는 그 달 마지막 날) |
+  | lastWeek | 지난 주 월요일 0시 이상, 이번 주 월요일 0시 미만 |
+  | lastMonth | 지난 달 1일 0시 이상, 이번 달 1일 0시 미만 |
+- 자동 채우기 (D-153): 대상은 이 팀의 tasks 중 task_assignees 에 내가 있는 작업. 대기·진행은 지금 그 상태인 작업 전부, 완료는 status = done 이고 done_date 가 완료 범위 안인 작업 (히스토리 작업 포함)
+  - stats: `<p>: 완료 {N}건, 진행 {N}건, 대기 {N}건</p>`
+  - tasks: 진행 → 대기 → 완료, 같은 상태 안은 sort_order 순 (완료 중 히스토리 작업은 done_date 늦은 순으로 뒤에). 작업 하나가 `<li>` 하나인 `<ul>`. 글은 `[기간] 제목 - [상태]` (기간: 월/일, 시간 없음. 시작·종료가 보고일과 해가 다르면 `YYYY/M/D`, 같은 날이면 `[M/D]`, 미정이면 `[미정]`. 상태: 대기 / 진행 / 완료). 제목은 HTML 이스케이프
+  - 해당 작업이 없으면 빈 문자열 (N/A 를 넣지 않는다)
+- 보고 구역 형식 (ReportSection): TemplateSection 의 title, type, statuses, doneRange + `html` string (구역 내용). defaultHtml 은 담지 않는다
+- 보고 형식 (Report):
+  | 필드 | 타입 | 설명 |
+  |---|---|---|
+  | reportId | number 또는 null | 보고 id (저장 전 초안이면 null) |
+  | reportDate | string | 보고일 YYYY-MM-DD |
+  | status | string | draft / submitted / new (저장 전 초안) |
+  | nickname | string | 작성자 닉네임 |
+  | isMine | boolean | 내 보고 여부 |
+  | header | string | 머리말 ({날짜}를 바꾼 값) |
+  | sections | ReportSection[] | 구역 |
+  | draftDate | string 또는 null | 마지막 임시저장 시각 (내 보고만, 남의 보고는 null) |
+  | submitDate | string 또는 null | 처음 제출 시각 |
+  | updateDate | string 또는 null | 마지막 수정 제출 시각 (있으면 화면에 "수정됨 · 시각") |
+- 기본 양식 (D-152): header `{날짜} 진행 사항입니다.`, sections ◆ 통계(stats, sinceLastReport) / ◆ 진행(tasks, [progress]) / ◆ 대기(tasks, [waiting]) / ◆ 완료(tasks, [done], sinceLastReport) / ◆ 기타(text, 빈 기본 내용). 제목 앞 ◆ 도 제목 글자에 들어간다
+
+#### GET /api/teams/{id}/reports
+- **설명**: 팀원 보고 현황 (왼쪽 목록, D-158)
+- **쿼리**: `date` string 필수 — YYYY-MM-DD, 오늘 또는 그 전. 오늘 뒤면 400
+- **응답 data**: `date` string, `isToday` boolean, `items` ReportStatus[] — 나 → 지금 팀원(합류 순) → 그날 제출했지만 지금 팀에 없는 사람(제출 순)
+
+  | 필드 | 타입 | 설명 |
+  |---|---|---|
+  | userId | number 또는 null | 회원 id (탈퇴한 회원이면 null) |
+  | nickname | string | 지금 팀원은 지금 닉네임, 지금 팀에 없는 사람은 보고에 저장된 닉네임 |
+  | isMe | boolean | 나 여부 |
+  | status | string | submitted / draft (나만) / none (미제출) |
+  | reportId | number 또는 null | 볼 수 있는 보고 id (submitted, 또는 내 draft). 없으면 null |
+  | submitDate | string 또는 null | 처음 제출 시각 |
+  | isEdited | boolean | 수정 제출한 적 있음 |
+- 그 날짜(한국 시간) 뒤에 합류한 지금 팀원은 그 날짜 목록에서 뺀다 (team_members.create_date 기준). 나는 언제나 넣는다
+- **오류**: 400, 401, 404
+- **사용 테이블**: team_members, users, daily_reports
+
+#### GET /api/teams/{id}/reports/{reportId}
+- **설명**: 보고 하나 읽기. submitted 보고, 또는 내 draft 보고
+- **응답 data**: Report
+- **오류**: 400, 401, 404 (다른 팀 보고, 남의 draft 보고, 없는 보고)
+- **사용 테이블**: team_members, daily_reports
+
+#### GET /api/teams/{id}/reports/today
+- **설명**: 내 오늘 보고 열기. 저장한 오늘 보고가 있으면 그것을, 없으면 지금 팀 양식으로 초안을 만들어 준다 (저장하지 않음, status = new). 초안은 머리말 {날짜} 바꿈 + 자동 구역 채우기 + 글 구역은 이어받기가 켜져 있으면 같은 팀의 내 마지막 보고(draft·submitted, 오늘 전 보고일 중 가장 마지막)에서 제목이 같은 text 구역의 html, 없거나 꺼져 있으면 defaultHtml (D-156)
+- **응답 data**: `report` Report, `isCarryOver` boolean — 내 이어받기 설정
+- **오류**: 401, 404
+- **사용 테이블**: team_members, users, report_templates, daily_reports, tasks, task_assignees
+
+#### GET /api/teams/{id}/reports/today/fresh
+- **설명**: [새 양식 적용] 용 초안 (D-157). 지금 팀 양식으로 만든 초안을 준다 (저장하지 않음). 글 구역은 언제나 defaultHtml. 화면이 쓰던 글 구역 중 제목이 같은 것의 내용을 옮겨 넣는다
+- **응답 data**: `report` Report (status = new, reportId = null)
+- **오류**: 401, 404
+- **사용 테이블**: team_members, report_templates, daily_reports, tasks, task_assignees
+
+#### GET /api/teams/{id}/reports/section-content
+- **설명**: 자동 구역 [다시 불러오기] (D-157). 그 구역 설정으로 지금 칸반 기준 내용을 만든다
+- **쿼리**: `type` string 필수 — stats / tasks, `statuses` string — tasks 만, 쉼표로 구분 (예: progress,done), `doneKind` string — 완료 범위가 있을 때, `doneWeekday` number, `doneDay` number. 규칙은 TemplateSection·DoneRange 와 같다
+- **응답 data**: `html` string
+- **오류**: 400, 401, 404
+- **사용 테이블**: team_members, daily_reports, tasks, task_assignees
+
+#### POST /api/teams/{id}/reports/today/save
+- **설명**: 오늘 보고 임시저장 또는 제출·수정 제출 (D-157). 없으면 만들고 있으면 바꾼다. 닉네임은 지금 내 닉네임으로 저장한다
+- **요청**: `reportDate` string 필수 — 화면이 연 보고일 (오늘이 아니면 409 REPORT_NOT_TODAY), `action` string 필수 — draft(임시저장) / submit(제출·수정 제출), `header` string 필수 — 0~100자, `sections` ReportSection[] 필수 — 1~20개, 제목이 서로 다름, 각 html 은 정화한 뒤 글자 수 검사
+- **처리**: 한 트랜잭션에서 (team_id, user_id, report_date) 행을 잠그고(UPDLOCK·HOLDLOCK) 읽는다
+  - draft: 행이 submitted 면 409 REPORT_ALREADY_SUBMITTED. 아니면 저장하고 draft_date = 지금
+  - submit: 행이 없거나 draft 면 status = submitted, submit_date = 지금. 이미 submitted 면 update_date = 지금 (수정 제출)
+- **응답 data**: Report
+- **오류**: 400 INVALID_INPUT, 401, 404, 409 REPORT_NOT_TODAY, 409 REPORT_ALREADY_SUBMITTED
+- **사용 테이블**: team_members, users, daily_reports
+- 커밋 뒤 submit 이면 `team:reports-changed` (처음 제출 submit / 수정 제출 update)
+
+#### GET /api/teams/{id}/report-template
+- **설명**: 팀 양식 ([양식 설정] 모달). 팀원 누구나 읽을 수 있다
+- **응답 data**: `header` string, `sections` TemplateSection[], `canEdit` boolean — 내가 관리자·부관리자
+- **오류**: 401, 404
+- **사용 테이블**: team_members, report_templates
+
+#### POST /api/teams/{id}/report-template/update
+- **설명**: 팀 양식 저장 (D-152). 관리자·부관리자만 (팀원이면 403). 바로 적용, 이미 저장한 보고는 바꾸지 않는다. 실시간 이벤트를 보내지 않는다
+- **요청**: `header` string 필수 — 앞뒤 공백을 지우고 0~100자, `sections` TemplateSection[] 필수 — 1~20개
+- **응답 data**: `header` string, `sections` TemplateSection[], `canEdit` boolean
+- **오류**: 400, 401, 403, 404
+- **사용 테이블**: team_members, report_templates
+
+#### POST /api/users/me/report-carry-over
+- **설명**: 일일보고 "지난 보고 이어받기" 켜기/끄기 (D-156). 모든 팀에 적용된다
+- **요청**: `isOn` boolean 필수
+- **응답 data**: `isCarryOver` boolean
+- **오류**: 400, 401
+- **사용 테이블**: users
