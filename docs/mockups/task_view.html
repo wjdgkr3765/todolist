@@ -22,6 +22,7 @@
     .my-only-note { font-size: 12px; color: var(--color-muted); font-weight: 400; }
     .kanban-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
     .kanban-column { background: var(--color-input-bg); border-radius: 12px; padding: 10px; min-width: 0; }
+    .kanban-column.is-drop-target { box-shadow: inset 0 0 0 2px var(--color-primary); }
     .column-head { display: flex; align-items: center; gap: 6px; padding: 2px 4px 10px; font-size: 14px; font-weight: 700; }
     .column-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-color); }
     .column-count { font-size: 13px; font-weight: 600; color: var(--color-muted); }
@@ -29,13 +30,13 @@
     .status-progress { --status-color: var(--color-progress); }
     .status-done { --status-color: var(--color-done); }
     .card-list { min-height: 160px; max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
-    .task-card { background: #fff; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 12px; cursor: grab; }
+    .task-card { background: #fff; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 12px; cursor: grab; flex: 0 0 auto; }
     .task-card:hover { border-color: var(--color-border-strong); box-shadow: 0 2px 6px rgba(17, 24, 39, 0.08); }
     .task-card.is-selected { border: 1.5px solid var(--color-primary); background: #f6fbf8; }
-    .task-card.is-dragging { box-shadow: 0 10px 24px -6px rgba(17, 24, 39, 0.25); transform: rotate(2deg); }
-    .task-card.is-ghost { background: var(--color-primary-soft); border: 1.5px dashed var(--color-primary); }
+    .task-card.is-dragging { box-shadow: 0 10px 24px -6px rgba(17, 24, 39, 0.25); transform: rotate(2deg); opacity: 0.6; }
+    .task-card.is-ghost, .drop-ghost { background: var(--color-primary-soft); border: 1.5px dashed var(--color-primary); border-radius: 10px; min-height: 52px; flex: 0 0 auto; }
     .task-card.is-ghost > * { visibility: hidden; }
-    .is-drag-locked .task-card { cursor: default; }
+    .is-drag-locked .task-card { cursor: pointer; }
     .card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .card-period { font-size: 12px; color: var(--color-sub); margin-top: 4px; display: flex; align-items: center; min-width: 0; }
     .period-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -72,6 +73,7 @@
     .detail-label { font-size: 13px; font-weight: 600; color: var(--color-sub); margin-bottom: 4px; }
     .detail-value { font-size: 15px; word-break: break-all; display: flex; align-items: center; flex-wrap: wrap; }
     .detail-value.is-overdue { color: var(--color-danger); }
+    .detail-value .muted { color: var(--color-muted); }
     .detail-content { white-space: pre-wrap; max-height: 220px; overflow-y: auto; display: block; }
     .detail-buttons { display: flex; gap: 8px; margin: 4px 0 16px; }
     .detail-buttons .btn-x { flex: 1; height: 40px; }
@@ -80,7 +82,7 @@
     .assignee-picker .control span.value { flex: 1; padding: 0 14px; height: 48px; display: flex; align-items: center; font-size: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
     .assignee-picker .placeholder-text { color: var(--color-muted); }
     .assignee-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30; background: #fff; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); max-height: 240px; overflow-y: auto; padding: 4px 0; }
-    .assignee-option { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; cursor: pointer; }
+    .assignee-option { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; cursor: pointer; margin: 0; }
     .assignee-option:hover { background: var(--color-input-bg); }
     .assignee-option input { width: 16px; height: 16px; accent-color: var(--color-primary); }
     .assignee-option b { font-size: 14px; font-weight: 600; }
@@ -101,9 +103,10 @@
   </style>
 </head>
 <body>
+  <!-- 시안 (D-146): 서버 없이 이 화면 안에서만 동작한다. 가짜 데이터라 새로고침하면 처음 상태로 돌아간다 -->
   <div class="mockup-bar">
     <span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select>
-    <span>· 공간: <a href="task_view.html">개인</a> / <a href="task_view.html?space=team">팀</a> · 화면 문서: TaskView_screen.md</span>
+    <span>· 공간: <a href="task_view.html">개인</a> / <a href="task_view.html?space=team">팀</a> · 화면 문서: TaskView_screen.md · 오늘은 2026.11.11 10:30 으로 본다</span>
   </div>
 
   <div class="main-layout">
@@ -117,7 +120,7 @@
           <!-- 칸반보드 -->
           <section id="kanban" class="panel">
             <div class="kanban-head">
-              <h2 class="panel-title">칸반보드<span id="kanban-count" class="panel-count">(6개)</span></h2>
+              <h2 class="panel-title">칸반보드<span id="kanban-count" class="panel-count"></span></h2>
               <label id="my-only" class="my-only form-switch is-hidden">
                 <input id="my-only-input" class="form-check-input" type="checkbox" role="switch" />내 작업만
                 <span id="my-only-note" class="my-only-note is-hidden">순서 변경 불가</span>
@@ -129,7 +132,7 @@
           <!-- 할일 목록 -->
           <section class="panel">
             <div class="todo-header">
-              <h2 class="panel-title">할일 목록<span id="todo-count" class="panel-count">(4개)</span></h2>
+              <h2 class="panel-title">할일 목록<span id="todo-count" class="panel-count"></span></h2>
               <div class="todo-actions">
                 <button type="button" id="btn-add" class="btn-x btn-primary-x"><i class="bi bi-plus-lg"></i>추가</button>
                 <button type="button" id="btn-edit" class="btn-x btn-soft-x" disabled><i class="bi bi-pencil"></i>수정</button>
@@ -139,12 +142,7 @@
             </div>
             <table id="todo-table" class="todo-table">
               <thead><tr><th>제목</th><th>기간</th></tr></thead>
-              <tbody>
-                <tr id="todo-row-1"><td>디자인 시스템 정리</td><td title="2026.11.12 10:00 ~ 2026.11.18 17:30">~ 2026.11.18 17:30</td></tr>
-                <tr><td>팀 회의 자료 준비하기 위해 필요한 내용 정리하고 공유하기</td><td title="2026.11.13 14:00 ~ 15:30">~ 2026.11.13 15:30</td></tr>
-                <tr><td>디자인 리뷰 준비</td><td title="2026.11.16 ~ 2026.11.17">~ 2026.11.17</td></tr>
-                <tr><td>참고 자료 찾기</td><td><span class="badge-x badge-undecided">미정</span></td></tr>
-              </tbody>
+              <tbody id="todo-body"></tbody>
             </table>
             <div id="todo-empty" class="empty-box is-hidden"><i class="bi bi-journal-text"></i>할일이 없습니다.<span class="empty-sub">[추가]를 눌러 첫 할일을 만들어 보세요.</span></div>
             <div id="todo-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
@@ -154,37 +152,37 @@
         <!-- 오른쪽 UI: 할일 입력 -->
         <aside id="todo-form" class="panel side-panel is-hidden">
           <div id="strip-todo-changed" class="warn-strip is-hidden"><i class="bi bi-exclamation-circle"></i>다른 팀원이 이 할일을 바꿨습니다.</div>
-          <div class="side-head"><h2 id="todo-form-title" class="panel-title">할일 추가</h2><button type="button" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
+          <div class="side-head"><h2 id="todo-form-title" class="panel-title">할일 추가</h2><button type="button" id="btn-todo-close" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
           <div class="field">
             <label class="field-label" for="todo-title">제목</label>
-            <div id="ctl-todo-title" class="control no-icon"><input id="todo-title" type="text" maxlength="50" placeholder="할일 제목" /></div>
+            <div id="todo-ctl-title" class="control no-icon"><input id="todo-title" type="text" maxlength="50" placeholder="할일 제목" /></div>
             <div id="todo-title-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>제목을 입력해 주세요.</div>
             <div class="char-count"><span id="todo-title-count">0</span>/50</div>
           </div>
           <div class="field">
             <label class="field-label" for="todo-content">내용</label>
-            <div id="ctl-todo-content" class="control no-icon"><textarea id="todo-content" rows="8" maxlength="2000" placeholder="할일 내용"></textarea></div>
+            <div id="todo-ctl-content" class="control no-icon"><textarea id="todo-content" rows="8" maxlength="2000" placeholder="할일 내용"></textarea></div>
             <div id="todo-content-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>내용을 입력해 주세요.</div>
             <div class="char-count"><span id="todo-content-count">0</span>/2000</div>
           </div>
           <div class="field">
             <span class="field-label">기간</span>
             <div class="period-row">
-              <div id="ctl-start" class="control no-icon"><input id="todo-start" type="date" aria-label="시작일" /></div><span>~</span>
-              <div id="ctl-end" class="control no-icon"><input id="todo-end" type="date" aria-label="종료일" /></div>
+              <div id="todo-ctl-start" class="control no-icon"><input id="todo-start" type="date" aria-label="시작일" /></div><span>~</span>
+              <div id="todo-ctl-end" class="control no-icon"><input id="todo-end" type="date" aria-label="종료일" /></div>
             </div>
             <div id="todo-time-row" class="period-row is-time is-hidden">
-              <div id="ctl-start-time" class="control no-icon"><input id="todo-start-time" type="time" step="300" value="09:00" aria-label="시작 시각" /></div><span>~</span>
-              <div id="ctl-end-time" class="control no-icon"><input id="todo-end-time" type="time" step="300" value="18:00" aria-label="종료 시각" /></div>
+              <div id="todo-ctl-start-time" class="control no-icon"><input id="todo-start-time" type="time" step="300" aria-label="시작 시각" /></div><span>~</span>
+              <div id="todo-ctl-end-time" class="control no-icon"><input id="todo-end-time" type="time" step="300" aria-label="종료 시각" /></div>
             </div>
             <div class="period-checks">
               <label class="undecided-check"><input id="todo-undecided" type="checkbox" />기간 미정</label>
               <label class="undecided-check"><input id="todo-time" type="checkbox" />시간 지정</label>
             </div>
-            <div id="todo-period-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i><span id="todo-period-error-text">시작일과 종료일을 선택해 주세요.</span></div>
+            <div id="todo-period-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i><span id="todo-period-error-text"></span></div>
           </div>
           <div class="form-buttons">
-            <button type="button" class="btn-x btn-outline-x">취소</button>
+            <button type="button" id="btn-todo-cancel" class="btn-x btn-outline-x">취소</button>
             <button type="button" id="btn-todo-save" class="btn-submit">저장</button>
           </div>
         </aside>
@@ -192,69 +190,63 @@
         <!-- 오른쪽 UI: 작업 상세 -->
         <aside id="task-detail" class="panel side-panel is-hidden">
           <div id="strip-task-changed" class="warn-strip is-hidden"><i class="bi bi-exclamation-circle"></i>다른 팀원이 이 작업을 바꿨습니다.</div>
-          <div class="side-head"><h2 id="detail-title" class="panel-title">작업 상세</h2><button type="button" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
+          <div class="side-head"><h2 id="detail-title" class="panel-title">작업 상세</h2><button type="button" id="btn-detail-close" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
 
           <div id="detail-read">
-            <div class="detail-item"><div class="detail-label">상태</div><span class="badge-x badge-waiting">대기</span></div>
-            <div class="detail-item"><div class="detail-label">제목</div><div class="detail-value">API 명세 검토</div></div>
-            <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value is-overdue">2026.11.05 09:00 ~ 2026.11.09 18:00<span class="badge-x badge-overdue">기한 지남</span></div></div>
-            <div id="detail-assignee-read" class="detail-item team-only"><div class="detail-label">작업자</div><div class="detail-value">김민수, 홍길동</div></div>
-            <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">회원·팀 API 의 요청과 응답 형식을 다시 확인한다.
-오류 코드가 화면 문서와 맞는지도 본다.</div></div>
+            <div class="detail-item"><div class="detail-label">상태</div><span id="d-status" class="badge-x"></span></div>
+            <div class="detail-item"><div class="detail-label">제목</div><div id="d-title" class="detail-value"></div></div>
+            <div class="detail-item"><div class="detail-label">기간</div><div id="d-period" class="detail-value"></div></div>
+            <div class="detail-item team-only"><div class="detail-label">작업자</div><div id="d-assignee" class="detail-value"></div></div>
+            <div class="detail-item"><div class="detail-label">내용</div><div id="d-content" class="detail-value detail-content"></div></div>
             <div class="detail-buttons">
-              <button type="button" class="btn-x btn-soft-x"><i class="bi bi-pencil"></i>수정</button>
-              <button type="button" class="btn-x btn-danger-soft-x"><i class="bi bi-trash"></i>삭제</button>
+              <button type="button" id="btn-detail-edit" class="btn-x btn-soft-x"><i class="bi bi-pencil"></i>수정</button>
+              <button type="button" id="btn-detail-delete" class="btn-x btn-danger-soft-x"><i class="bi bi-trash"></i>삭제</button>
             </div>
           </div>
 
           <div id="detail-edit" class="is-hidden">
             <div class="field"><label class="field-label" for="edit-status">상태</label>
-              <div class="control no-icon"><select id="edit-status"><option>대기</option><option>진행</option><option>완료</option></select></div></div>
+              <div class="control no-icon"><select id="edit-status"><option value="waiting">대기</option><option value="progress">진행</option><option value="done">완료</option></select></div></div>
             <div class="field"><label class="field-label" for="edit-title">제목</label>
-              <div class="control no-icon"><input id="edit-title" type="text" maxlength="50" value="API 명세 검토" /></div><div class="char-count">8/50</div></div>
+              <div id="edit-ctl-title" class="control no-icon"><input id="edit-title" type="text" maxlength="50" /></div>
+              <div id="edit-title-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>제목을 입력해 주세요.</div>
+              <div class="char-count"><span id="edit-title-count">0</span>/50</div></div>
             <div class="field"><span class="field-label">기간</span>
               <div class="period-row">
-                <div class="control no-icon"><input type="date" value="2026-11-05" aria-label="시작일" /></div><span>~</span>
-                <div class="control no-icon"><input type="date" value="2026-11-09" aria-label="종료일" /></div>
+                <div id="edit-ctl-start" class="control no-icon"><input id="edit-start" type="date" aria-label="시작일" /></div><span>~</span>
+                <div id="edit-ctl-end" class="control no-icon"><input id="edit-end" type="date" aria-label="종료일" /></div>
               </div>
-              <div class="period-row is-time">
-                <div class="control no-icon"><input type="time" step="300" value="09:00" aria-label="시작 시각" /></div><span>~</span>
-                <div class="control no-icon"><input type="time" step="300" value="18:00" aria-label="종료 시각" /></div>
+              <div id="edit-time-row" class="period-row is-time is-hidden">
+                <div id="edit-ctl-start-time" class="control no-icon"><input id="edit-start-time" type="time" step="300" aria-label="시작 시각" /></div><span>~</span>
+                <div id="edit-ctl-end-time" class="control no-icon"><input id="edit-end-time" type="time" step="300" aria-label="종료 시각" /></div>
               </div>
               <div class="period-checks">
-                <label class="undecided-check"><input type="checkbox" />기간 미정</label>
-                <label class="undecided-check"><input type="checkbox" checked />시간 지정</label>
-              </div></div>
+                <label class="undecided-check"><input id="edit-undecided" type="checkbox" />기간 미정</label>
+                <label class="undecided-check"><input id="edit-time" type="checkbox" />시간 지정</label>
+              </div>
+              <div id="edit-period-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i><span id="edit-period-error-text"></span></div></div>
             <div class="field team-only"><span class="field-label">작업자</span>
               <div class="assignee-picker">
-                <div class="control no-icon"><span id="picker-value" class="value">김민수, 홍길동</span><span class="control-suffix"><i class="bi bi-chevron-down"></i></span></div>
+                <div id="picker-control" class="control no-icon" role="button" tabindex="0"><span id="picker-value" class="value"></span><span class="control-suffix"><i class="bi bi-chevron-down"></i></span></div>
                 <div id="assignee-menu" class="assignee-menu is-hidden">
                   <div id="assignee-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
-                  <div id="assignee-options">
-                    <label class="assignee-option"><input type="checkbox" checked /><span><b>홍길동</b><small>user@example.com</small></span></label>
-                    <label class="assignee-option"><input type="checkbox" /><span><b>이영희</b><small>younghee@example.com</small></span></label>
-                    <label class="assignee-option"><input type="checkbox" checked /><span><b>김민수</b><small>minsu@example.com</small></span></label>
-                    <label class="assignee-option"><input type="checkbox" /><span><b>박지성</b><small>jisung.park@example.com</small></span></label>
-                  </div>
+                  <div id="assignee-options"></div>
                 </div>
               </div></div>
             <div class="field"><label class="field-label" for="edit-content">내용</label>
-              <div class="control no-icon"><textarea id="edit-content" rows="8" maxlength="2000">회원·팀 API 의 요청과 응답 형식을 다시 확인한다.</textarea></div><div class="char-count">27/2000</div></div>
+              <div id="edit-ctl-content" class="control no-icon"><textarea id="edit-content" rows="8" maxlength="2000"></textarea></div>
+              <div id="edit-content-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>내용을 입력해 주세요.</div>
+              <div class="char-count"><span id="edit-content-count">0</span>/2000</div></div>
             <div class="form-buttons">
-              <button type="button" class="btn-x btn-outline-x">취소</button>
+              <button type="button" id="btn-edit-cancel" class="btn-x btn-outline-x">취소</button>
               <button type="button" id="btn-task-save" class="btn-submit">저장</button>
             </div>
           </div>
 
           <div class="log-section">
-            <div class="log-title">수정 내역<span>(4)</span></div>
+            <div class="log-title">수정 내역<span id="log-count"></span></div>
             <div id="log-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span></div>
-            <div id="log-list" class="log-list">
-              <div class="log-row team-only"><div><div class="log-type">작업자 변경</div><div class="log-meta">2026.11.11 10:20 · 홍길동</div></div><i class="bi bi-chevron-right"></i></div>
-              <div class="log-row"><div><div class="log-type">작업 수정 · 상태 변경 (진행 → 대기)</div><div class="log-meta">2026.11.08 16:02 · 김민수</div></div><i class="bi bi-chevron-right"></i></div>
-              <div class="log-row"><div><div class="log-type">상태 변경 (대기 → 진행)</div><div class="log-meta">2026.11.06 09:30 · 김민수</div></div><i class="bi bi-chevron-right"></i></div>
-              <div class="log-row"><div><div class="log-type">작업 생성</div><div class="log-meta">2026.11.05 13:00 · 홍길동</div></div><i class="bi bi-chevron-right"></i></div>
-            </div>
+            <div id="log-list" class="log-list"></div>
           </div>
         </aside>
       </div>
@@ -264,14 +256,14 @@
   <!-- 수정 내역 모달 -->
   <div id="log-modal" class="modal-backdrop-x is-hidden">
     <div class="modal-x is-wide" role="dialog" aria-label="수정 내역">
-      <div class="modal-title-x">수정 내역<button type="button" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
-      <div class="log-modal-info"><div class="log-type">작업 수정 · 상태 변경 (진행 → 대기)</div><div class="log-meta">2026.11.08 16:02 · 김민수</div></div>
-      <div class="detail-item"><div class="detail-label">상태</div><span class="badge-x badge-waiting">대기</span></div>
-      <div class="detail-item"><div class="detail-label">제목</div><div class="detail-value">API 명세 검토</div></div>
-      <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value">2026.11.05 ~ 2026.11.09</div></div>
-      <div class="detail-item team-only"><div class="detail-label">작업자</div><div class="detail-value">김민수</div></div>
-      <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">회원·팀 API 의 요청과 응답 형식을 확인한다.</div></div>
-      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">닫기</button></div>
+      <div class="modal-title-x">수정 내역<button type="button" id="btn-log-x" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
+      <div class="log-modal-info"><div id="lm-type" class="log-type"></div><div id="lm-meta" class="log-meta"></div></div>
+      <div class="detail-item"><div class="detail-label">상태</div><span id="lm-status" class="badge-x"></span></div>
+      <div class="detail-item"><div class="detail-label">제목</div><div id="lm-title" class="detail-value"></div></div>
+      <div class="detail-item"><div class="detail-label">기간</div><div id="lm-period" class="detail-value"></div></div>
+      <div class="detail-item team-only"><div class="detail-label">작업자</div><div id="lm-assignee" class="detail-value"></div></div>
+      <div class="detail-item"><div class="detail-label">내용</div><div id="lm-content" class="detail-value detail-content"></div></div>
+      <div class="modal-actions"><button type="button" id="btn-log-close" class="btn-x btn-outline-x">닫기</button></div>
     </div>
   </div>
 
@@ -279,9 +271,9 @@
   <div id="confirm-todo" class="modal-backdrop-x is-hidden">
     <div class="modal-x" role="dialog" aria-label="할일 삭제">
       <div class="modal-title-x">할일을 삭제할까요?</div>
-      <div class="confirm-target">디자인 시스템 정리</div>
+      <div id="ct-target" class="confirm-target"></div>
       <div class="modal-sub">삭제한 할일은 되돌릴 수 없습니다.</div>
-      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">취소</button><button type="button" id="btn-confirm-todo" class="btn-x btn-danger-x">삭제</button></div>
+      <div class="modal-actions"><button type="button" id="btn-confirm-todo-cancel" class="btn-x btn-outline-x">취소</button><button type="button" id="btn-confirm-todo" class="btn-x btn-danger-x">삭제</button></div>
     </div>
   </div>
 
@@ -289,162 +281,13 @@
   <div id="confirm-task" class="modal-backdrop-x is-hidden">
     <div class="modal-x" role="dialog" aria-label="작업 삭제">
       <div class="modal-title-x">작업을 삭제할까요?</div>
-      <div class="confirm-target">API 명세 검토</div>
+      <div id="ck-target" class="confirm-target"></div>
       <div class="modal-sub">삭제한 작업과 수정 내역은 되돌릴 수 없습니다.</div>
-      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">취소</button><button type="button" id="btn-confirm-task" class="btn-x btn-danger-x">삭제</button></div>
+      <div class="modal-actions"><button type="button" id="btn-confirm-task-cancel" class="btn-x btn-outline-x">취소</button><button type="button" id="btn-confirm-task" class="btn-x btn-danger-x">삭제</button></div>
     </div>
   </div>
 
   <script src="mockup_common.js"></script>
-  <script>
-    const isTeam = pageParams.get('space') === 'team';
-    renderLayout({ space: isTeam ? 'team' : 'personal', tab: 'tasks', hideTabs: false });
-    if (!isTeam) { document.querySelectorAll('.team-only').forEach((el) => el.remove()); }
-
-    // 오늘은 2026.11.11 로 본다. 'API 명세 검토' 는 종료일이 지나 기한 지남 (D-125)
-    const ME = '홍길동';
-    const COLUMNS = [
-      { key: 'waiting', label: '대기', cards: [
-        { id: 'c1', title: '메인 화면 시안 정리', period: '2026.11.10 09:00 ~ 2026.11.20 18:00', end: '~ 2026.11.20 18:00', assignees: ['홍길동', '이영희', '김민수'] },
-        { id: 'c2', title: 'API 명세 검토', period: '2026.11.05 09:00 ~ 2026.11.09 18:00', end: '~ 2026.11.09 18:00', overdue: true, assignees: ['김민수', '홍길동'] },
-        { id: 'c3', title: '회의록 공유', period: null, assignees: [] },
-      ] },
-      { key: 'progress', label: '진행', cards: [
-        { id: 'c4', title: '로그인 화면 구현', period: '2026.11.11 ~ 2026.11.14', end: '~ 2026.11.14', assignees: ['홍길동'] },
-        { id: 'c5', title: '주간 보고서 작성 길게 넘치는 제목 테스트 문구입니다', period: '2026.11.12 09:00 ~ 18:00', end: '~ 2026.11.12 18:00', assignees: ['이영희'] },
-      ] },
-      { key: 'done', label: '완료', cards: [
-        { id: 'c6', title: 'DB 설계', period: '2026.11.01 ~ 2026.11.07', end: '~ 2026.11.07', assignees: ['홍길동'] },
-      ] },
-    ];
-
-    function cardHtml(card) {
-      const period = card.period
-        ? `<div class="card-period${card.overdue ? ' is-overdue' : ''}" title="${card.period}"><span class="period-text">${card.end}</span>${card.overdue ? '<span class="badge-x badge-overdue">기한 지남</span>' : ''}</div>`
-        : '<div class="card-period"><span class="badge-x badge-undecided">미정</span></div>';
-      let assignee = '';
-      if (isTeam && card.assignees.length === 1) {
-        assignee = `<div class="card-assignee" title="${card.assignees[0]}"><i class="bi bi-person"></i><span class="name">${card.assignees[0]}</span></div>`;
-      } else if (isTeam && card.assignees.length > 1) {
-        assignee = `<div class="card-assignee" title="${card.assignees.join(', ')}"><i class="bi bi-people"></i><span class="name">${card.assignees[0]}</span><span class="more">외 ${card.assignees.length - 1}명</span></div>`;
-      }
-      return `<div class="task-card" id="${card.id}"><div class="card-title">${card.title}</div>${period}${assignee}</div>`;
-    }
-
-    function renderKanban(options) {
-      let total = 0;
-      $('kanban-columns').innerHTML = COLUMNS.map((column) => {
-        const cards = options.empty ? [] : column.cards.filter((card) => !options.myOnly || card.assignees.includes(ME));
-        total += cards.length;
-        const body = options.loading
-          ? '<div class="loading-box"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>'
-          : (cards.length ? cards.map(cardHtml).join('') : '<div class="column-empty">작업이 없습니다</div>');
-        return `<div class="kanban-column status-${column.key}"><div class="column-head"><span class="column-dot"></span>${column.label}<span class="column-count">${cards.length}</span></div><div class="card-list">${body}</div></div>`;
-      }).join('');
-      $('kanban-count').textContent = `(${total}개)`;
-      $('kanban').classList.toggle('is-drag-locked', Boolean(options.myOnly));
-    }
-
-    addToast('toast-todo-added', 'success', '할일을 추가했습니다.', '');
-    addToast('toast-started', 'success', '작업을 시작했습니다.', '');
-    addToast('toast-task-saved', 'success', '작업을 수정했습니다.', '');
-    addToast('toast-no-change', 'success', '바뀐 내용이 없습니다.', '');
-    addToast('toast-deleted-404', 'error', '이미 삭제된 작업입니다.', '');
-    addToast('toast-todo-404', 'error', '이미 삭제된 할일입니다.', '');
-    addToast('toast-todo-other-deleted', 'error', '다른 팀원이 이 할일을 삭제했습니다.', '');
-    addToast('toast-todo-other-started', 'success', '다른 팀원이 이 할일로 작업을 시작했습니다.', '');
-    addToast('toast-history-409', 'error', '히스토리로 옮겨진 작업입니다.', '');
-    addToast('toast-other-deleted', 'error', '다른 팀원이 이 작업을 삭제했습니다.', '');
-    addToast('toast-not-found', 'error', '작업을 찾을 수 없습니다.', '지워졌거나 히스토리로 옮겨진 작업입니다.');
-    addToast('toast-assignee-gone', 'error', '팀에 없는 회원이 작업자에 있습니다.', '');
-    addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
-
-    const SAVE_LABEL = '저장';
-    function resetState() {
-      hideAllToasts();
-      renderKanban({});
-      ['todo-form', 'task-detail', 'detail-edit', 'log-modal', 'confirm-todo', 'confirm-task', 'todo-empty', 'todo-loading', 'log-loading',
-        'strip-disconnected', 'strip-todo-changed', 'strip-task-changed', 'todo-title-error', 'todo-content-error', 'todo-period-error'].forEach((id) => hide(id));
-      show('todo-table', 'detail-read', 'log-list');
-      if (isTeam) { show('my-only'); hide('assignee-menu', 'assignee-loading', 'my-only-note'); $('my-only-input').checked = false; }
-      document.querySelectorAll('.is-selected').forEach((el) => el.classList.remove('is-selected'));
-      ['btn-edit', 'btn-delete', 'btn-start'].forEach((id) => { $(id).disabled = true; });
-      $('btn-start').innerHTML = '<i class="bi bi-play-fill"></i>작업 시작';
-      ['ctl-todo-title', 'ctl-todo-content', 'ctl-start', 'ctl-end'].forEach((id) => $(id).classList.remove('is-invalid', 'is-locked'));
-      ['todo-start', 'todo-end'].forEach((id) => { $(id).disabled = false; $(id).value = ''; });
-      $('todo-undecided').checked = false; $('todo-time').checked = false; $('todo-time').disabled = false;
-      hide('todo-time-row');
-      ['ctl-start-time', 'ctl-end-time'].forEach((id) => $(id).classList.remove('is-invalid'));
-      $('todo-start-time').value = '09:00'; $('todo-end-time').value = '18:00';
-      $('todo-period-error-text').textContent = '시작일과 종료일을 선택해 주세요.';
-      $('todo-title').value = ''; $('todo-content').value = '';
-      $('todo-title-count').textContent = '0'; $('todo-content-count').textContent = '0';
-      ['btn-todo-save', 'btn-task-save'].forEach((id) => { $(id).disabled = false; $(id).textContent = SAVE_LABEL; });
-      ['btn-confirm-todo', 'btn-confirm-task'].forEach((id) => { $(id).disabled = false; $(id).textContent = '삭제'; });
-      $('detail-title').textContent = '작업 상세';
-    }
-    function selectRow() { $('todo-row-1').classList.add('is-selected'); ['btn-edit', 'btn-delete', 'btn-start'].forEach((id) => { $(id).disabled = false; }); }
-    function openTodoForm(title) { show('todo-form'); $('todo-form-title').textContent = title; }
-    function fillTodoForm() { selectRow(); openTodoForm('할일 수정'); $('todo-title').value = '디자인 시스템 정리'; $('todo-content').value = '색, 글꼴, 간격 값을 한 파일로 모은다.'; $('todo-title-count').textContent = '9'; $('todo-content-count').textContent = '21'; $('todo-start').value = '2026-11-12'; $('todo-end').value = '2026-11-18'; }
-    function openDetail() { $('c2').classList.add('is-selected'); show('task-detail'); }
-    function openEdit() { openDetail(); hide('detail-read'); show('detail-edit'); $('detail-title').textContent = '작업 수정'; }
-
-    const STATES = {
-      'default': { label: '기본 (기한 지남 카드 포함)', run: () => {} },
-      'row-selected': { label: '할일 행 선택', run: selectRow },
-      'todo-empty': { label: '할일 데이터 없음', run: () => { hide('todo-table'); show('todo-empty'); $('todo-count').textContent = '(0개)'; } },
-      'kanban-empty': { label: '칸반 데이터 없음', run: () => renderKanban({ empty: true }) },
-      'loading': { label: '로딩 중', run: () => { renderKanban({ loading: true }); hide('todo-table'); show('todo-loading'); } },
-      'todo-add': { label: '할일 입력 UI (추가)', run: () => openTodoForm('할일 추가') },
-      'todo-edit': { label: '할일 입력 UI (수정)', run: fillTodoForm },
-      'todo-time': { label: '시간 지정 켜짐 (09:00 ~ 18:00)', run: () => { openTodoForm('할일 추가'); $('todo-time').checked = true; show('todo-time-row'); $('todo-start').value = '2026-11-12'; $('todo-end').value = '2026-11-12'; } },
-      'todo-time-error': { label: '시간 입력 오류 (종료 시각이 앞)', run: () => { openTodoForm('할일 추가'); $('todo-time').checked = true; show('todo-time-row', 'todo-period-error'); $('todo-start').value = '2026-11-12'; $('todo-end').value = '2026-11-12'; $('todo-start-time').value = '15:00'; $('todo-end-time').value = '10:00'; $('ctl-end-time').classList.add('is-invalid'); $('todo-period-error-text').textContent = '종료 시각은 시작 시각과 같거나 뒤여야 합니다.'; } },
-      'todo-undecided': { label: '기간 미정 (시간 지정 꺼짐·잠금)', run: () => { openTodoForm('할일 추가'); $('todo-undecided').checked = true; $('todo-time').disabled = true; ['todo-start', 'todo-end'].forEach((id) => { $(id).disabled = true; }); ['ctl-start', 'ctl-end'].forEach((id) => $(id).classList.add('is-locked')); } },
-      'todo-error': { label: '입력 오류', run: () => { openTodoForm('할일 추가'); ['ctl-todo-title', 'ctl-todo-content', 'ctl-start', 'ctl-end'].forEach((id) => $(id).classList.add('is-invalid')); show('todo-title-error', 'todo-content-error', 'todo-period-error'); } },
-      'todo-saving': { label: '저장 중', run: () => { fillTodoForm(); setLoading($('btn-todo-save'), '저장 중...'); } },
-      'todo-added': { label: '안내 토스트 (할일 추가)', run: () => show('toast-todo-added') },
-      'starting': { label: '작업 시작 중', run: () => { selectRow(); setLoading($('btn-start'), '작업 시작'); } },
-      'started': { label: '작업 시작 완료 토스트', run: () => show('toast-started') },
-      'dragging': { label: '카드 드래그 중', run: () => {
-        $('c4').classList.add('is-dragging');
-        const ghost = document.createElement('div');
-        ghost.className = 'task-card is-ghost';
-        ghost.innerHTML = '<div class="card-title">자리</div><div class="card-period">자리</div>';
-        $('c6').before(ghost);
-      } },
-      'detail-read': { label: '작업 상세 (읽기)', run: openDetail },
-      'detail-edit': { label: '작업 상세 (수정 중)', run: openEdit },
-      'task-saving': { label: '작업 저장 중', run: () => { openEdit(); setLoading($('btn-task-save'), '저장 중...'); } },
-      'task-saved': { label: '작업 수정 완료 / 바뀐 것 없음 토스트', run: () => { openDetail(); show('toast-task-saved'); } },
-      'no-change': { label: '바뀐 내용 없음 토스트', run: () => { openDetail(); show('toast-no-change'); } },
-      'log-loading': { label: '수정 내역 로딩 중', run: () => { openDetail(); hide('log-list'); show('log-loading'); } },
-      'log-modal': { label: '수정 내역 모달', run: () => { openDetail(); show('log-modal'); } },
-      'confirm-todo': { label: '할일 삭제 확인창', run: () => { selectRow(); show('confirm-todo'); } },
-      'confirm-task': { label: '작업 삭제 확인창', run: () => { openDetail(); show('confirm-task'); } },
-      'deleting': { label: '삭제 중', run: () => { openDetail(); show('confirm-task'); setLoading($('btn-confirm-task'), '삭제 중...'); } },
-      'error-404': { label: '오류: 이미 삭제된 작업 (404)', run: () => show('toast-deleted-404') },
-      'error-todo-404': { label: '오류: 이미 삭제된 할일 (404)', run: () => show('toast-todo-404') },
-      'error-409': { label: '오류: 히스토리로 옮겨진 작업 (409)', run: () => show('toast-history-409') },
-      'from-notification-missing': { label: '알림에서 옴: 작업 없음', run: () => show('toast-not-found') },
-      'server-error': { label: '서버 오류', run: () => show('toast-server') },
-    };
-    if (isTeam) {
-      Object.assign(STATES, {
-        'my-only': { label: '팀: 내 작업만 켜짐 (드래그 불가)', run: () => { $('my-only-input').checked = true; show('my-only-note'); renderKanban({ myOnly: true }); } },
-        'assignee-menu': { label: '팀: 작업자 드롭다운 열림', run: () => { openEdit(); show('assignee-menu'); } },
-        'assignee-loading': { label: '팀: 작업자 목록 불러오는 중', run: () => { openEdit(); show('assignee-menu', 'assignee-loading'); hide('assignee-options'); } },
-        'assignee-gone': { label: '팀: 그사이 팀을 나간 작업자 (400)', run: () => { openEdit(); show('toast-assignee-gone'); } },
-        'task-changed': { label: '팀: 수정 중 다른 팀원이 바꿈 (D-103)', run: () => { openEdit(); show('strip-task-changed'); } },
-        'todo-changed': { label: '팀: 할일 수정 중 다른 팀원이 바꿈', run: () => { fillTodoForm(); show('strip-todo-changed'); } },
-        'todo-other-deleted': { label: '팀: 수정 중인 할일을 다른 팀원이 삭제', run: () => show('toast-todo-other-deleted') },
-        'todo-other-started': { label: '팀: 수정 중인 할일로 다른 팀원이 작업 시작', run: () => show('toast-todo-other-started') },
-        'other-deleted': { label: '팀: 다른 팀원이 열린 작업을 삭제', run: () => show('toast-other-deleted') },
-        'disconnected': { label: '팀: 실시간 연결 끊김 (D-123)', run: () => show('strip-disconnected') },
-      });
-      setupStates(STATES, () => { resetState(); show('assignee-options'); });
-    } else {
-      setupStates(STATES, resetState);
-    }
-  </script>
+  <script src="task_view.js"></script>
 </body>
 </html>

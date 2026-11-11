@@ -69,6 +69,7 @@
 |프로젝트/docs/mockups/|화면 시안 HTML. 서버 없이 바로 열어 보는 파일 (loop.md 2번 와이어프레임)|
 |프로젝트/docs/mockups/login_view.html, signup_view.html, find_id_view.html, find_password_view.html|로그인·회원가입·아이디 찾기·비밀번호 찾기 시안|
 |프로젝트/docs/mockups/main_layout.html, task_view.html, calendar_view.html, team_info_view.html, history_view.html, profile_view.html|공통 레이아웃·작업·캘린더·팀 정보·히스토리·회원정보 수정 시안 (작업·캘린더·히스토리는 ?space=team 으로 팀 공간)|
+|프로젝트/docs/mockups/task_view.js|작업 시안의 동작 스크립트 (D-146). 서버 없이 시안 안에서만 버튼·저장·삭제·드래그·입력 검사를 흉내 낸다|
 |프로젝트/docs/mockups/mockup_common.css, mockup_common.js|시안 공통 스타일과 스크립트 (공통 디자인 값, 공통 레이아웃, 브랜드 영역, 상태 선택 막대). 실제 화면 코드가 아니다|
 
 ### 변경 불가능
