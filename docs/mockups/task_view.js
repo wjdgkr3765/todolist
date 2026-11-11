@@ -64,6 +64,8 @@ function resetModel() {
   data = initialData();
   ui = { selectedTodoId: null, selectedTaskId: null, panel: 'none', editingTodoId: null, myOnly: false, loading: false, pickerSelection: [] };
 }
+// 수정 내역의 사람: 작업 생성은 "만든 사람", 나머지는 "수정한 사람" (D-147)
+const logActor = (log) => `${log.type === '작업 생성' ? '만든 사람' : '수정한 사람'} ${log.nickname}`;
 const nowText = () => { clockMinute += 1; return `2026.11.11 10:${String(clockMinute % 60).padStart(2, '0')}`; };
 
 // ---------- 기간 표시 (D-139, D-142) ----------
@@ -376,7 +378,7 @@ function renderLogs() {
   logs.forEach((log, index) => {
     const row = document.createElement('div');
     row.className = 'log-row';
-    row.innerHTML = `<div><div class="log-type">${escapeHtml(log.type)}</div><div class="log-meta">${escapeHtml(log.at)} · ${escapeHtml(log.nickname)}</div></div><i class="bi bi-chevron-right"></i>`;
+    row.innerHTML = `<div><div class="log-type">${escapeHtml(log.type)}</div><div class="log-meta">${escapeHtml(log.at)} · ${escapeHtml(logActor(log))}</div></div><i class="bi bi-chevron-right"></i>`;
     row.addEventListener('click', () => openLog(index));
     $('log-list').appendChild(row);
   });
@@ -384,7 +386,7 @@ function renderLogs() {
 function openLog(index) {
   const log = data.logs[ui.selectedTaskId][index];
   $('lm-type').textContent = log.type;
-  $('lm-meta').textContent = `${log.at} · ${log.nickname}`;
+  $('lm-meta').textContent = `${log.at} · ${logActor(log)}`;
   setStatusBadge($('lm-status'), log.snap.status);
   $('lm-title').textContent = log.snap.title;
   const full = periodFull(log.snap);
