@@ -16,7 +16,6 @@ const TEAM_MEMBERS = [
   { name: '박지성', email: 'jisung.park@example.com' },
 ];
 
-const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const dot = (date) => date.replaceAll('-', '.');
 
 // ---------- 가짜 데이터 ----------
@@ -87,19 +86,6 @@ const undecidedBadge = '<span class="badge-x badge-undecided">미정</span>';
 function assigneeText(list) {
   if (!list.length) { return null; }
   return list.length === 1 ? list[0] : `${list[0]} 외 ${list.length - 1}명`;
-}
-
-// ---------- 토스트 (동작 결과는 2.5초 뒤 사라진다) ----------
-let toastTimer = null;
-addToast('toast-live-success', 'success', '', '');
-addToast('toast-live-error', 'error', '', '');
-function flash(kind, title, sub) {
-  hideAllToasts();
-  const box = $(kind === 'success' ? 'toast-live-success' : 'toast-live-error');
-  box.querySelector('div').innerHTML = `${escapeHtml(title)}${sub ? `<div class="toast-sub">${escapeHtml(sub)}</div>` : ''}`;
-  box.classList.remove('is-hidden');
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => box.classList.add('is-hidden'), 2500);
 }
 
 // ---------- 할일 목록 ----------
@@ -537,8 +523,7 @@ addToast('toast-other-deleted', 'error', '다른 팀원이 이 작업을 삭제�
 addToast('toast-assignee-gone', 'error', '팀에 없는 회원이 작업자에 있습니다.', '');
 
 function resetState() {
-  clearTimeout(toastTimer);
-  hideAllToasts();
+  clearFlash();
   resetModel();
   hide('log-modal', 'confirm-todo', 'confirm-task', 'strip-disconnected', 'log-loading');
   show('log-list');
@@ -598,3 +583,7 @@ if (isTeam) {
   });
 }
 setupStates(STATES, resetState);
+
+// 팀 정보에서 탈퇴·해체하고 넘어오면 안내 토스트 (TeamInfoView_screen.md)
+const TEAM_GONE_TEXT = { left: '팀에서 탈퇴했습니다.', dissolved: '팀을 해체했습니다.' };
+if (TEAM_GONE_TEXT[pageParams.get('teamGone')]) { flash('success', TEAM_GONE_TEXT[pageParams.get('teamGone')]); }

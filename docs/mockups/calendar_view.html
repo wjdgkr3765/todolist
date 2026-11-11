@@ -49,7 +49,7 @@
     .cal-more:hover { color: var(--color-primary-dark); }
     .more-pop { position: absolute; z-index: 30; width: 220px; padding: 10px; border-radius: 12px; }
     .more-pop-title { font-size: 13px; font-weight: 700; margin-bottom: 8px; }
-    .more-pop .cal-bar { margin: 0 0 4px; display: block; }
+    .more-pop .cal-bar { margin: 0 0 4px; display: block; width: 100%; }
     .detail-item { margin-bottom: 14px; }
     .detail-label { font-size: 13px; font-weight: 600; color: var(--color-sub); margin-bottom: 4px; }
     .detail-value { font-size: 15px; word-break: break-all; }
@@ -63,6 +63,7 @@
   </style>
 </head>
 <body>
+  <!-- 시안 (D-146, D-149): 서버 없이 이 화면 안에서만 동작한다 -->
   <div class="mockup-bar">
     <span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select>
     <span>· 공간: <a href="calendar_view.html">개인</a> / <a href="calendar_view.html?space=team">팀</a> · 화면 문서: CalendarView_screen.md</span>
@@ -74,10 +75,10 @@
     <main class="content">
       <div class="cal-card">
         <div class="cal-head">
-          <button type="button" class="cal-nav" aria-label="이전 달"><i class="bi bi-chevron-left"></i></button>
+          <button type="button" id="btn-prev" class="cal-nav" aria-label="이전 달"><i class="bi bi-chevron-left"></i></button>
           <span id="cal-month" class="cal-month">2026.11</span>
           <button type="button" id="btn-today" class="cal-today" disabled><i class="bi bi-arrow-counterclockwise"></i>오늘</button>
-          <button type="button" class="cal-nav" aria-label="다음 달"><i class="bi bi-chevron-right"></i></button>
+          <button type="button" id="btn-next" class="cal-nav" aria-label="다음 달"><i class="bi bi-chevron-right"></i></button>
           <div class="cal-legend">
             <span id="cal-spinner" class="spinner-border spinner-border-sm is-hidden" aria-hidden="true"></span>
             <span><i class="legend-dot" style="background:var(--color-waiting)"></i>대기</span>
@@ -88,13 +89,9 @@
         </div>
         <div class="cal-weekdays"><div class="is-sun">일</div><div>월</div><div>화</div><div>수</div><div>목</div><div>금</div><div class="is-sat">토</div></div>
         <div id="cal-body"></div>
-        <div id="more-pop" class="popover-box more-pop is-hidden" style="top:330px;left:40%">
-          <div class="more-pop-title">11월 12일</div>
-          <button type="button" class="cal-bar bar-waiting">메인 화면 시안 정리</button>
-          <button type="button" class="cal-bar bar-progress">로그인 화면 구현</button>
-          <button type="button" class="cal-bar is-single single-progress">09:00 주간 보고서 작성</button>
-          <button type="button" class="cal-bar is-single single-waiting">디자인 리뷰</button>
-          <button type="button" class="cal-bar is-single single-done">14:00 코드 리뷰</button>
+        <div id="more-pop" class="popover-box more-pop is-hidden">
+          <div id="more-pop-title" class="more-pop-title"></div>
+          <div id="more-pop-list"></div>
         </div>
       </div>
     </main>
@@ -103,116 +100,18 @@
   <!-- 상세 모달 (D-108) -->
   <div id="detail-modal" class="modal-backdrop-x is-hidden">
     <div class="modal-x is-wide" role="dialog" aria-label="작업 상세">
-      <div class="modal-title-x">작업 상세<button type="button" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
+      <div class="modal-title-x">작업 상세<button type="button" id="detail-x" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
       <div class="detail-item"><div class="detail-label">상태</div><span id="detail-status" class="badge-x badge-progress">진행</span></div>
       <div class="detail-item"><div class="detail-label">제목</div><div id="detail-title" class="detail-value">로그인 화면 구현</div></div>
       <div class="detail-item"><div class="detail-label">기간</div><div id="detail-period" class="detail-value">2026.11.11 09:00 ~ 2026.11.14 18:00</div></div>
-      <div id="detail-assignee" class="detail-item"><div class="detail-label">작업자</div><div class="detail-value">홍길동, 김민수</div></div>
-      <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">로그인 화면을 시안대로 만든다.
-로그인 실패·잠김 문구를 확인한다.</div></div>
-      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">닫기</button></div>
+      <div id="detail-assignee" class="detail-item"><div class="detail-label">작업자</div><div id="detail-assignee-value" class="detail-value"></div></div>
+      <div class="detail-item"><div class="detail-label">내용</div><div id="detail-content" class="detail-value detail-content"></div></div>
+      <div class="modal-actions"><button type="button" id="detail-close" class="btn-x btn-outline-x">닫기</button></div>
     </div>
   </div>
 
+  <script src="../../frontend/node_modules/sortablejs/Sortable.min.js"></script>
   <script src="mockup_common.js"></script>
-  <script>
-    const isTeam = pageParams.get('space') === 'team';
-    renderLayout({ space: isTeam ? 'team' : 'personal', tab: 'calendar', hideTabs: false });
-    if (!isTeam) { $('detail-assignee').remove(); }
-
-    // 오늘은 2026-11-11 로 본다. 상태: waiting / progress / done / history
-    const TASKS = [
-      { title: 'DB 설계', start: '2026-11-01', end: '2026-11-07', status: 'done' },
-      { title: '기획 회의 정리', start: '2026-10-29', end: '2026-11-03', status: 'history' },
-      { title: 'API 명세 검토', start: '2026-11-05', end: '2026-11-09', status: 'waiting' },
-      { title: '메인 화면 시안 정리', start: '2026-11-10', end: '2026-11-20', status: 'waiting' },
-      { title: '로그인 화면 구현', start: '2026-11-11', end: '2026-11-14', status: 'progress' },
-      { title: '주간 보고서 작성', start: '2026-11-12', end: '2026-11-12', time: '09:00', status: 'progress' },
-      { title: '디자인 리뷰', start: '2026-11-12', end: '2026-11-12', status: 'waiting' },
-      { title: '코드 리뷰', start: '2026-11-12', end: '2026-11-12', time: '14:00', status: 'done' },
-      { title: '배포 준비', start: '2026-11-24', end: '2026-12-02', status: 'waiting' },
-      { title: '연말 회고', start: '2026-12-28', end: '2026-12-30', status: 'waiting' },
-    ];
-    const HOLIDAYS = { '2026-12-25': '성탄절' };
-    const TODAY = '2026-11-11';
-
-    const pad = (n) => String(n).padStart(2, '0');
-    const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-
-    function renderMonth(year, month, options) {
-      $('cal-month').textContent = `${year}.${pad(month)}`;
-      $('btn-today').disabled = `${year}-${pad(month)}` === TODAY.slice(0, 7);
-      const maxLanes = window.innerWidth < 576 ? 2 : 3;
-      const first = new Date(year, month - 1, 1);
-      const cursor = new Date(first);
-      cursor.setDate(1 - first.getDay());
-      let html = '';
-      do {
-        const days = [];
-        for (let i = 0; i < 7; i += 1) { days.push(new Date(cursor)); cursor.setDate(cursor.getDate() + 1); }
-        const weekStart = ymd(days[0]);
-        const weekEnd = ymd(days[6]);
-        let cells = days.map((day, i) => {
-          const key = ymd(day);
-          const holiday = options.holidays ? HOLIDAYS[key] : null;
-          const classes = ['date-num'];
-          if (key === TODAY) { classes.push('is-today'); } else {
-            if (day.getMonth() !== month - 1) { classes.push('is-other'); }
-            if (i === 0 || holiday) { classes.push(holiday ? 'is-holiday' : 'is-sun'); } else if (i === 6) { classes.push('is-sat'); }
-          }
-          return `<div class="cal-date" style="grid-column:${i + 1}"><span class="${classes.join(' ')}">${day.getDate()}</span>${holiday ? `<span class="holiday-name">${holiday}</span>` : ''}</div>`;
-        }).join('');
-        // 이 주에 걸친 작업을 줄(lane)에 배치한다. 칸마다 maxLanes 줄까지, 넘치면 +N
-        const lanes = [];
-        const hidden = [0, 0, 0, 0, 0, 0, 0];
-        const tasks = options.empty ? [] : TASKS.filter((task) => task.start <= weekEnd && task.end >= weekStart);
-        tasks.forEach((task) => {
-          const from = Math.max(0, days.findIndex((day) => ymd(day) >= task.start));
-          let to = days.findIndex((day) => ymd(day) > task.end) - 1;
-          if (to < 0) { to = 6; }
-          let lane = lanes.findIndex((used) => used.every((n, i) => i < from || i > to || !n));
-          if (lane === -1) { lanes.push([0, 0, 0, 0, 0, 0, 0]); lane = lanes.length - 1; }
-          for (let i = from; i <= to; i += 1) { lanes[lane][i] = 1; }
-          if (lane >= maxLanes) { for (let i = from; i <= to; i += 1) { hidden[i] += 1; } return; }
-          const single = task.start === task.end;
-          const cls = single ? `is-single single-${task.status}` : `bar-${task.status}`;
-          cells += `<button type="button" class="cal-bar ${cls}" style="grid-row:${lane + 2};grid-column:${from + 1} / ${to + 2}">${single && task.time ? `${task.time} ` : ''}${task.title}</button>`;
-        });
-        hidden.forEach((count, i) => { if (count) { cells += `<button type="button" class="cal-more" style="grid-row:${maxLanes + 2};grid-column:${i + 1}">+${count}</button>`; } });
-        html += `<div class="cal-week">${cells}</div>`;
-      } while (cursor.getMonth() === month - 1);
-      $('cal-body').innerHTML = html;
-    }
-
-    function openDetail(status, statusLabel, title, period) {
-      const badge = $('detail-status');
-      badge.className = `badge-x badge-${status}`;
-      badge.textContent = statusLabel;
-      $('detail-title').textContent = title;
-      $('detail-period').textContent = period;
-      show('detail-modal');
-    }
-
-    addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
-
-    function resetState() {
-      hideAllToasts();
-      hide('detail-modal', 'more-pop', 'cal-spinner');
-      renderMonth(2026, 11, { holidays: true });
-    }
-
-    const STATES = {
-      'default': { label: '기본 (이번 달, 오늘 원, +N, 히스토리 막대)', run: () => {} },
-      'loading': { label: '로딩 중', run: () => { show('cal-spinner'); renderMonth(2026, 11, { holidays: true, empty: true }); } },
-      'empty': { label: '작업 없음', run: () => renderMonth(2026, 11, { holidays: true, empty: true }) },
-      'other-month': { label: '다른 달 보기 + 공휴일 (2026.12)', run: () => renderMonth(2026, 12, { holidays: true }) },
-      'no-holiday': { label: '공휴일 정보 없음 (2026.12)', run: () => renderMonth(2026, 12, { holidays: false }) },
-      'more': { label: '더보기 창 (+N 클릭)', run: () => show('more-pop') },
-      'detail': { label: '상세 모달 (진행)', run: () => openDetail('progress', '진행', '로그인 화면 구현', '2026.11.11 09:00 ~ 2026.11.14 18:00') },
-      'detail-history': { label: '상세 모달 (히스토리)', run: () => openDetail('history', '히스토리', '기획 회의 정리', '2026.10.29 ~ 2026.11.03') },
-      'server-error': { label: '서버 오류', run: () => { renderMonth(2026, 11, { holidays: true, empty: true }); show('toast-server'); } },
-    };
-    setupStates(STATES, resetState);
-  </script>
+  <script src="calendar_view.js"></script>
 </body>
 </html>

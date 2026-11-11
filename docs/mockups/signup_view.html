@@ -200,7 +200,7 @@
       <option value="complete">가입 완료</option>
       <option value="server-error">오류</option>
     </select>
-  </div>
+  <span>· 화면 문서: SignupView_screen.md · 시안 규칙: 사용 중 아이디 todo2026·admin123 / 가입된 이메일 user@·used@example.com / 인증번호 123456 / 가입된 전화번호 01000000000</span></div>
 
   <div id="toast-complete" class="toast-box is-hidden" role="status">
     <span class="toast-icon"><i class="bi bi-check-circle-fill"></i></span>
@@ -252,7 +252,7 @@
                 <input id="login-id" type="text" maxlength="15" placeholder="영어와 숫자를 모두 포함 6~15자" />
                 <span id="login-id-mark" class="control-suffix is-hidden"><span class="valid-mark"><i class="bi bi-check-circle-fill"></i></span></span>
               </div>
-              <button type="button" class="btn-soft">중복 확인</button>
+              <button type="button" id="btn-check-id" class="btn-soft">중복 확인</button>
             </div>
             <div id="login-id-valid" class="message is-success is-hidden"><i class="bi bi-check-circle"></i>사용할 수 있는 아이디입니다.</div>
             <div id="login-id-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>영어와 숫자를 모두 포함해 6~15자로 입력해 주세요.</div>
@@ -264,7 +264,7 @@
             <div id="ctl-password" class="control">
               <span class="control-icon"><i class="bi bi-lock"></i></span>
               <input id="password" type="password" maxlength="15" placeholder="영어, 숫자, 특수문자를 모두 포함 8~15자" />
-              <span class="control-suffix"><button type="button" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span>
+              <span class="control-suffix"><button type="button" id="btn-eye" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span>
             </div>
             <div id="password-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>영어, 숫자, 특수문자를 모두 포함해 8~15자로 입력해 주세요.</div>
           </div>
@@ -315,7 +315,7 @@
                 <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" />
                 <span class="control-suffix"><span id="timer" class="timer-pill">4:59</span></span>
               </div>
-              <button type="button" class="btn-soft">확인</button>
+              <button type="button" id="btn-verify-code" class="btn-soft">확인</button>
             </div>
             <div id="code-mismatch" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>인증번호가 틀렸습니다. (남은 횟수 4회)</div>
             <div id="code-expired" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>인증번호가 만료되었습니다. 다시 발송해 주세요.</div>
@@ -341,7 +341,7 @@
   </main>
 
   <script>
-    // 시안 전용: 선택한 상태에 맞게 미리 정해 둔 요소만 보이고 숨긴다. (실제 기능 아님)
+    // 시안: 상태 막대로 미리 정해 둔 상태를 보거나, 화면을 직접 눌러 동작을 확인한다 (D-146, D-149)
     const $ = (id) => document.getElementById(id);
     const SAMPLE = { loginId: 'todo2026', nickname: '홍길동', email: 'user@example.com', phone: '01012345678', pw: 'abcd123!' };
     const FIELD_IDS = ['login-id', 'password', 'password-confirm', 'nickname', 'email', 'code', 'phone'];
@@ -367,6 +367,7 @@
       $('timer').textContent = '4:59';
       $('btn-submit').disabled = false;
       $('btn-submit').textContent = '가입하기';
+      if (typeof flow !== 'undefined') { clearInterval(flow.timer); Object.assign(flow, { idChecked: false, codeSent: false, verified: false, fails: 0, left: 0 }); }
     }
 
     function fillSample() {
@@ -478,6 +479,163 @@
       resetState();
       STATES[event.target.value]();
     });
+
+    // ---------- 동작 (D-146, D-149): SignupView_screen.md "4. 동작"을 서버 없이 흉내 낸다 ----------
+    // 시안 규칙: 사용 중인 아이디 todo2026·admin123, 가입된 이메일 user@example.com·used@example.com, 인증번호 123456, 가입된 전화번호 01000000000
+    const RULES = {
+      'login-id': /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,15}$/,
+      password: /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!-/:-@[-`{-~])[!-~]{8,15}$/,
+      nickname: /^[가-힣A-Za-z0-9]{1,8}$/,
+      email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+      phone: /^\d{11}$/,
+    };
+    const flow = { idChecked: false, codeSent: false, verified: false, fails: 0, left: 0, timer: null };
+    const setText = (id, text) => { $(id).lastChild.textContent = text; };
+    const clearField = (id) => { ctl(id).classList.remove('is-invalid', 'is-valid'); };
+    const pause = (ms) => new Promise((r) => setTimeout(r, ms));
+    function busy(button, label) {
+      const spinner = document.createElement('span');
+      spinner.className = 'spinner-border spinner-border-sm me-1';
+      button.replaceChildren(spinner, document.createTextNode(label));
+      button.disabled = true;
+    }
+
+    // 아이디 중복 확인 (D-038)
+    async function checkId() {
+      const value = $('login-id').value.trim();
+      ['login-id-valid', 'login-id-invalid'].forEach(hide);
+      clearField('login-id');
+      if (!RULES['login-id'].test(value)) { setText('login-id-invalid', '영어와 숫자를 모두 포함해 6~15자로 입력해 주세요.'); markInvalid('login-id'); show('login-id-invalid'); return; }
+      busy($('btn-check-id'), '확인 중');
+      await pause(400);
+      $('btn-check-id').textContent = '중복 확인';
+      $('btn-check-id').disabled = false;
+      if (['todo2026', 'admin123'].includes(value.toLowerCase())) { setText('login-id-invalid', '이미 사용 중인 아이디입니다.'); markInvalid('login-id'); show('login-id-invalid'); return; }
+      flow.idChecked = true;
+      showIdChecked();
+    }
+    // 칸을 떠날 때 형식 검사
+    function checkField(id) {
+      const value = $(id).value;
+      clearField(id);
+      hide(`${id}-invalid`);
+      if (!value) { return true; }
+      const ok = id === 'password-confirm' ? value === $('password').value : RULES[id].test(value);
+      if (!ok) { markInvalid(id); show(`${id}-invalid`); }
+      return ok;
+    }
+
+    // 이메일 인증번호 (D-035: 6자리, 5분, 재발송 1분 뒤, 5번 틀리면 무효)
+    function startTimer() {
+      clearInterval(flow.timer);
+      flow.left = 300;
+      const tick = () => {
+        const fmt = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+        $('timer').textContent = fmt(Math.max(flow.left, 0));
+        const resend = flow.left - 240;
+        $('btn-resend-code').disabled = resend > 0;
+        $('btn-resend-code').textContent = resend > 0 ? `재발송 ${fmt(resend)}` : '재발송';
+        if (flow.left <= 0) { clearInterval(flow.timer); }
+        flow.left -= 1;
+      };
+      tick();
+      flow.timer = setInterval(tick, 1000);
+    }
+    async function sendCode() {
+      const email = $('email').value.trim();
+      ['email-sent', 'email-invalid'].forEach(hide);
+      clearField('email');
+      if (!RULES.email.test(email)) { setText('email-invalid', '이메일 형식이 올바르지 않습니다.'); markInvalid('email'); show('email-invalid'); return; }
+      const button = flow.codeSent ? $('btn-resend-code') : $('btn-send-code');
+      busy(button, '발송 중');
+      await pause(500);
+      if (!flow.codeSent) { $('btn-send-code').textContent = '인증번호 발송'; $('btn-send-code').disabled = false; }
+      if (['user@example.com', 'used@example.com'].includes(email.toLowerCase())) {
+        setText('email-invalid', '이미 가입된 이메일입니다.'); markInvalid('email'); show('email-invalid');
+        if (flow.codeSent) { $('btn-resend-code').textContent = '재발송'; $('btn-resend-code').disabled = false; }
+        return;
+      }
+      flow.codeSent = true;
+      flow.fails = 0;
+      $('code').value = '';
+      clearField('code');
+      ['code-mismatch', 'code-expired', 'btn-send-code'].forEach(hide);
+      ['code-row', 'btn-resend-code', 'email-sent'].forEach(show);
+      startTimer();
+      $('code').focus();
+    }
+    function codeError(id, text) { ['code-mismatch', 'code-expired'].forEach(hide); setText(id, text); markInvalid('code'); show(id); }
+    function verifyCode() {
+      if (flow.left < 0) { codeError('code-expired', '인증번호가 만료되었습니다. 다시 발송해 주세요.'); return; }
+      if (flow.fails >= 5) { codeError('code-expired', '인증번호가 무효가 되었습니다. 다시 발송해 주세요.'); return; }
+      if ($('code').value !== '123456') {
+        flow.fails += 1;
+        if (flow.fails >= 5) { codeError('code-expired', '인증번호가 무효가 되었습니다. 다시 발송해 주세요.'); return; }
+        codeError('code-mismatch', `인증번호가 틀렸습니다. (남은 횟수 ${5 - flow.fails}회)`);
+        return;
+      }
+      clearInterval(flow.timer);
+      flow.verified = true;
+      ['code-row', 'btn-resend-code', 'email-sent', 'email-invalid'].forEach(hide);
+      clearField('email');
+      showVerified();
+    }
+    // 인증을 마친 뒤 [변경]: 인증 취소하고 다시 입력 (D-039)
+    function changeEmail() {
+      flow.verified = false;
+      flow.codeSent = false;
+      $('email').readOnly = false;
+      ctl('email').classList.remove('is-readonly');
+      ['email-mark', 'btn-change-email', 'email-verified'].forEach(hide);
+      show('btn-send-code');
+      $('email').focus();
+    }
+
+    async function signup() {
+      let first = null;
+      const fail = (id, msgId, text) => { if (text) { setText(msgId, text); } markInvalid(id); show(msgId); if (!first) { first = id; } };
+      ['login-id', 'password', 'password-confirm', 'nickname', 'phone'].forEach((id) => {
+        if (!$(id).value) { fail(id, `${id}-invalid`); } else if (!checkField(id) && !first) { first = id; }
+      });
+      if ($('login-id').value && RULES['login-id'].test($('login-id').value) && !flow.idChecked) { fail('login-id', 'login-id-invalid', '아이디 중복 확인을 해 주세요.'); }
+      if (!flow.verified) { fail('email', 'email-invalid', '이메일 인증을 완료해 주세요.'); }
+      hide('phone-duplicated');
+      if (first) { $(first).focus(); return; }
+      busy($('btn-submit'), '가입 중...');
+      await pause(600);
+      if ($('phone').value === '01000000000') {
+        $('btn-submit').textContent = '가입하기'; $('btn-submit').disabled = false;
+        markInvalid('phone'); show('phone-duplicated'); $('phone').focus();
+        return;
+      }
+      // 가입 성공: 모든 입력칸과 버튼 잠금 + 안내 + 1.5초 뒤 로그인 화면 (D-040, D-048)
+      $('btn-submit').textContent = '가입하기';
+      document.querySelectorAll('form .control').forEach((el) => el.classList.add('is-readonly'));
+      document.querySelectorAll('form input, form button').forEach((el) => { el.disabled = true; });
+      show('toast-complete');
+      setTimeout(() => { location.href = 'login_view.html'; }, 1500);
+    }
+
+    $('btn-check-id').addEventListener('click', checkId);
+    $('login-id').addEventListener('input', () => { flow.idChecked = false; clearField('login-id'); ['login-id-valid', 'login-id-invalid', 'login-id-mark'].forEach(hide); });
+    ['password', 'password-confirm', 'nickname', 'phone'].forEach((id) => $(id).addEventListener('blur', () => checkField(id)));
+    $('phone').addEventListener('input', () => { $('phone').value = $('phone').value.replace(/\D/g, ''); hide('phone-duplicated'); });
+    $('email').addEventListener('input', () => {
+      if (flow.codeSent && !flow.verified) { clearInterval(flow.timer); flow.codeSent = false; ['code-row', 'btn-resend-code', 'email-sent', 'code-mismatch', 'code-expired'].forEach(hide); show('btn-send-code'); }
+      clearField('email'); hide('email-invalid');
+    });
+    $('btn-send-code').addEventListener('click', sendCode);
+    $('btn-resend-code').addEventListener('click', sendCode);
+    $('btn-verify-code').addEventListener('click', verifyCode);
+    $('code').addEventListener('keydown', (event) => { if (event.key === 'Enter') { verifyCode(); } });
+    $('btn-change-email').addEventListener('click', changeEmail);
+    $('btn-submit').addEventListener('click', signup);
+    $('btn-eye').addEventListener('click', () => {
+      const input = $('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+      $('btn-eye').querySelector('i').className = `bi ${input.type === 'password' ? 'bi-eye' : 'bi-eye-slash'}`;
+    });
+
     // 검사용: ?check=all 이면 모든 상태를 그려 본다
     if (new URLSearchParams(location.search).get('check') === 'all') { Object.keys(STATES).forEach((key) => { resetState(); STATES[key](); }); console.info('MOCKUP_CHECK_DONE ' + Object.keys(STATES).length); resetState(); }
   </script>

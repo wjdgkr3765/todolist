@@ -20,7 +20,7 @@
   </style>
 </head>
 <body class="auth-body">
-  <div class="mockup-bar"><span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select><span>· 화면 문서: FindIdView_screen.md</span></div>
+  <div class="mockup-bar"><span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select><span>· 화면 문서: FindIdView_screen.md · 시안 규칙: 가입된 이메일 user@example.com / 인증번호 123456 / mailfail@example.com 은 메일 실패</span></div>
 
   <main class="auth-page">
     <div class="auth-shell">
@@ -74,8 +74,78 @@
     addToast('toast-mail-failed', 'error', '메일을 보내지 못했습니다.', '잠시 후 다시 시도해 주세요.');
     addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
 
+
+    // ---------- 동작 (D-146, D-149): 서버 없이 흉내 낸다 ----------
+    // 시안 규칙: 가입된 회원 todo2026 / user@example.com, 인증번호 123456, mailfail@example.com 이면 메일 발송 실패
+    const REGISTERED = { 'user@example.com': { loginId: 'todo2026', joined: '2026.11.01' }, 'mailfail@example.com': { loginId: 'mailfail1', joined: '2026.10.01' } };
+    const EMAIL_RULE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    let codeFails = 0;
+    let codeLeft = 0;
+    const timer = createCodeTimer((text, left) => {
+      codeLeft = left;
+      $('timer').textContent = text;
+      const resend = left - 240;
+      $('btn-send').disabled = resend > 0;
+      $('btn-send').textContent = resend > 0 ? `재발송 ${timer.format(resend)}` : '재발송';
+    }, () => {});
+    function startCode() {
+      codeFails = 0;
+      $('code').value = '';
+      $('ctl-code').classList.remove('is-invalid');
+      hide('code-message');
+      show('code-field');
+      emailMessage('is-success', '인증번호를 보냈습니다. 메일을 확인해 주세요.');
+      timer.start(300);
+      $('code').focus();
+    }
+    // 맞으면 true. 틀림·만료·무효면 문구를 보여주고 false
+    function checkCode() {
+      if (codeLeft <= 0) { codeError('인증번호가 만료되었습니다. 다시 발송해 주세요.'); return false; }
+      if (codeFails >= 5) { codeError('인증번호가 무효가 되었습니다. 다시 발송해 주세요.'); return false; }
+      if ($('code').value !== DEMO_CODE) {
+        codeFails += 1;
+        codeError(codeFails >= 5 ? '인증번호가 무효가 되었습니다. 다시 발송해 주세요.' : `인증번호가 틀렸습니다. (남은 횟수 ${5 - codeFails}회)`);
+        return false;
+      }
+      timer.stop();
+      return true;
+    }
+    $('code').addEventListener('input', () => { $('ctl-code').classList.remove('is-invalid'); hide('code-message'); });
+    $('code').addEventListener('keydown', (event) => { if (event.key === 'Enter') { $('btn-verify').click(); } });
+
+    async function sendCode() {
+      const email = $('email').value.trim().toLowerCase();
+      $('ctl-email').classList.remove('is-invalid');
+      hide('email-message');
+      if (!EMAIL_RULE.test(email)) { $('ctl-email').classList.add('is-invalid'); emailMessage('is-error', '이메일 형식이 올바르지 않습니다.'); return; }
+      setLoading($('btn-send'), '발송 중...');
+      await wait(500);
+      setLabel($('btn-send'), codeLeft > 0 ? '재발송' : '인증번호 발송');
+      if (!REGISTERED[email]) { $('ctl-email').classList.add('is-invalid'); emailMessage('is-error', '가입되지 않은 이메일입니다.'); return; }
+      if (email === 'mailfail@example.com') { flash('error', '메일을 보내지 못했습니다.', '잠시 후 다시 시도해 주세요.'); return; }
+      startCode();
+    }
+    async function verify() {
+      if (!checkCode()) { return; }
+      setLoading($('btn-verify'), '확인 중...');
+      await wait(400);
+      setLabel($('btn-verify'), '확인');
+      // 맞으면 바로 아이디 찾기 → 결과 (D-114)
+      const user = REGISTERED[$('email').value.trim().toLowerCase()];
+      document.querySelector('.result-id').textContent = user.loginId;
+      document.querySelector('.result-date').textContent = `가입일 ${user.joined}`;
+      hide('verify-area');
+      show('result-area');
+    }
+    $('btn-send').addEventListener('click', sendCode);
+    $('btn-verify').addEventListener('click', verify);
+    $('email').addEventListener('keydown', (event) => { if (event.key === 'Enter') { sendCode(); } });
+    // 발송 후 이메일을 고치면 처음부터 다시 발송
+    $('email').addEventListener('input', () => { if (codeLeft > 0) { timer.stop(); codeLeft = 0; hide('code-field'); setLabel($('btn-send'), '인증번호 발송'); } $('ctl-email').classList.remove('is-invalid'); hide('email-message'); });
+
     function resetState() {
-      hideAllToasts();
+      clearFlash();
+      if (typeof timer !== 'undefined') { timer.stop(); codeLeft = 0; codeFails = 0; }
       hide('code-field', 'email-message', 'code-message', 'result-area');
       show('verify-area');
       ['ctl-email', 'ctl-code'].forEach((id) => $(id).classList.remove('is-invalid'));

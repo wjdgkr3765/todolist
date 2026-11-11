@@ -166,7 +166,7 @@
       <option value="withdrawn">회원 탈퇴 후 도착</option>
       <option value="session-expired">로그인 만료로 도착 (D-118)</option>
     </select>
-    <span>· 화면 문서: LoginView_screen.md</span>
+    <span>· 화면 문서: LoginView_screen.md · 시안 계정: todo2026 / abcd123! (5번 틀리면 잠김)</span>
   </div>
 
   <div id="toast-error" class="toast-box is-hidden" role="alert">
@@ -225,7 +225,7 @@
             <div id="ctl-password" class="control">
               <span class="control-icon"><i class="bi bi-lock"></i></span>
               <input id="password" type="password" maxlength="15" placeholder="비밀번호" autocomplete="current-password" />
-              <span class="control-suffix"><button type="button" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span>
+              <span class="control-suffix"><button type="button" id="btn-eye" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span>
             </div>
             <div id="password-empty" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>비밀번호를 입력해 주세요.</div>
           </div>
@@ -233,7 +233,7 @@
           <div id="error-failed" class="error-box is-hidden" role="alert"><i class="bi bi-exclamation-circle"></i><span>아이디 또는 비밀번호가 올바르지 않습니다.</span></div>
           <div id="error-locked" class="error-box is-hidden" role="alert"><i class="bi bi-exclamation-circle"></i><span>비밀번호를 5번 틀려 로그인이 잠겼습니다. 10분 뒤 다시 시도해 주세요.</span></div>
 
-          <a href="task_view.html" id="btn-submit" class="btn-submit">로그인</a>
+          <button type="button" id="btn-submit" class="btn-submit">로그인</button>
         </form>
 
         <div class="find-links"><a href="find_id_view.html">아이디 찾기</a><span class="dot">·</span><a href="find_password_view.html">비밀번호 찾기</a></div>
@@ -253,6 +253,7 @@
       $('password').value = '';
       $('btn-submit').disabled = false;
       $('btn-submit').textContent = '로그인';
+      failCount = 0;
     }
 
     const STATES = {
@@ -293,6 +294,48 @@
       resetState();
       STATES[event.target.value]();
     });
+    // ---------- 동작 (D-146, D-149): LoginView_screen.md "4. 동작"을 서버 없이 흉내 낸다 ----------
+    let failCount = 0;
+    async function login() {
+      resetMessages();
+      const id = $('login-id').value.trim();
+      const pw = $('password').value;
+      if (!id) { $('ctl-login-id').classList.add('is-invalid'); $('login-id-empty').classList.remove('is-hidden'); }
+      if (!pw) { $('ctl-password').classList.add('is-invalid'); $('password-empty').classList.remove('is-hidden'); }
+      if (!id) { $('login-id').focus(); return; }
+      if (!pw) { $('password').focus(); return; }
+      if (failCount >= 5) { $('error-locked').classList.remove('is-hidden'); return; }
+      const spinner = document.createElement('span');
+      spinner.className = 'spinner-border spinner-border-sm me-2';
+      $('btn-submit').replaceChildren(spinner, document.createTextNode('로그인 중...'));
+      $('btn-submit').disabled = true;
+      await new Promise((r) => setTimeout(r, 500));
+      $('btn-submit').textContent = '로그인';
+      $('btn-submit').disabled = false;
+      if (id.toLowerCase() === 'todo2026' && pw === 'abcd123!') { failCount = 0; location.href = 'task_view.html'; return; }
+      // 틀리면 비밀번호 칸을 비우고 그리로 이동. 5번째면 10분 잠금 (D-049)
+      failCount += 1;
+      $('password').value = '';
+      $(failCount >= 5 ? 'error-locked' : 'error-failed').classList.remove('is-hidden');
+      $('password').focus();
+    }
+    function resetMessages() {
+      document.querySelectorAll('.message, .error-box').forEach((el) => el.classList.add('is-hidden'));
+      ['ctl-login-id', 'ctl-password'].forEach((id) => $(id).classList.remove('is-invalid'));
+    }
+    $('btn-submit').addEventListener('click', login);
+    ['login-id', 'password'].forEach((id) => $(id).addEventListener('keydown', (event) => { if (event.key === 'Enter') { login(); } }));
+    // 입력하면 그 칸의 입력 오류와 오류 상자를 지운다
+    ['login-id', 'password'].forEach((id) => $(id).addEventListener('input', () => {
+      $(`ctl-${id}`).classList.remove('is-invalid');
+      [`${id}-empty`, 'error-failed', 'error-locked'].forEach((el) => $(el).classList.add('is-hidden'));
+    }));
+    $('btn-eye').addEventListener('click', () => {
+      const input = $('password');
+      input.type = input.type === 'password' ? 'text' : 'password';
+      $('btn-eye').querySelector('i').className = `bi ${input.type === 'password' ? 'bi-eye' : 'bi-eye-slash'}`;
+    });
+
     // 다른 시안에서 ?state= 로 넘어오면 그 상태로 시작한다. ?check=all 이면 모든 상태를 그려 본다 (검사용)
     const params = new URLSearchParams(location.search);
     if (params.get('check') === 'all') { Object.keys(STATES).forEach((key) => { resetState(); STATES[key](); }); console.info('MOCKUP_CHECK_DONE ' + Object.keys(STATES).length); resetState(); }

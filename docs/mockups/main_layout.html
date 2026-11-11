@@ -29,6 +29,7 @@
     </main>
   </div>
 
+  <script src="../../frontend/node_modules/sortablejs/Sortable.min.js"></script>
   <script src="mockup_common.js"></script>
   <script>
     addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
@@ -36,7 +37,7 @@
     addToast('toast-removed', 'error', '팀에서 내보내졌습니다.', '');
     addToast('toast-dissolved', 'error', '팀이 해체되었습니다.', '');
     addToast('toast-not-found', 'error', '팀을 찾을 수 없습니다.', '');
-    addToast('toast-joined', 'success', '프로젝트 A 개발팀 팀에 가입했습니다.', '');
+    addToast('toast-joined', 'success', '마케팅팀 팀에 가입했습니다.', '');
     addToast('toast-limit', 'error', '가입된 팀이 20개라 더 가입할 수 없습니다.', '');
 
     let currentSpace = '';
