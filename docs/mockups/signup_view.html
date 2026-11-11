@@ -1,0 +1,483 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원가입 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <style>
+    /* SignupView_screen.md "7. 디자인 값" */
+    :root {
+      --color-primary: #1faa59;
+      --color-primary-dark: #168a47;
+      --color-primary-soft: #e8f6ee;
+      --color-brand-from: #1faa59;
+      --color-brand-to: #0e7c66;
+      --color-ink: #111827;
+      --color-sub: #6b7280;
+      --color-muted: #9ca3af;
+      --color-border: #e5e7eb;
+      --color-input-bg: #f9fafb;
+      --color-success: #16a34a;
+      --color-danger: #e5484d;
+      --color-danger-soft: #fdecec;
+      --color-page-bg: #eef3f0;
+      --radius-card: 20px;
+      --radius-control: 12px;
+      --shadow-card: 0 24px 60px -20px rgba(17, 24, 39, 0.18), 0 2px 6px rgba(17, 24, 39, 0.04);
+      --font-base: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Malgun Gothic', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-base);
+      color: var(--color-ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dff3e7 0%, transparent 60%),
+        radial-gradient(900px 500px at 110% 110%, #d9efe9 0%, transparent 55%),
+        var(--color-page-bg);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- 시안 전용: 상태 선택 막대 (실제 화면에는 없음) ---------- */
+    .mockup-bar { background: #111827; color: #e5e7eb; font-size: 13px; padding: 8px 16px; position: sticky; top: 0; z-index: 30; }
+    .mockup-bar select { max-width: 240px; }
+
+    /* ---------- 페이지 ---------- */
+    .signup-page { min-height: calc(100vh - 47px); display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
+    .signup-shell {
+      /* minmax(0, …): 입력칸·버튼의 최소 폭 때문에 칸이 카드 밖으로 넓어지지 않게 한다 */
+      width: 100%; max-width: 1040px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      background: #fff; border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden;
+    }
+
+    /* ---------- 브랜드 영역 (왼쪽) ---------- */
+    .brand-panel {
+      position: relative; overflow: hidden; color: #fff; padding: 48px 44px;
+      background: linear-gradient(150deg, var(--color-brand-from) 0%, var(--color-brand-to) 100%);
+      display: flex; flex-direction: column;
+    }
+    .brand-panel::before, .brand-panel::after {
+      content: ''; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.08);
+    }
+    .brand-panel::before { width: 340px; height: 340px; right: -120px; top: -100px; }
+    .brand-panel::after { width: 260px; height: 260px; left: -90px; bottom: -80px; }
+    .brand-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; letter-spacing: 0.5px; position: relative; z-index: 1; }
+    .brand-logo-mark { width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 255, 255, 0.18); display: grid; place-items: center; font-size: 20px; }
+    .brand-copy { margin-top: auto; position: relative; z-index: 1; }
+    .brand-headline { font-size: 30px; line-height: 1.35; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+    .brand-desc { font-size: 15px; line-height: 1.6; color: rgba(255, 255, 255, 0.82); margin-bottom: 28px; }
+    .brand-features { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }
+    .brand-features li { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; }
+    .brand-feature-icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.16); display: grid; place-items: center; font-size: 16px; flex: 0 0 auto; }
+
+    /* 미니 칸반 장식 */
+    .brand-board { position: relative; z-index: 1; margin-top: 36px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .brand-board-col { background: rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 8px; display: grid; gap: 6px; align-content: start; min-height: 92px; }
+    .brand-board-title { font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
+    .brand-board-card { height: 18px; border-radius: 6px; background: rgba(255, 255, 255, 0.85); }
+    .brand-board-card.is-short { width: 70%; }
+    .brand-board-card.is-dim { background: rgba(255, 255, 255, 0.45); }
+
+    /* ---------- 폼 영역 (오른쪽) ---------- */
+    .form-panel { padding: 48px 52px; }
+    .form-heading { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .form-subheading { font-size: 15px; color: var(--color-sub); margin-bottom: 28px; }
+    .form-section-title { font-size: 12px; font-weight: 700; color: var(--color-muted); letter-spacing: 1px; text-transform: uppercase; margin: 8px 0 14px; display: flex; align-items: center; gap: 10px; }
+    .form-section-title::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+    .field { margin-bottom: 18px; }
+    .field-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+    .field-row { display: flex; gap: 8px; }
+
+    .control {
+      position: relative; flex: 1 1 auto; display: flex; align-items: center;
+      background: var(--color-input-bg); border: 1.5px solid var(--color-border); border-radius: var(--radius-control);
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .control:focus-within { background: #fff; border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+    .control.is-invalid { border-color: var(--color-danger); background: #fff; }
+    .control.is-invalid:focus-within { box-shadow: 0 0 0 4px rgba(229, 72, 77, 0.14); }
+    .control.is-valid { border-color: var(--color-success); background: #fff; }
+    .control.is-readonly { background: #f3f4f6; }
+    .control-icon { padding-left: 14px; color: var(--color-muted); font-size: 17px; display: flex; }
+    .control:focus-within .control-icon { color: var(--color-primary); }
+    .control input {
+      flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent;
+      height: 48px; padding: 0 14px 0 10px; font-size: 15px; color: var(--color-ink);
+    }
+    .control input::placeholder { color: var(--color-muted); }
+    .control input:read-only { color: var(--color-sub); }
+    .control-suffix { padding-right: 12px; display: flex; align-items: center; gap: 6px; }
+    .icon-button { border: 0; background: transparent; color: var(--color-muted); font-size: 17px; padding: 4px; line-height: 1; }
+    .icon-button:hover { color: var(--color-ink); }
+    .timer-pill { font-size: 13px; font-weight: 700; color: var(--color-danger); background: var(--color-danger-soft); border-radius: 999px; padding: 3px 10px; font-variant-numeric: tabular-nums; }
+    .valid-mark { color: var(--color-success); font-size: 18px; display: flex; }
+
+    .btn-soft {
+      height: 51px; padding: 0 18px; border-radius: var(--radius-control); border: 0; white-space: nowrap;
+      background: var(--color-primary-soft); color: var(--color-primary-dark); font-weight: 700; font-size: 14px;
+      transition: background 0.15s, color 0.15s;
+    }
+    .btn-soft:hover:not(:disabled) { background: var(--color-primary); color: #fff; }
+    .btn-soft:disabled { background: #f3f4f6; color: var(--color-muted); }
+    .btn-ghost { height: 51px; padding: 0 18px; border-radius: var(--radius-control); border: 1.5px solid var(--color-border); background: #fff; color: var(--color-sub); font-weight: 700; font-size: 14px; white-space: nowrap; }
+    .btn-ghost:hover { border-color: var(--color-sub); color: var(--color-ink); }
+
+    .message { font-size: 13px; margin-top: 7px; display: flex; align-items: center; gap: 5px; }
+    .message.is-success { color: var(--color-success); }
+    .message.is-error { color: var(--color-danger); }
+    .message.is-info { color: var(--color-sub); }
+
+    .btn-submit {
+      width: 100%; height: 54px; border: 0; border-radius: var(--radius-control); margin-top: 10px;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: #fff;
+      font-size: 16px; font-weight: 700; letter-spacing: 0.2px;
+      box-shadow: 0 10px 24px -10px rgba(22, 138, 71, 0.7);
+      transition: transform 0.1s, box-shadow 0.15s, filter 0.15s;
+    }
+    .btn-submit:hover:not(:disabled) { filter: brightness(1.05); box-shadow: 0 14px 28px -10px rgba(22, 138, 71, 0.75); }
+    .btn-submit:active:not(:disabled) { transform: translateY(1px); }
+    .btn-submit:disabled { opacity: 0.75; }
+
+    .form-footer { text-align: center; font-size: 14px; color: var(--color-sub); margin-top: 22px; }
+    .form-footer a { color: var(--color-primary-dark); font-weight: 700; text-decoration: none; margin-left: 4px; }
+    .form-footer a:hover { text-decoration: underline; }
+
+    /* ---------- 알림 (토스트) ---------- */
+    .toast-box {
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40;
+      width: calc(100% - 32px); max-width: 420px; display: flex; align-items: center; gap: 12px;
+      background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 16px 40px -12px rgba(17, 24, 39, 0.3);
+      border-left: 5px solid var(--color-success); font-size: 15px; font-weight: 600;
+    }
+    .toast-box.is-error { border-left-color: var(--color-danger); }
+    .toast-icon { font-size: 22px; color: var(--color-success); display: flex; }
+    .toast-box.is-error .toast-icon { color: var(--color-danger); }
+    .toast-sub { font-size: 13px; font-weight: 400; color: var(--color-sub); margin-top: 2px; }
+
+    .is-hidden { display: none !important; }
+
+    /* ---------- 반응형 ---------- */
+    @media (max-width: 991.98px) {
+      .signup-shell { grid-template-columns: minmax(0, 1fr); max-width: 560px; }
+      .brand-panel { padding: 28px 28px 24px; }
+      .brand-panel::before { width: 220px; height: 220px; right: -80px; top: -90px; }
+      .brand-panel::after { display: none; }
+      .brand-copy { margin-top: 18px; }
+      .brand-headline { font-size: 22px; margin-bottom: 6px; }
+      .brand-desc { font-size: 14px; margin-bottom: 0; }
+      .brand-features, .brand-board { display: none; }
+      .form-panel { padding: 32px 32px 36px; }
+    }
+    @media (max-width: 575.98px) {
+      .signup-page { padding: 16px; align-items: flex-start; }
+      .signup-shell { border-radius: 16px; }
+      .brand-panel { padding: 22px 20px 20px; }
+      .brand-headline { font-size: 19px; }
+      .form-panel { padding: 24px 20px 28px; }
+      .form-heading { font-size: 22px; }
+      .form-subheading { margin-bottom: 20px; }
+      .btn-soft, .btn-ghost { padding: 0 14px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- 시안 전용 상태 선택 -->
+  <div class="mockup-bar d-flex align-items-center gap-2">
+    <span>시안 상태</span>
+    <select id="state-select" class="form-select form-select-sm">
+      <option value="default">기본</option>
+      <option value="input-error">입력 오류</option>
+      <option value="id-checked">아이디 확인됨</option>
+      <option value="code-sent">인증번호 발송 후</option>
+      <option value="code-mismatch">인증번호 틀림</option>
+      <option value="code-expired">인증 만료 / 무효</option>
+      <option value="verified">인증 완료</option>
+      <option value="loading">로딩 중 (가입하기)</option>
+      <option value="phone-duplicated">전화번호 중복 (서버)</option>
+      <option value="complete">가입 완료</option>
+      <option value="server-error">오류</option>
+    </select>
+  </div>
+
+  <div id="toast-complete" class="toast-box is-hidden" role="status">
+    <span class="toast-icon"><i class="bi bi-check-circle-fill"></i></span>
+    <div>가입이 완료되었습니다.<div class="toast-sub">로그인 화면으로 이동합니다.</div></div>
+  </div>
+  <div id="toast-error" class="toast-box is-error is-hidden" role="alert">
+    <span class="toast-icon"><i class="bi bi-exclamation-circle-fill"></i></span>
+    <div>일시적인 오류가 발생했습니다.<div class="toast-sub">잠시 후 다시 시도해 주세요.</div></div>
+  </div>
+
+  <main class="signup-page">
+    <div class="signup-shell">
+      <!-- 브랜드 영역 -->
+      <section class="brand-panel" aria-hidden="true">
+        <div class="brand-logo">
+          <span class="brand-logo-mark"><i class="bi bi-check2-square"></i></span>
+          TODO
+        </div>
+        <div class="brand-copy">
+          <div class="brand-headline">함께 세우는 일정,<br />한눈에 보이는 진행</div>
+          <div class="brand-desc">팀원과 할 일을 나누고, 칸반보드와 캘린더로<br />진행 상황을 실시간으로 확인하세요.</div>
+          <ul class="brand-features">
+            <li><span class="brand-feature-icon"><i class="bi bi-kanban"></i></span>대기 · 진행 · 완료 칸반보드</li>
+            <li><span class="brand-feature-icon"><i class="bi bi-calendar3"></i></span>기간이 보이는 캘린더</li>
+            <li><span class="brand-feature-icon"><i class="bi bi-people"></i></span>팀원과 실시간 협업</li>
+          </ul>
+          <div class="brand-board">
+            <div class="brand-board-col"><span class="brand-board-title">대기</span><span class="brand-board-card"></span><span class="brand-board-card is-short is-dim"></span></div>
+            <div class="brand-board-col"><span class="brand-board-title">진행</span><span class="brand-board-card"></span><span class="brand-board-card is-short"></span><span class="brand-board-card is-dim"></span></div>
+            <div class="brand-board-col"><span class="brand-board-title">완료</span><span class="brand-board-card is-dim"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 폼 영역 -->
+      <section class="form-panel">
+        <h1 class="form-heading">회원가입</h1>
+        <p class="form-subheading">몇 가지 정보만 입력하면 바로 시작할 수 있어요.</p>
+
+        <form novalidate>
+          <div class="form-section-title">계정 정보</div>
+
+          <!-- 아이디 -->
+          <div class="field">
+            <label class="field-label" for="login-id">아이디</label>
+            <div class="field-row">
+              <div id="ctl-login-id" class="control">
+                <span class="control-icon"><i class="bi bi-person"></i></span>
+                <input id="login-id" type="text" maxlength="15" placeholder="영어와 숫자를 모두 포함 6~15자" />
+                <span id="login-id-mark" class="control-suffix is-hidden"><span class="valid-mark"><i class="bi bi-check-circle-fill"></i></span></span>
+              </div>
+              <button type="button" class="btn-soft">중복 확인</button>
+            </div>
+            <div id="login-id-valid" class="message is-success is-hidden"><i class="bi bi-check-circle"></i>사용할 수 있는 아이디입니다.</div>
+            <div id="login-id-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>영어와 숫자를 모두 포함해 6~15자로 입력해 주세요.</div>
+          </div>
+
+          <!-- 비밀번호 -->
+          <div class="field">
+            <label class="field-label" for="password">비밀번호</label>
+            <div id="ctl-password" class="control">
+              <span class="control-icon"><i class="bi bi-lock"></i></span>
+              <input id="password" type="password" maxlength="15" placeholder="영어, 숫자, 특수문자를 모두 포함 8~15자" />
+              <span class="control-suffix"><button type="button" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span>
+            </div>
+            <div id="password-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>영어, 숫자, 특수문자를 모두 포함해 8~15자로 입력해 주세요.</div>
+          </div>
+
+          <!-- 비밀번호 확인 (제안) -->
+          <div class="field">
+            <label class="field-label" for="password-confirm">비밀번호 확인</label>
+            <div id="ctl-password-confirm" class="control">
+              <span class="control-icon"><i class="bi bi-shield-lock"></i></span>
+              <input id="password-confirm" type="password" maxlength="15" placeholder="비밀번호를 한 번 더 입력" />
+            </div>
+            <div id="password-confirm-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>비밀번호가 일치하지 않습니다.</div>
+          </div>
+
+          <!-- 닉네임 -->
+          <div class="field">
+            <label class="field-label" for="nickname">닉네임</label>
+            <div id="ctl-nickname" class="control">
+              <span class="control-icon"><i class="bi bi-emoji-smile"></i></span>
+              <input id="nickname" type="text" maxlength="8" placeholder="한글, 영어, 숫자 1~8자" />
+            </div>
+            <div id="nickname-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>한글, 영어, 숫자로 1~8자 입력해 주세요.</div>
+          </div>
+
+          <div class="form-section-title mt-4">본인 확인</div>
+
+          <!-- 이메일 -->
+          <div class="field">
+            <label class="field-label" for="email">이메일</label>
+            <div class="field-row">
+              <div id="ctl-email" class="control">
+                <span class="control-icon"><i class="bi bi-envelope"></i></span>
+                <input id="email" type="email" maxlength="100" placeholder="example@email.com" />
+                <span id="email-mark" class="control-suffix is-hidden"><span class="valid-mark"><i class="bi bi-patch-check-fill"></i></span></span>
+              </div>
+              <button id="btn-send-code" type="button" class="btn-soft">인증번호 발송</button>
+              <button id="btn-resend-code" type="button" class="btn-soft is-hidden" disabled>재발송 0:59</button>
+              <button id="btn-change-email" type="button" class="btn-ghost is-hidden">변경</button>
+            </div>
+            <div id="email-sent" class="message is-info is-hidden"><i class="bi bi-send"></i>인증번호를 보냈습니다. 메일을 확인해 주세요.</div>
+            <div id="email-verified" class="message is-success is-hidden"><i class="bi bi-check-circle"></i>이메일 인증이 완료되었습니다.</div>
+            <div id="email-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>이메일 인증을 완료해 주세요.</div>
+
+            <!-- 인증번호 (발송 후 표시) -->
+            <div id="code-row" class="field-row mt-2 is-hidden">
+              <div id="ctl-code" class="control">
+                <span class="control-icon"><i class="bi bi-key"></i></span>
+                <input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" />
+                <span class="control-suffix"><span id="timer" class="timer-pill">4:59</span></span>
+              </div>
+              <button type="button" class="btn-soft">확인</button>
+            </div>
+            <div id="code-mismatch" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>인증번호가 틀렸습니다. (남은 횟수 4회)</div>
+            <div id="code-expired" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>인증번호가 만료되었습니다. 다시 발송해 주세요.</div>
+          </div>
+
+          <!-- 전화번호 -->
+          <div class="field">
+            <label class="field-label" for="phone">전화번호</label>
+            <div id="ctl-phone" class="control">
+              <span class="control-icon"><i class="bi bi-phone"></i></span>
+              <input id="phone" type="tel" inputmode="numeric" maxlength="11" placeholder="숫자만 11자리 (예: 01012345678)" />
+            </div>
+            <div id="phone-invalid" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>숫자만 11자리로 입력해 주세요.</div>
+            <div id="phone-duplicated" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>이미 가입된 전화번호입니다.</div>
+          </div>
+
+          <button id="btn-submit" type="button" class="btn-submit">가입하기</button>
+        </form>
+
+        <div class="form-footer">이미 계정이 있으신가요?<a href="#">로그인</a></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // 시안 전용: 선택한 상태에 맞게 미리 정해 둔 요소만 보이고 숨긴다. (실제 기능 아님)
+    const $ = (id) => document.getElementById(id);
+    const SAMPLE = { loginId: 'todo2026', nickname: '홍길동', email: 'user@example.com', phone: '01012345678', pw: 'abcd123!' };
+    const FIELD_IDS = ['login-id', 'password', 'password-confirm', 'nickname', 'email', 'code', 'phone'];
+
+    const show = (id) => $(id).classList.remove('is-hidden');
+    const hide = (id) => $(id).classList.add('is-hidden');
+    const ctl = (id) => $('ctl-' + id);
+    const markInvalid = (id) => ctl(id).classList.add('is-invalid');
+    const markValid = (id) => ctl(id).classList.add('is-valid');
+
+    function resetState() {
+      document.querySelectorAll('form input, form button').forEach((el) => { el.disabled = false; });
+      document.querySelectorAll('.message, .toast-box').forEach((el) => el.classList.add('is-hidden'));
+      FIELD_IDS.forEach((id) => {
+        ctl(id).classList.remove('is-invalid', 'is-valid', 'is-readonly');
+        $(id).readOnly = false;
+        $(id).value = '';
+      });
+      ['code-row', 'btn-resend-code', 'btn-change-email', 'login-id-mark', 'email-mark'].forEach(hide);
+      show('btn-send-code');
+      $('btn-resend-code').disabled = true;
+      $('btn-resend-code').textContent = '재발송 0:59';
+      $('timer').textContent = '4:59';
+      $('btn-submit').disabled = false;
+      $('btn-submit').textContent = '가입하기';
+    }
+
+    function fillSample() {
+      $('login-id').value = SAMPLE.loginId;
+      $('password').value = SAMPLE.pw;
+      $('password-confirm').value = SAMPLE.pw;
+      $('nickname').value = SAMPLE.nickname;
+      $('email').value = SAMPLE.email;
+      $('phone').value = SAMPLE.phone;
+    }
+
+    function showIdChecked() {
+      markValid('login-id');
+      show('login-id-mark');
+      show('login-id-valid');
+    }
+
+    function showCodeSent() {
+      $('email').value = SAMPLE.email;
+      show('code-row');
+      hide('btn-send-code');
+      show('btn-resend-code');
+      show('email-sent');
+    }
+
+    function showVerified() {
+      $('email').readOnly = true;
+      ctl('email').classList.add('is-readonly');
+      show('email-mark');
+      hide('btn-send-code');
+      show('btn-change-email');
+      show('email-verified');
+    }
+
+    const STATES = {
+      'default': () => {},
+      'input-error': () => {
+        $('login-id').value = 'todo';
+        $('password').value = 'abcd';
+        $('password-confirm').value = 'abce';
+        $('nickname').value = '홍길동_1';
+        $('email').value = 'user@example';
+        $('phone').value = '0101234';
+        ['login-id', 'password', 'password-confirm', 'nickname', 'email', 'phone'].forEach(markInvalid);
+        ['login-id-invalid', 'password-invalid', 'password-confirm-invalid', 'nickname-invalid', 'email-invalid', 'phone-invalid'].forEach(show);
+      },
+      'id-checked': () => {
+        $('login-id').value = SAMPLE.loginId;
+        showIdChecked();
+      },
+      'code-sent': () => showCodeSent(),
+      'code-mismatch': () => {
+        showCodeSent();
+        hide('email-sent');
+        $('code').value = '123455';
+        markInvalid('code');
+        $('timer').textContent = '3:12';
+        show('code-mismatch');
+      },
+      'code-expired': () => {
+        showCodeSent();
+        hide('email-sent');
+        markInvalid('code');
+        $('timer').textContent = '0:00';
+        $('btn-resend-code').disabled = false;
+        $('btn-resend-code').textContent = '재발송';
+        show('code-expired');
+      },
+      'verified': () => {
+        fillSample();
+        showIdChecked();
+        showVerified();
+      },
+      'loading': () => {
+        fillSample();
+        showIdChecked();
+        showVerified();
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm me-2';
+        spinner.setAttribute('aria-hidden', 'true');
+        $('btn-submit').replaceChildren(spinner, document.createTextNode('가입 중...'));
+        $('btn-submit').disabled = true;
+      },
+      'phone-duplicated': () => {
+        fillSample();
+        showIdChecked();
+        showVerified();
+        markInvalid('phone');
+        show('phone-duplicated');
+      },
+      'complete': () => {
+        fillSample();
+        showIdChecked();
+        showVerified();
+        show('toast-complete');
+        // 가입 완료 후 폼 전체 잠금 (D-052)
+        document.querySelectorAll('form .control').forEach((el) => el.classList.add('is-readonly'));
+        document.querySelectorAll('form input, form button').forEach((el) => { el.disabled = true; });
+      },
+      'server-error': () => {
+        fillSample();
+        showIdChecked();
+        showVerified();
+        show('toast-error');
+      },
+    };
+
+    $('state-select').addEventListener('change', (event) => {
+      resetState();
+      STATES[event.target.value]();
+    });
+  </script>
+</body>
+</html>

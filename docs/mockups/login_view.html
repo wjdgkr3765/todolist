@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>로그인 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <style>
+    /* SignupView_screen.md "7. 디자인 값" + LoginView_screen.md "7. 디자인 값" */
+    :root {
+      --color-primary: #1faa59;
+      --color-primary-dark: #168a47;
+      --color-primary-soft: #e8f6ee;
+      --color-brand-from: #1faa59;
+      --color-brand-to: #0e7c66;
+      --color-ink: #111827;
+      --color-sub: #6b7280;
+      --color-muted: #9ca3af;
+      --color-border: #e5e7eb;
+      --color-input-bg: #f9fafb;
+      --color-danger: #e5484d;
+      --color-danger-soft: #fdecec;
+      --color-page-bg: #eef3f0;
+      --radius-card: 20px;
+      --radius-control: 12px;
+      --shadow-card: 0 24px 60px -20px rgba(17, 24, 39, 0.18), 0 2px 6px rgba(17, 24, 39, 0.04);
+      --font-base: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Malgun Gothic', sans-serif;
+    }
+
+    body {
+      font-family: var(--font-base);
+      color: var(--color-ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dff3e7 0%, transparent 60%),
+        radial-gradient(900px 500px at 110% 110%, #d9efe9 0%, transparent 55%),
+        var(--color-page-bg);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---------- 시안 전용: 상태 선택 막대 (실제 화면에는 없음) ---------- */
+    .mockup-bar { background: #111827; color: #e5e7eb; font-size: 13px; padding: 8px 16px; position: sticky; top: 0; z-index: 30; }
+    .mockup-bar select { max-width: 240px; }
+
+    /* ---------- 페이지 (회원가입과 같음) ---------- */
+    .login-page { min-height: calc(100vh - 47px); display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
+    .login-shell {
+      width: 100%; max-width: 1040px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+      background: #fff; border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden;
+    }
+
+    /* ---------- 브랜드 영역 (AuthBrandPanel 과 같음) ---------- */
+    .brand-panel {
+      position: relative; overflow: hidden; color: #fff; padding: 48px 44px;
+      background: linear-gradient(150deg, var(--color-brand-from) 0%, var(--color-brand-to) 100%);
+      display: flex; flex-direction: column;
+    }
+    .brand-panel::before, .brand-panel::after { content: ''; position: absolute; border-radius: 50%; background: rgba(255, 255, 255, 0.08); }
+    .brand-panel::before { width: 340px; height: 340px; right: -120px; top: -100px; }
+    .brand-panel::after { width: 260px; height: 260px; left: -90px; bottom: -80px; }
+    .brand-logo { display: flex; align-items: center; gap: 10px; font-weight: 800; font-size: 22px; letter-spacing: 0.5px; position: relative; z-index: 1; }
+    .brand-logo-mark { width: 36px; height: 36px; border-radius: 10px; background: rgba(255, 255, 255, 0.18); display: grid; place-items: center; font-size: 20px; }
+    .brand-copy { margin-top: auto; position: relative; z-index: 1; }
+    .brand-headline { font-size: 30px; line-height: 1.35; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 12px; }
+    .brand-desc { font-size: 15px; line-height: 1.6; color: rgba(255, 255, 255, 0.82); margin-bottom: 28px; }
+    .brand-features { list-style: none; padding: 0; margin: 0 0 8px; display: grid; gap: 12px; }
+    .brand-features li { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 500; }
+    .brand-feature-icon { width: 34px; height: 34px; border-radius: 10px; background: rgba(255, 255, 255, 0.16); display: grid; place-items: center; font-size: 16px; flex: 0 0 auto; }
+    .brand-board { position: relative; z-index: 1; margin-top: 36px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .brand-board-col { background: rgba(255, 255, 255, 0.12); border-radius: 10px; padding: 8px; display: grid; gap: 6px; align-content: start; min-height: 92px; }
+    .brand-board-title { font-size: 11px; font-weight: 700; color: rgba(255, 255, 255, 0.85); }
+    .brand-board-card { height: 18px; border-radius: 6px; background: rgba(255, 255, 255, 0.85); }
+    .brand-board-card.is-short { width: 70%; }
+    .brand-board-card.is-dim { background: rgba(255, 255, 255, 0.45); }
+
+    /* ---------- 폼 영역 ---------- */
+    .form-panel { padding: 48px 52px; display: flex; flex-direction: column; justify-content: center; }
+    .form-heading { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+    .form-subheading { font-size: 15px; color: var(--color-sub); margin-bottom: 28px; }
+    .field { margin-bottom: 18px; }
+    .field-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+    .control {
+      position: relative; flex: 1 1 auto; min-width: 0; display: flex; align-items: center;
+      background: var(--color-input-bg); border: 1.5px solid var(--color-border); border-radius: var(--radius-control);
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+    .control:focus-within { background: #fff; border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+    .control.is-invalid { border-color: var(--color-danger); background: #fff; }
+    .control-icon { padding-left: 14px; color: var(--color-muted); font-size: 17px; display: flex; }
+    .control:focus-within .control-icon { color: var(--color-primary); }
+    .control input { flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent; height: 48px; padding: 0 14px 0 10px; font-size: 15px; color: var(--color-ink); }
+    .control input::placeholder { color: var(--color-muted); }
+    .control-suffix { padding-right: 12px; display: flex; align-items: center; }
+    .icon-button { border: 0; background: transparent; color: var(--color-muted); font-size: 17px; padding: 4px; line-height: 1; }
+    .message { font-size: 13px; margin-top: 7px; display: flex; align-items: center; gap: 5px; }
+    .message.is-error { color: var(--color-danger); }
+
+    /* 오류 상자 (LoginView_screen.md 7번) */
+    .error-box { display: flex; align-items: flex-start; gap: 8px; background: var(--color-danger-soft); color: var(--color-danger); border-radius: var(--radius-control); padding: 12px 14px; font-size: 14px; margin-bottom: 4px; }
+    .error-box i { font-size: 16px; line-height: 1.3; }
+
+    .btn-submit {
+      width: 100%; height: 54px; border: 0; border-radius: var(--radius-control); margin-top: 10px;
+      background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: #fff;
+      font-size: 16px; font-weight: 700; box-shadow: 0 10px 24px -10px rgba(22, 138, 71, 0.7);
+    }
+    .btn-submit:disabled { opacity: 0.75; }
+
+    .find-links { text-align: center; font-size: 14px; color: var(--color-sub); margin-top: 16px; }
+    .find-links a { color: var(--color-sub); text-decoration: none; }
+    .find-links a:hover { color: var(--color-ink); text-decoration: underline; }
+    .find-links .dot { margin: 0 8px; color: var(--color-muted); }
+    .form-footer { text-align: center; font-size: 14px; color: var(--color-sub); margin-top: 22px; }
+    .form-footer a { color: var(--color-primary-dark); font-weight: 700; text-decoration: none; margin-left: 4px; }
+
+    .toast-box {
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 40;
+      width: calc(100% - 32px); max-width: 420px; display: flex; align-items: center; gap: 12px;
+      background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: 0 16px 40px -12px rgba(17, 24, 39, 0.3);
+      border-left: 5px solid var(--color-danger); font-size: 15px; font-weight: 600;
+    }
+    .toast-icon { font-size: 22px; color: var(--color-danger); display: flex; }
+    .toast-sub { font-size: 13px; font-weight: 400; color: var(--color-sub); margin-top: 2px; }
+
+    .is-hidden { display: none !important; }
+
+    @media (max-width: 991.98px) {
+      .login-shell { grid-template-columns: minmax(0, 1fr); max-width: 560px; }
+      .brand-panel { padding: 28px 28px 24px; }
+      .brand-panel::before { width: 220px; height: 220px; right: -80px; top: -90px; }
+      .brand-panel::after { display: none; }
+      .brand-copy { margin-top: 18px; }
+      .brand-headline { font-size: 22px; margin-bottom: 6px; }
+      .brand-desc { font-size: 14px; margin-bottom: 0; }
+      .brand-features, .brand-board { display: none; }
+      .form-panel { padding: 32px 32px 36px; }
+    }
+    @media (max-width: 575.98px) {
+      .login-page { padding: 16px; align-items: flex-start; }
+      .login-shell { border-radius: 16px; }
+      .brand-panel { padding: 22px 20px 20px; }
+      .brand-headline { font-size: 19px; }
+      .form-panel { padding: 24px 20px 28px; }
+      .form-heading { font-size: 22px; }
+      .form-subheading { margin-bottom: 20px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mockup-bar d-flex align-items-center gap-2">
+    <span>시안 상태</span>
+    <select id="state-select" class="form-select form-select-sm">
+      <option value="default">기본</option>
+      <option value="input-error">입력 오류 (빈 칸)</option>
+      <option value="login-failed">로그인 실패</option>
+      <option value="login-locked">로그인 잠김</option>
+      <option value="loading">로딩 중</option>
+      <option value="server-error">오류</option>
+    </select>
+  </div>
+
+  <div id="toast-error" class="toast-box is-hidden" role="alert">
+    <span class="toast-icon"><i class="bi bi-exclamation-circle-fill"></i></span>
+    <div>일시적인 오류가 발생했습니다.<div class="toast-sub">잠시 후 다시 시도해 주세요.</div></div>
+  </div>
+
+  <main class="login-page">
+    <div class="login-shell">
+      <section class="brand-panel" aria-hidden="true">
+        <div class="brand-logo"><span class="brand-logo-mark"><i class="bi bi-check2-square"></i></span>TODO</div>
+        <div class="brand-copy">
+          <div class="brand-headline">함께 세우는 일정,<br />한눈에 보이는 진행</div>
+          <div class="brand-desc">팀원과 할 일을 나누고, 칸반보드와 캘린더로<br />진행 상황을 실시간으로 확인하세요.</div>
+          <ul class="brand-features">
+            <li><span class="brand-feature-icon"><i class="bi bi-kanban"></i></span>대기 · 진행 · 완료 칸반보드</li>
+            <li><span class="brand-feature-icon"><i class="bi bi-calendar3"></i></span>기간이 보이는 캘린더</li>
+            <li><span class="brand-feature-icon"><i class="bi bi-people"></i></span>팀원과 실시간 협업</li>
+          </ul>
+          <div class="brand-board">
+            <div class="brand-board-col"><span class="brand-board-title">대기</span><span class="brand-board-card"></span><span class="brand-board-card is-short is-dim"></span></div>
+            <div class="brand-board-col"><span class="brand-board-title">진행</span><span class="brand-board-card"></span><span class="brand-board-card is-short"></span><span class="brand-board-card is-dim"></span></div>
+            <div class="brand-board-col"><span class="brand-board-title">완료</span><span class="brand-board-card is-dim"></span></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="form-panel">
+        <h1 class="form-heading">로그인</h1>
+        <p class="form-subheading">아이디와 비밀번호를 입력해 주세요.</p>
+
+        <form novalidate>
+          <div class="field">
+            <label class="field-label" for="login-id">아이디</label>
+            <div id="ctl-login-id" class="control">
+              <span class="control-icon"><i class="bi bi-person"></i></span>
+              <input id="login-id" type="text" maxlength="15" placeholder="아이디" autocomplete="username" />
+            </div>
+            <div id="login-id-empty" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>아이디를 입력해 주세요.</div>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="password">비밀번호</label>
+            <div id="ctl-password" class="control">
+              <span class="control-icon"><i class="bi bi-lock"></i></span>
+              <input id="password" type="password" maxlength="15" placeholder="비밀번호" autocomplete="current-password" />
+              <span class="control-suffix"><button type="button" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span>
+            </div>
+            <div id="password-empty" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>비밀번호를 입력해 주세요.</div>
+          </div>
+
+          <div id="error-failed" class="error-box is-hidden" role="alert"><i class="bi bi-exclamation-circle"></i><span>아이디 또는 비밀번호가 올바르지 않습니다.</span></div>
+          <div id="error-locked" class="error-box is-hidden" role="alert"><i class="bi bi-exclamation-circle"></i><span>비밀번호를 5번 틀려 로그인이 잠겼습니다. 10분 뒤 다시 시도해 주세요.</span></div>
+
+          <button id="btn-submit" type="button" class="btn-submit">로그인</button>
+        </form>
+
+        <div class="find-links"><a href="#">아이디 찾기</a><span class="dot">·</span><a href="#">비밀번호 찾기</a></div>
+        <div class="form-footer">아직 계정이 없으신가요?<a href="#">회원가입</a></div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    // 시안 전용: 선택한 상태에 맞게 미리 정해 둔 요소만 보이고 숨긴다. (실제 기능 아님)
+    const $ = (id) => document.getElementById(id);
+
+    function resetState() {
+      document.querySelectorAll('.message, .error-box, .toast-box').forEach((el) => el.classList.add('is-hidden'));
+      ['ctl-login-id', 'ctl-password'].forEach((id) => $(id).classList.remove('is-invalid'));
+      $('login-id').value = '';
+      $('password').value = '';
+      $('btn-submit').disabled = false;
+      $('btn-submit').textContent = '로그인';
+    }
+
+    const STATES = {
+      'default': () => {},
+      'input-error': () => {
+        ['ctl-login-id', 'ctl-password'].forEach((id) => $(id).classList.add('is-invalid'));
+        ['login-id-empty', 'password-empty'].forEach((id) => $(id).classList.remove('is-hidden'));
+      },
+      'login-failed': () => {
+        $('login-id').value = 'todo2026';
+        $('error-failed').classList.remove('is-hidden');
+      },
+      'login-locked': () => {
+        $('login-id').value = 'todo2026';
+        $('error-locked').classList.remove('is-hidden');
+      },
+      'loading': () => {
+        $('login-id').value = 'todo2026';
+        $('password').value = 'abcd123!';
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm me-2';
+        spinner.setAttribute('aria-hidden', 'true');
+        $('btn-submit').replaceChildren(spinner, document.createTextNode('로그인 중...'));
+        $('btn-submit').disabled = true;
+      },
+      'server-error': () => {
+        $('login-id').value = 'todo2026';
+        $('password').value = 'abcd123!';
+        $('toast-error').classList.remove('is-hidden');
+      },
+    };
+
+    $('state-select').addEventListener('change', (event) => {
+      resetState();
+      STATES[event.target.value]();
+    });
+  </script>
+</body>
+</html>

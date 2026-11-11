@@ -1,0 +1,556 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>작업(할일 목록·칸반보드) 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <style>
+    /* SignupView_screen.md·MainLayout_screen.md·TaskView_screen.md "7. 디자인 값" */
+    :root {
+      --color-primary: #1faa59; --color-primary-dark: #168a47; --color-primary-soft: #e8f6ee;
+      --color-ink: #111827; --color-sub: #6b7280; --color-muted: #9ca3af; --color-border: #e5e7eb;
+      --color-input-bg: #f9fafb; --color-hover-bg: #f3f4f6; --color-danger: #e5484d; --color-danger-soft: #fdecec;
+      --color-success: #16a34a; --color-page-bg: #eef3f0; --radius-control: 12px;
+      --shadow-pop: 0 16px 40px -12px rgba(17, 24, 39, 0.3);
+      --font-base: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Malgun Gothic', sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { font-family: var(--font-base); color: var(--color-ink); background: var(--color-page-bg); margin: 0; -webkit-font-smoothing: antialiased; }
+    .mockup-bar { background: #111827; color: #e5e7eb; font-size: 13px; padding: 8px 16px; position: sticky; top: 0; z-index: 70; }
+    .mockup-bar select { max-width: 240px; }
+
+    /* ---------- 공통 레이아웃 (MainLayout 과 같음, 요약) ---------- */
+    .main-layout { display: flex; min-width: 588px; height: calc(100vh - 47px); }
+    .side-nav { flex: 0 0 240px; background: #fff; border-right: 1px solid var(--color-border); display: flex; flex-direction: column; padding: 20px 12px; }
+    .logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; color: var(--color-primary-dark); padding: 0 4px; margin-bottom: 20px; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 9px; background: var(--color-primary); color: #fff; display: grid; place-items: center; font-size: 18px; }
+    .nav-item { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 10px; font-size: 15px; font-weight: 600; background: var(--color-primary-soft); color: var(--color-primary-dark); }
+    .nav-section-title { font-size: 12px; font-weight: 700; color: var(--color-muted); margin: 22px 12px 8px; }
+    .nav-empty { font-size: 14px; color: var(--color-muted); padding: 4px 12px; }
+    .profile { margin-top: auto; border-top: 1px solid var(--color-border); padding: 20px 8px 8px; font-size: 14px; font-weight: 700; }
+    .profile small { display: block; font-size: 13px; font-weight: 400; color: var(--color-sub); }
+    .menu-tabs { flex: 0 0 112px; background: var(--color-input-bg); border-right: 1px solid var(--color-border); display: flex; flex-direction: column; }
+    .menu-tab { height: 58px; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; color: var(--color-sub); }
+    .menu-tab.is-active { background: var(--color-primary); color: #fff; }
+    .content { flex: 1 1 auto; min-width: 320px; padding: 32px; overflow: auto; }
+
+    /* ---------- 작업 화면 ---------- */
+    .task-view { display: flex; gap: 20px; align-items: flex-start; min-width: 420px; }
+    .work-area { flex: 1 1 auto; min-width: 420px; min-height: 560px; display: flex; flex-direction: column; gap: 20px; }
+    .panel { background: #fff; border: 1px solid var(--color-border); border-radius: 16px; padding: 20px; }
+    .panel-title { font-size: 17px; font-weight: 800; margin: 0; }
+    /* ---------- 칸반보드 ---------- */
+    .kanban-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+    .kanban-column { background: var(--color-input-bg); border-radius: 12px; padding: 10px; min-width: 0; }
+    .column-head { display: flex; align-items: center; gap: 6px; padding: 2px 4px 10px; font-size: 14px; font-weight: 700; }
+    .column-dot { width: 8px; height: 8px; border-radius: 50%; flex: 0 0 auto; }
+    .column-count { font-size: 13px; font-weight: 600; color: var(--color-muted); }
+    .card-list { min-height: 160px; max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+    .task-card { background: #fff; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 12px; cursor: grab; }
+    .task-card:hover { border-color: #d1d5db; box-shadow: 0 2px 6px rgba(17, 24, 39, 0.08); }
+    .task-card.is-selected { border: 1.5px solid var(--color-primary); background: #f6fbf8; }
+    .task-card.is-dragging { box-shadow: 0 10px 24px -6px rgba(17, 24, 39, 0.25); transform: rotate(2deg); }
+    .task-card.is-ghost { background: var(--color-primary-soft); border: 1.5px dashed var(--color-primary); }
+    .task-card.is-ghost > * { visibility: hidden; }
+    .card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-period { font-size: 12px; color: var(--color-sub); margin-top: 4px; }
+    .column-empty { font-size: 13px; color: var(--color-muted); text-align: center; padding: 24px 0; }
+    .column-loading { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--color-sub); padding: 24px 0; }
+    .status-waiting { --status-color: #6b7280; --status-bg: #f3f4f6; }
+    .status-progress { --status-color: #2563eb; --status-bg: #eff6ff; }
+    .status-done { --status-color: #1faa59; --status-bg: #e8f6ee; }
+    .column-dot { background: var(--status-color); }
+    .status-badge { display: inline-block; background: var(--status-bg); color: var(--status-color); font-size: 12px; font-weight: 700; border-radius: 999px; padding: 3px 10px; }
+
+    /* ---------- 작업 상세 UI ---------- */
+    .detail-item { margin-bottom: 14px; }
+    .detail-label { font-size: 13px; font-weight: 600; color: var(--color-sub); margin-bottom: 4px; }
+    .detail-value { font-size: 15px; word-break: break-all; }
+    .detail-content { white-space: pre-wrap; max-height: 220px; overflow-y: auto; }
+    .detail-buttons { display: flex; gap: 8px; margin: 4px 0 16px; }
+    .detail-buttons .action-button { flex: 1; height: 40px; justify-content: center; }
+    .select-input { width: 100%; height: 48px; border: 1.5px solid var(--color-border); border-radius: var(--radius-control); background-color: var(--color-input-bg); font-size: 15px; padding: 0 14px; }
+    .log-section { border-top: 1px solid var(--color-border); padding-top: 16px; }
+    .log-title { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+    .log-title span { color: var(--color-muted); font-weight: 600; margin-left: 2px; }
+    .log-list { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .log-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+    .log-row:hover { background: var(--color-input-bg); }
+    .log-row > div { flex: 1; min-width: 0; }
+    .log-type { font-size: 14px; font-weight: 600; }
+    .log-meta { font-size: 12px; color: var(--color-sub); margin-top: 2px; }
+    .log-row i { color: var(--color-muted); }
+
+    /* ---------- 수정 내역 모달 ---------- */
+    .log-modal { width: 480px; max-width: 100%; max-height: calc(100vh - 64px); overflow-y: auto; background: #fff; border-radius: 16px; padding: 24px; box-shadow: var(--shadow-pop); }
+    .log-modal-info { background: var(--color-input-bg); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
+    .log-modal .detail-content { max-height: 240px; }
+    .log-modal-buttons { display: flex; justify-content: flex-end; }
+
+    .todo-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+    .todo-count { font-size: 14px; font-weight: 600; color: var(--color-muted); margin-left: 4px; }
+    .todo-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .action-button { height: 36px; padding: 0 12px; border: 0; border-radius: 10px; font-size: 14px; font-weight: 600; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+    .action-button.is-primary { background: var(--color-primary); color: #fff; }
+    .action-button.is-soft { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+    .action-button.is-danger { background: var(--color-danger-soft); color: var(--color-danger); }
+    .action-button:disabled { background: var(--color-hover-bg); color: var(--color-muted); }
+
+    .todo-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 15px; }
+    .todo-table th { background: var(--color-input-bg); font-size: 13px; font-weight: 700; color: var(--color-sub); text-align: left; padding: 10px 14px; }
+    .todo-table th:last-child, .todo-table td:last-child { width: 210px; }
+    .todo-table td { height: 48px; padding: 0 14px; border-bottom: 1px solid var(--color-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .todo-table tbody tr { cursor: pointer; }
+    .todo-table tbody tr:hover { background: var(--color-input-bg); }
+    .todo-table tbody tr.is-selected { background: var(--color-primary-soft); box-shadow: inset 3px 0 0 var(--color-primary); }
+    .period-undecided { display: inline-block; background: var(--color-hover-bg); color: var(--color-sub); font-size: 12px; font-weight: 600; border-radius: 999px; padding: 2px 10px; }
+    .todo-empty, .todo-loading { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 40px 16px; color: var(--color-sub); font-size: 15px; text-align: center; }
+    .todo-empty i { font-size: 28px; color: var(--color-muted); }
+    .todo-empty small { color: var(--color-muted); font-size: 13px; }
+
+    /* ---------- 할일 입력 UI ---------- */
+    .todo-form-panel { flex: 0 0 340px; width: 340px; }
+    .form-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .close-button { width: 32px; height: 32px; border: 0; border-radius: 8px; background: transparent; color: var(--color-sub); font-size: 16px; }
+    .close-button:hover { background: var(--color-hover-bg); }
+    .field { margin-bottom: 16px; }
+    .field-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+    .text-input, .text-area, .date-input {
+      width: 100%; border: 1.5px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input-bg);
+      font-size: 15px; color: var(--color-ink); outline: 0; font-family: inherit;
+    }
+    .text-input, .date-input { height: 48px; padding: 0 14px; }
+    .text-area { padding: 12px 14px; resize: vertical; line-height: 1.5; }
+    .text-input:focus, .text-area:focus, .date-input:focus { background: #fff; border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+    .is-invalid { border-color: var(--color-danger) !important; background: #fff !important; }
+    .date-input:disabled { background: var(--color-hover-bg); color: var(--color-muted); }
+    .counter { font-size: 12px; color: var(--color-muted); text-align: right; margin-top: 4px; }
+    .period-row { display: flex; align-items: center; gap: 6px; }
+    .period-row span { color: var(--color-muted); flex: 0 0 auto; }
+    /* 날짜 칸 두 개가 입력 영역 폭 안에서 나눠 쓰도록 줄어들 수 있게 한다 (브라우저 날짜 칸의 기본 최소 폭 무시) */
+    .period-row .date-input { flex: 1 1 0; min-width: 0; padding: 0 8px; font-size: 14px; }
+    .undecided-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--color-sub); }
+    .undecided-check input { width: 18px; height: 18px; accent-color: var(--color-primary); }
+    .message { font-size: 13px; margin-top: 6px; color: var(--color-danger); display: flex; align-items: center; gap: 5px; }
+    .form-buttons { display: flex; gap: 8px; margin-top: 8px; }
+    .btn-save { flex: 1; height: 48px; border: 0; border-radius: var(--radius-control); background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: #fff; font-weight: 700; font-size: 15px; }
+    .btn-save:disabled { opacity: 0.75; }
+    .btn-cancel { height: 48px; padding: 0 18px; border: 1.5px solid var(--color-border); border-radius: var(--radius-control); background: #fff; color: var(--color-sub); font-weight: 700; font-size: 15px; }
+
+    /* ---------- 삭제 확인창 ---------- */
+    .modal-backdrop-box { position: fixed; inset: 0; background: rgba(17, 24, 39, 0.45); display: flex; align-items: center; justify-content: center; z-index: 60; padding: 16px; }
+    .confirm-box { width: 400px; max-width: 100%; background: #fff; border-radius: 16px; padding: 24px; box-shadow: var(--shadow-pop); }
+    .confirm-title { font-size: 18px; font-weight: 800; margin-bottom: 10px; }
+    .confirm-target { font-size: 15px; font-weight: 600; background: var(--color-input-bg); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .confirm-note { font-size: 14px; color: var(--color-sub); margin-bottom: 20px; }
+    .confirm-buttons { display: flex; justify-content: flex-end; gap: 8px; }
+    .btn-delete { height: 44px; padding: 0 18px; border: 0; border-radius: var(--radius-control); background: var(--color-danger); color: #fff; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; }
+    .confirm-buttons .btn-cancel { height: 44px; }
+
+    .toast-box { position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 80; width: calc(100% - 32px); max-width: 420px; display: flex; align-items: center; gap: 12px; background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow-pop); border-left: 5px solid var(--color-success); font-size: 15px; font-weight: 600; }
+    .toast-box.is-error { border-left-color: var(--color-danger); }
+    .toast-icon { font-size: 22px; color: var(--color-success); display: flex; }
+    .toast-box.is-error .toast-icon { color: var(--color-danger); }
+    .toast-sub { font-size: 13px; font-weight: 400; color: var(--color-sub); margin-top: 2px; }
+    .is-hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="mockup-bar d-flex align-items-center gap-2">
+    <span>시안 상태</span>
+    <select id="state-select" class="form-select form-select-sm">
+      <option value="default">기본 (목록)</option>
+      <option value="selected">행 선택</option>
+      <option value="empty">데이터 없음</option>
+      <option value="loading">로딩 중 (목록)</option>
+      <option value="add">입력 UI: 할일 추가</option>
+      <option value="edit">입력 UI: 할일 수정</option>
+      <option value="undecided">입력 UI: 기간 미정</option>
+      <option value="invalid">입력 UI: 입력 오류</option>
+      <option value="saving">입력 UI: 저장 중</option>
+      <option value="confirm">삭제 확인창</option>
+      <option value="starting">작업 시작 중</option>
+      <option value="started">작업 시작 완료 안내</option>
+      <option value="saved">저장 완료 안내</option>
+      <option value="server-error">오류</option>
+      <option value="kanban-empty">칸반: 데이터 없음</option>
+      <option value="kanban-loading">칸반: 로딩 중</option>
+      <option value="dragging">칸반: 카드 드래그 중 (진행 → 대기)</option>
+      <option value="detail">작업 상세 (읽기)</option>
+      <option value="detail-logs-loading">작업 상세: 수정 내역 로딩 중</option>
+      <option value="detail-edit">작업 상세 (수정 중)</option>
+      <option value="detail-invalid">작업 상세: 입력 오류</option>
+      <option value="log-modal">수정 내역 모달</option>
+      <option value="task-confirm">작업 삭제 확인창</option>
+      <option value="task-not-found">작업 없음 오류</option>
+    </select>
+  </div>
+
+  <div id="toast" class="toast-box is-hidden" role="status">
+    <span class="toast-icon"><i id="toast-icon" class="bi bi-check-circle-fill"></i></span>
+    <div><span id="toast-title"></span><div id="toast-sub" class="toast-sub"></div></div>
+  </div>
+
+  <div id="confirm" class="modal-backdrop-box is-hidden">
+    <div class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+      <div id="confirm-title" class="confirm-title">할일을 삭제할까요?</div>
+      <div class="confirm-target">회의 자료 준비</div>
+      <div class="confirm-note">삭제한 할일은 되돌릴 수 없습니다.</div>
+      <div class="confirm-buttons">
+        <button type="button" class="btn-cancel">취소</button>
+        <button type="button" class="btn-delete"><i class="bi bi-trash"></i>삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="task-confirm" class="modal-backdrop-box is-hidden">
+    <div class="confirm-box" role="dialog" aria-modal="true" aria-labelledby="task-confirm-title">
+      <div id="task-confirm-title" class="confirm-title">작업을 삭제할까요?</div>
+      <div class="confirm-target">API 문서 정리</div>
+      <div class="confirm-note">삭제한 작업과 수정 내역은 되돌릴 수 없습니다.</div>
+      <div class="confirm-buttons">
+        <button type="button" class="btn-cancel">취소</button>
+        <button type="button" class="btn-delete"><i class="bi bi-trash"></i>삭제</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="log-modal" class="modal-backdrop-box is-hidden">
+    <div class="log-modal" role="dialog" aria-modal="true" aria-labelledby="log-modal-title">
+      <div class="form-head">
+        <h2 id="log-modal-title" class="panel-title">수정 내역</h2>
+        <button type="button" class="close-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button>
+      </div>
+      <div class="log-modal-info">
+        <div class="log-type">상태 변경 (진행 → 대기)</div>
+        <div class="log-meta">2026.11.10 15:02 · 홍길동</div>
+      </div>
+      <div class="detail-item"><div class="detail-label">상태</div><span class="status-badge status-waiting">대기</span></div>
+      <div class="detail-item"><div class="detail-label">제목</div><div class="detail-value">API 문서 초안</div></div>
+      <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value"><span class="period-undecided">미정</span></div></div>
+      <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">작업 API 를 정리한다.</div></div>
+      <div class="log-modal-buttons"><button type="button" class="btn-cancel">닫기</button></div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <nav class="side-nav">
+      <span class="logo"><span class="logo-mark"><i class="bi bi-check2-square"></i></span>TODO</span>
+      <span class="nav-item"><i class="bi bi-person"></i>개인</span>
+      <div class="nav-section-title">팀</div>
+      <div class="nav-empty">아직 속한 팀이 없습니다.</div>
+      <div class="profile">홍길동<small>user@example.com</small></div>
+    </nav>
+    <nav class="menu-tabs">
+      <span class="menu-tab is-active">작업</span>
+      <span class="menu-tab">캘린더</span>
+      <span class="menu-tab">히스토리</span>
+    </nav>
+
+    <main class="content">
+      <div class="task-view">
+        <div class="work-area">
+          <!-- 칸반보드 -->
+          <section class="panel">
+            <h2 class="panel-title">칸반보드<span id="task-count" class="todo-count">5개</span></h2>
+            <div class="kanban-columns">
+              <div class="kanban-column status-waiting">
+                <div class="column-head"><span class="column-dot"></span>대기<span class="column-count" data-count="2">2</span></div>
+                <div class="card-list">
+                  <div id="card-1" class="task-card"><div class="card-title">API 문서 정리</div><div class="card-period">2026.11.10 ~ 2026.11.14</div></div>
+                  <div id="card-ghost" class="task-card is-ghost is-hidden"><div class="card-title">로그인 화면 점검</div><div class="card-period">2026.11.09 ~ 2026.11.11</div></div>
+                  <div class="task-card"><div class="card-title">주간 보고서 작성하고 팀 공유 채널에 올리기</div><div class="card-period"><span class="period-undecided">미정</span></div></div>
+                  <div class="column-empty is-hidden kanban-empty">작업이 없습니다</div>
+                  <div class="column-loading is-hidden kanban-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+                </div>
+              </div>
+              <div class="kanban-column status-progress">
+                <div class="column-head"><span class="column-dot"></span>진행<span class="column-count" data-count="2">2</span></div>
+                <div class="card-list">
+                  <div id="card-2" class="task-card"><div class="card-title">로그인 화면 점검</div><div class="card-period">2026.11.09 ~ 2026.11.11</div></div>
+                  <div class="task-card"><div class="card-title">회의 자료 준비</div><div class="card-period">2026.11.12</div></div>
+                  <div class="column-empty is-hidden kanban-empty">작업이 없습니다</div>
+                  <div class="column-loading is-hidden kanban-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+                </div>
+              </div>
+              <div class="kanban-column status-done">
+                <div class="column-head"><span class="column-dot"></span>완료<span class="column-count" data-count="1">1</span></div>
+                <div class="card-list">
+                  <div class="task-card"><div class="card-title">DB 백업 설정</div><div class="card-period">2026.11.08</div></div>
+                  <div class="column-empty is-hidden kanban-empty">작업이 없습니다</div>
+                  <div class="column-loading is-hidden kanban-loading"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 할일 목록 -->
+          <section class="panel">
+            <div class="todo-header">
+              <h2 class="panel-title">할일 목록<span id="todo-count" class="todo-count">3개</span></h2>
+              <div class="todo-actions">
+                <button type="button" class="action-button is-primary"><i class="bi bi-plus-lg"></i>추가</button>
+                <button type="button" class="action-button is-soft need-select" disabled><i class="bi bi-pencil"></i>수정</button>
+                <button type="button" class="action-button is-danger need-select" disabled><i class="bi bi-trash"></i>삭제</button>
+                <button id="btn-start" type="button" class="action-button is-soft need-select" disabled><i class="bi bi-play-fill"></i>작업 시작</button>
+              </div>
+            </div>
+
+            <table id="todo-table" class="todo-table">
+              <thead><tr><th>제목</th><th>기간</th></tr></thead>
+              <tbody>
+                <tr id="row-1"><td>회의 자료 준비</td><td>2026.11.10 ~ 2026.11.12</td></tr>
+                <tr><td>디자인 시안 검토 및 피드백 정리, 다음 주 일정 공유하기</td><td>2026.11.14</td></tr>
+                <tr><td>읽을 책 고르기</td><td><span class="period-undecided">미정</span></td></tr>
+              </tbody>
+            </table>
+            <div id="todo-empty" class="todo-empty is-hidden"><i class="bi bi-journal-text"></i>할일이 없습니다.<small>[추가]를 눌러 첫 할일을 만들어 보세요.</small></div>
+            <div id="todo-loading" class="todo-loading is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+          </section>
+        </div>
+
+        <!-- 할일 입력 UI -->
+        <aside id="form-panel" class="panel todo-form-panel is-hidden">
+          <div class="form-head">
+            <h2 id="form-title" class="panel-title">할일 추가</h2>
+            <button type="button" class="close-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button>
+          </div>
+          <div class="field">
+            <label class="field-label" for="todo-title">제목</label>
+            <input id="todo-title" class="text-input" type="text" maxlength="50" placeholder="할일 제목" />
+            <div id="title-error" class="message is-hidden"><i class="bi bi-exclamation-circle"></i>제목을 입력해 주세요.</div>
+            <div id="title-counter" class="counter">0/50</div>
+          </div>
+          <div class="field">
+            <label class="field-label" for="todo-content">내용</label>
+            <textarea id="todo-content" class="text-area" rows="8" maxlength="2000" placeholder="할일 내용"></textarea>
+            <div id="content-error" class="message is-hidden"><i class="bi bi-exclamation-circle"></i>내용을 입력해 주세요.</div>
+            <div id="content-counter" class="counter">0/2000</div>
+          </div>
+          <div class="field">
+            <span class="field-label">기간</span>
+            <div class="period-row">
+              <input id="start-date" class="date-input" type="date" aria-label="시작일" />
+              <span>~</span>
+              <input id="end-date" class="date-input" type="date" aria-label="종료일" />
+            </div>
+            <label class="undecided-check"><input id="undecided" type="checkbox" />기간 미정</label>
+            <div id="period-error" class="message is-hidden"><i class="bi bi-exclamation-circle"></i>종료일은 시작일과 같거나 뒤여야 합니다.</div>
+          </div>
+          <div class="form-buttons">
+            <button type="button" class="btn-cancel">취소</button>
+            <button id="btn-save" type="button" class="btn-save">저장</button>
+          </div>
+        </aside>
+
+        <!-- 작업 상세 UI (읽기 / 수정 중) -->
+        <aside id="detail-panel" class="panel todo-form-panel is-hidden">
+          <div class="form-head">
+            <h2 id="detail-title" class="panel-title">작업 상세</h2>
+            <button type="button" class="close-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button>
+          </div>
+
+          <div id="detail-read">
+            <div class="detail-item"><div class="detail-label">상태</div><span id="detail-status" class="status-badge status-waiting">대기</span></div>
+            <div class="detail-item"><div class="detail-label">제목</div><div class="detail-value">API 문서 정리</div></div>
+            <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value">2026.11.10 ~ 2026.11.14</div></div>
+            <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">작업 API 6개를 api.md 에 정리한다.
+요청·응답 예시도 함께 적는다.</div></div>
+            <div class="detail-buttons">
+              <button type="button" class="action-button is-soft"><i class="bi bi-pencil"></i>수정</button>
+              <button type="button" class="action-button is-danger"><i class="bi bi-trash"></i>삭제</button>
+            </div>
+          </div>
+
+          <div id="detail-edit" class="is-hidden">
+            <div class="field">
+              <label class="field-label" for="task-status">상태</label>
+              <select id="task-status" class="select-input"><option selected>대기</option><option>진행</option><option>완료</option></select>
+            </div>
+            <div class="field">
+              <label class="field-label" for="task-title">제목</label>
+              <input id="task-title" class="text-input" type="text" maxlength="50" value="API 문서 정리" />
+              <div id="task-title-error" class="message is-hidden"><i class="bi bi-exclamation-circle"></i>제목을 입력해 주세요.</div>
+              <div id="task-title-counter" class="counter">8/50</div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="task-content">내용</label>
+              <textarea id="task-content" class="text-area" rows="8" maxlength="2000">작업 API 6개를 api.md 에 정리한다.
+요청·응답 예시도 함께 적는다.</textarea>
+              <div class="counter">43/2000</div>
+            </div>
+            <div class="field">
+              <span class="field-label">기간</span>
+              <div class="period-row">
+                <input class="date-input" type="date" aria-label="시작일" value="2026-11-10" />
+                <span>~</span>
+                <input class="date-input" type="date" aria-label="종료일" value="2026-11-14" />
+              </div>
+              <label class="undecided-check"><input type="checkbox" />기간 미정</label>
+            </div>
+            <div class="form-buttons">
+              <button type="button" class="btn-cancel">취소</button>
+              <button type="button" class="btn-save">저장</button>
+            </div>
+            <div class="mb-3"></div>
+          </div>
+
+          <div class="log-section">
+            <div class="log-title">수정 내역<span id="log-count">4</span></div>
+            <div id="log-list" class="log-list">
+              <div class="log-row"><div><div class="log-type">작업 수정</div><div class="log-meta">2026.11.10 16:20 · 홍길동</div></div><i class="bi bi-chevron-right"></i></div>
+              <div class="log-row"><div><div class="log-type">상태 변경 (진행 → 대기)</div><div class="log-meta">2026.11.10 15:02 · 홍길동</div></div><i class="bi bi-chevron-right"></i></div>
+              <div class="log-row"><div><div class="log-type">작업 수정 · 상태 변경 (대기 → 진행)</div><div class="log-meta">2026.11.10 14:45 · 홍길동</div></div><i class="bi bi-chevron-right"></i></div>
+              <div class="log-row"><div><div class="log-type">작업 생성</div><div class="log-meta">2026.11.10 14:30 · 홍길동</div></div><i class="bi bi-chevron-right"></i></div>
+            </div>
+            <div id="log-loading" class="column-loading is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // 시안 전용: 선택한 상태에 맞게 미리 정해 둔 요소만 보이고 숨긴다. (실제 기능 아님)
+    const $ = (id) => document.getElementById(id);
+    const show = (id) => $(id).classList.remove('is-hidden');
+    const hide = (id) => $(id).classList.add('is-hidden');
+
+    function setSelected(isSelected) {
+      $('row-1').classList.toggle('is-selected', isSelected);
+      document.querySelectorAll('.need-select').forEach((button) => { button.disabled = !isSelected; });
+    }
+
+    function fillForm(title, content, start, end) {
+      $('todo-title').value = title;
+      $('todo-content').value = content;
+      $('start-date').value = start;
+      $('end-date').value = end;
+      $('title-counter').textContent = `${title.length}/50`;
+      $('content-counter').textContent = `${content.length}/2000`;
+    }
+
+    function showToast(isError, title, sub) {
+      $('toast').classList.toggle('is-error', isError);
+      $('toast-icon').className = isError ? 'bi bi-exclamation-circle-fill' : 'bi bi-check-circle-fill';
+      $('toast-title').textContent = title;
+      $('toast-sub').textContent = sub;
+      show('toast');
+    }
+
+    const START_BUTTON_HTML = $('btn-start').innerHTML;
+
+    /** 칸반 카드 영역: cards(카드 보임) / empty / loading */
+    function setKanban(mode) {
+      document.querySelectorAll('.card-list .task-card:not(.is-ghost)').forEach((card) => card.classList.toggle('is-hidden', mode !== 'cards'));
+      document.querySelectorAll('.kanban-empty').forEach((el) => el.classList.toggle('is-hidden', mode !== 'empty'));
+      document.querySelectorAll('.kanban-loading').forEach((el) => el.classList.toggle('is-hidden', mode !== 'loading'));
+      document.querySelectorAll('.column-count').forEach((el) => { el.textContent = mode === 'cards' ? el.dataset.count : (mode === 'empty' ? '0' : ''); });
+      $('task-count').textContent = mode === 'cards' ? '5개' : (mode === 'empty' ? '0개' : '');
+    }
+
+    /** 작업 상세 UI: read / edit */
+    function openDetail(mode) {
+      $('card-1').classList.add('is-selected');
+      $('detail-title').textContent = mode === 'edit' ? '작업 수정' : '작업 상세';
+      $('detail-read').classList.toggle('is-hidden', mode === 'edit');
+      $('detail-edit').classList.toggle('is-hidden', mode !== 'edit');
+      show('detail-panel');
+    }
+
+    function resetState() {
+      ['toast', 'confirm', 'task-confirm', 'log-modal', 'form-panel', 'detail-panel', 'todo-empty', 'todo-loading',
+        'title-error', 'content-error', 'period-error', 'task-title-error', 'card-ghost', 'log-loading'].forEach(hide);
+      show('log-list');
+      $('log-count').textContent = '4';
+      setKanban('cards');
+      document.querySelectorAll('.task-card').forEach((card) => card.classList.remove('is-selected', 'is-dragging'));
+      $('btn-start').innerHTML = START_BUTTON_HTML;
+      $('task-title').value = 'API 문서 정리';
+      show('todo-table');
+      $('todo-count').textContent = '3개';
+      setSelected(false);
+      fillForm('', '', '', '');
+      $('undecided').checked = false;
+      $('start-date').disabled = false;
+      $('end-date').disabled = false;
+      document.querySelectorAll('.is-invalid').forEach((el) => el.classList.remove('is-invalid'));
+      $('btn-save').disabled = false;
+      $('btn-save').textContent = '저장';
+      $('form-title').textContent = '할일 추가';
+    }
+
+    const STATES = {
+      'default': () => {},
+      'selected': () => setSelected(true),
+      'empty': () => { hide('todo-table'); show('todo-empty'); $('todo-count').textContent = '0개'; },
+      'loading': () => { hide('todo-table'); show('todo-loading'); $('todo-count').textContent = ''; },
+      'add': () => show('form-panel'),
+      'edit': () => {
+        setSelected(true);
+        $('form-title').textContent = '할일 수정';
+        fillForm('회의 자료 준비', '주간 회의에서 쓸 진행 현황 자료를 정리한다.', '2026-11-10', '2026-11-12');
+        show('form-panel');
+      },
+      'undecided': () => {
+        fillForm('읽을 책 고르기', '이번 달에 읽을 책 목록을 만든다.', '', '');
+        $('undecided').checked = true;
+        $('start-date').disabled = true;
+        $('end-date').disabled = true;
+        show('form-panel');
+      },
+      'invalid': () => {
+        fillForm('', '', '2026-11-12', '2026-11-10');
+        ['todo-title', 'todo-content', 'start-date', 'end-date'].forEach((id) => $(id).classList.add('is-invalid'));
+        ['title-error', 'content-error', 'period-error'].forEach(show);
+        show('form-panel');
+      },
+      'saving': () => {
+        fillForm('회의 자료 준비', '주간 회의에서 쓸 진행 현황 자료를 정리한다.', '2026-11-10', '2026-11-12');
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm me-2';
+        spinner.setAttribute('aria-hidden', 'true');
+        $('btn-save').replaceChildren(spinner, document.createTextNode('저장 중...'));
+        $('btn-save').disabled = true;
+        show('form-panel');
+      },
+      'confirm': () => { setSelected(true); show('confirm'); },
+      'starting': () => {
+        setSelected(true);
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm';
+        spinner.setAttribute('aria-hidden', 'true');
+        $('btn-start').replaceChildren(spinner, document.createTextNode('작업 시작'));
+        document.querySelectorAll('.need-select').forEach((button) => { button.disabled = true; });
+      },
+      'started': () => showToast(false, '작업을 시작했습니다.', ''),
+      'saved': () => { setSelected(true); showToast(false, '할일을 추가했습니다.', ''); },
+      'server-error': () => showToast(true, '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.'),
+      'kanban-empty': () => setKanban('empty'),
+      'kanban-loading': () => { setKanban('loading'); hide('todo-table'); show('todo-loading'); $('todo-count').textContent = ''; },
+      'dragging': () => { show('card-ghost'); $('card-2').classList.add('is-dragging'); },
+      'detail': () => openDetail('read'),
+      'detail-logs-loading': () => { openDetail('read'); hide('log-list'); show('log-loading'); $('log-count').textContent = ''; },
+      'detail-edit': () => openDetail('edit'),
+      'detail-invalid': () => {
+        openDetail('edit');
+        $('task-title').value = '';
+        $('task-title').classList.add('is-invalid');
+        show('task-title-error');
+      },
+      'log-modal': () => { openDetail('read'); show('log-modal'); },
+      'task-confirm': () => { openDetail('read'); show('task-confirm'); },
+      'task-not-found': () => showToast(true, '이미 삭제된 작업입니다.', ''),
+    };
+
+    $('state-select').addEventListener('change', (event) => {
+      resetState();
+      STATES[event.target.value]();
+    });
+  </script>
+</body>
+</html>

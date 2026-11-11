@@ -1,0 +1,246 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>공통 레이아웃 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <style>
+    /* SignupView_screen.md "7. 디자인 값" + MainLayout_screen.md "7. 디자인 값" */
+    :root {
+      --color-primary: #1faa59;
+      --color-primary-dark: #168a47;
+      --color-primary-soft: #e8f6ee;
+      --color-ink: #111827;
+      --color-sub: #6b7280;
+      --color-muted: #9ca3af;
+      --color-border: #e5e7eb;
+      --color-input-bg: #f9fafb;
+      --color-hover-bg: #f3f4f6;
+      --color-danger: #e5484d;
+      --color-page-bg: #eef3f0;
+      --radius-control: 12px;
+      --shadow-pop: 0 16px 40px -12px rgba(17, 24, 39, 0.3);
+      --font-base: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Malgun Gothic', sans-serif;
+      --nav-width: 240px;
+      --tab-width: 112px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body { font-family: var(--font-base); color: var(--color-ink); background: var(--color-page-bg); -webkit-font-smoothing: antialiased; margin: 0; }
+
+    /* ---------- 시안 전용: 상태 선택 막대 (실제 화면에는 없음) ---------- */
+    .mockup-bar { background: #111827; color: #e5e7eb; font-size: 13px; padding: 8px 16px; position: sticky; top: 0; left: 0; z-index: 50; }
+    .mockup-bar select { max-width: 240px; }
+
+    /* ---------- 레이아웃 ---------- */
+    .main-layout { display: flex; min-width: 588px; height: calc(100vh - 47px); }
+    .side-nav {
+      flex: 0 0 var(--nav-width); min-width: 180px; background: #fff; border-right: 1px solid var(--color-border);
+      display: flex; flex-direction: column; padding: 20px 12px; position: relative;
+    }
+    .menu-tabs {
+      flex: 0 0 var(--tab-width); min-width: 88px; background: var(--color-input-bg); border-right: 1px solid var(--color-border);
+      padding: 0; display: flex; flex-direction: column; gap: 0;
+    }
+    .content { flex: 1 1 auto; min-width: 320px; padding: 32px; overflow: auto; }
+
+    /* ---------- 좌측 네비 ---------- */
+    .nav-top { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; margin-bottom: 20px; position: relative; }
+    .logo { display: inline-flex; align-items: center; gap: 8px; font-weight: 800; font-size: 20px; color: var(--color-primary-dark); white-space: nowrap; }
+    .logo-mark { width: 32px; height: 32px; border-radius: 9px; background: var(--color-primary); color: #fff; display: grid; place-items: center; font-size: 18px; flex: 0 0 auto; }
+    .bell-button { width: 36px; height: 36px; border-radius: 50%; border: 0; background: transparent; color: var(--color-sub); font-size: 18px; display: grid; place-items: center; flex: 0 0 auto; }
+    .bell-button:hover, .bell-button.is-open { background: var(--color-hover-bg); color: var(--color-ink); }
+
+    .nav-item {
+      display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; color: var(--color-ink); text-decoration: none; white-space: nowrap;
+    }
+    .nav-item:hover { background: var(--color-hover-bg); color: var(--color-ink); }
+    .nav-item.is-active { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+    .nav-item i { font-size: 17px; }
+    .nav-section-title { font-size: 12px; font-weight: 700; color: var(--color-muted); letter-spacing: 1px; margin: 22px 12px 8px; display: flex; align-items: center; gap: 10px; }
+    .nav-section-title::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+    .nav-empty { font-size: 14px; color: var(--color-muted); padding: 4px 12px; }
+
+    .profile { margin-top: auto; border-top: 1px solid var(--color-border); padding-top: 12px; position: relative; }
+    .profile-button {
+      width: 100%; display: flex; align-items: center; gap: 8px; border: 0; background: transparent; text-align: left;
+      padding: 8px; border-radius: 10px; min-width: 0;
+    }
+    .profile-button:hover, .profile-button.is-open { background: var(--color-hover-bg); }
+    .profile-text { flex: 1 1 auto; min-width: 0; }
+    .profile-nickname, .profile-email { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .profile-nickname { font-size: 14px; font-weight: 700; color: var(--color-ink); }
+    .profile-email { font-size: 13px; color: var(--color-sub); }
+    .profile-more { color: var(--color-muted); font-size: 16px; flex: 0 0 auto; }
+
+    /* ---------- 작은 창 (알림, 회원 메뉴) ---------- */
+    .popover-box { position: absolute; z-index: 40; background: #fff; border: 1px solid var(--color-border); border-radius: 14px; box-shadow: var(--shadow-pop); }
+    .notification-box { top: 44px; left: 4px; width: 280px; }
+    .notification-title { font-size: 15px; font-weight: 700; padding: 14px 16px; border-bottom: 1px solid var(--color-border); }
+    .notification-empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 16px; color: var(--color-muted); font-size: 14px; }
+    .notification-empty i { font-size: 24px; }
+    .profile-menu { bottom: calc(100% + 6px); left: 0; right: 0; border-radius: 12px; padding: 6px; }
+    .profile-menu-item {
+      width: 100%; display: flex; align-items: center; gap: 10px; height: 42px; padding: 0 12px; border: 0; background: transparent;
+      border-radius: 8px; font-size: 14px; font-weight: 600; color: var(--color-ink); white-space: nowrap;
+    }
+    .profile-menu-item:hover:not(:disabled) { background: var(--color-hover-bg); }
+    .profile-menu-item:disabled { opacity: 0.75; }
+
+    /* ---------- 세로 메뉴 탭 ---------- */
+    .menu-tab {
+      height: 58px; padding: 0; border-radius: 0; line-height: 1.3; display: flex; align-items: center; justify-content: center; text-align: center;
+      color: var(--color-sub); text-decoration: none; font-size: 14px; font-weight: 600; white-space: nowrap;
+    }
+    .menu-tab:hover { background: var(--color-hover-bg); color: var(--color-ink); }
+    .menu-tab.is-active { background: var(--color-primary); color: #fff; }
+
+    /* ---------- 내용 (준비 중) ---------- */
+    .content-title { font-size: 22px; font-weight: 800; letter-spacing: -0.3px; margin-bottom: 16px; }
+    .coming-soon {
+      background: #fff; border-radius: 16px; border: 1px dashed var(--color-border); padding: 48px 20px;
+      display: flex; flex-direction: column; align-items: center; gap: 10px; color: var(--color-sub); font-size: 15px; text-align: center;
+    }
+    .coming-soon i { font-size: 32px; color: var(--color-muted); }
+
+    .toast-box {
+      position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 60;
+      width: calc(100% - 32px); max-width: 420px; display: flex; align-items: center; gap: 12px;
+      background: #fff; border-radius: 14px; padding: 14px 16px; box-shadow: var(--shadow-pop);
+      border-left: 5px solid var(--color-danger); font-size: 15px; font-weight: 600;
+    }
+    .toast-icon { font-size: 22px; color: var(--color-danger); display: flex; }
+    .toast-sub { font-size: 13px; font-weight: 400; color: var(--color-sub); margin-top: 2px; }
+    .is-hidden { display: none !important; }
+
+    /* ---------- 반응형 (D-061: 그대로 줄이고 최소 크기 아래로는 가로 스크롤) ---------- */
+    @media (max-width: 991.98px) {
+      :root { --nav-width: 200px; --tab-width: 96px; }
+      .content { padding: 20px; }
+    }
+    @media (max-width: 575.98px) {
+      :root { --nav-width: 180px; --tab-width: 88px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mockup-bar d-flex align-items-center gap-2">
+    <span>시안 상태</span>
+    <select id="state-select" class="form-select form-select-sm">
+      <option value="tasks">기본 (작업 탭)</option>
+      <option value="calendar">캘린더 탭</option>
+      <option value="history">히스토리 탭</option>
+      <option value="notification">알림 창 열림</option>
+      <option value="profile-menu">회원 메뉴 열림</option>
+      <option value="long-text">긴 닉네임·이메일</option>
+      <option value="loading">로그아웃 중</option>
+      <option value="server-error">오류</option>
+    </select>
+  </div>
+
+  <div id="toast-error" class="toast-box is-hidden" role="alert">
+    <span class="toast-icon"><i class="bi bi-exclamation-circle-fill"></i></span>
+    <div>일시적인 오류가 발생했습니다.<div class="toast-sub">잠시 후 다시 시도해 주세요.</div></div>
+  </div>
+
+  <div class="main-layout">
+    <!-- 좌측 네비 -->
+    <nav class="side-nav" aria-label="공간">
+      <div class="nav-top">
+        <span class="logo"><span class="logo-mark"><i class="bi bi-check2-square"></i></span>TODO</span>
+        <button id="bell" type="button" class="bell-button" aria-label="알림"><i class="bi bi-bell"></i></button>
+        <div id="notification-box" class="popover-box notification-box is-hidden" role="dialog" aria-label="알림">
+          <div class="notification-title">알림</div>
+          <div class="notification-empty"><i class="bi bi-bell-slash"></i>알림이 없습니다.</div>
+        </div>
+      </div>
+
+      <a href="#" class="nav-item is-active"><i class="bi bi-person"></i>개인</a>
+
+      <div class="nav-section-title">팀</div>
+      <div class="nav-empty">아직 속한 팀이 없습니다.</div>
+
+      <div class="profile">
+        <div id="profile-menu" class="popover-box profile-menu is-hidden" role="menu">
+          <button id="btn-logout" type="button" class="profile-menu-item" role="menuitem"><i class="bi bi-box-arrow-right"></i>로그아웃</button>
+        </div>
+        <button id="profile-button" type="button" class="profile-button" aria-haspopup="menu">
+          <span class="profile-text">
+            <span id="nickname" class="profile-nickname">홍길동</span>
+            <span id="email" class="profile-email">user@example.com</span>
+          </span>
+          <i class="bi bi-three-dots-vertical profile-more"></i>
+        </button>
+      </div>
+    </nav>
+
+    <!-- 세로 메뉴 탭 -->
+    <nav class="menu-tabs" aria-label="메뉴">
+      <a href="#" id="tab-tasks" class="menu-tab is-active">작업</a>
+      <a href="#" id="tab-calendar" class="menu-tab">캘린더</a>
+      <a href="#" id="tab-history" class="menu-tab">히스토리</a>
+    </nav>
+
+    <!-- 내용 영역 -->
+    <main class="content">
+      <h1 id="content-title" class="content-title">작업</h1>
+      <div class="coming-soon"><i class="bi bi-tools"></i><span id="coming-soon-text">작업 화면은 준비 중입니다.</span></div>
+    </main>
+  </div>
+
+  <script>
+    // 시안 전용: 선택한 상태에 맞게 미리 정해 둔 요소만 보이고 숨긴다. (실제 기능 아님)
+    const $ = (id) => document.getElementById(id);
+    const TABS = { tasks: '작업', calendar: '캘린더', history: '히스토리' };
+    const LOGOUT_LABEL = '<i class="bi bi-box-arrow-right"></i>로그아웃';
+
+    function selectTab(key) {
+      Object.keys(TABS).forEach((k) => $('tab-' + k).classList.toggle('is-active', k === key));
+      $('content-title').textContent = TABS[key];
+      $('coming-soon-text').textContent = `${TABS[key]} 화면은 준비 중입니다.`;
+    }
+
+    function resetState() {
+      ['notification-box', 'profile-menu', 'toast-error'].forEach((id) => $(id).classList.add('is-hidden'));
+      $('bell').classList.remove('is-open');
+      $('profile-button').classList.remove('is-open');
+      $('nickname').textContent = '홍길동';
+      $('email').textContent = 'user@example.com';
+      $('btn-logout').disabled = false;
+      $('btn-logout').innerHTML = LOGOUT_LABEL;
+      selectTab('tasks');
+    }
+
+    const STATES = {
+      'tasks': () => {},
+      'calendar': () => selectTab('calendar'),
+      'history': () => selectTab('history'),
+      'notification': () => { $('notification-box').classList.remove('is-hidden'); $('bell').classList.add('is-open'); },
+      'profile-menu': () => { $('profile-menu').classList.remove('is-hidden'); $('profile-button').classList.add('is-open'); },
+      'long-text': () => {
+        $('nickname').textContent = '가나다라마바사아';
+        $('email').textContent = 'very.long.email.address.for.test@example-company.com';
+      },
+      'loading': () => {
+        $('profile-menu').classList.remove('is-hidden');
+        $('profile-button').classList.add('is-open');
+        const spinner = document.createElement('span');
+        spinner.className = 'spinner-border spinner-border-sm';
+        spinner.setAttribute('aria-hidden', 'true');
+        $('btn-logout').replaceChildren(spinner, document.createTextNode('로그아웃 중...'));
+        $('btn-logout').disabled = true;
+      },
+      'server-error': () => $('toast-error').classList.remove('is-hidden'),
+    };
+
+    $('state-select').addEventListener('change', (event) => {
+      resetState();
+      STATES[event.target.value]();
+    });
+  </script>
+</body>
+</html>
