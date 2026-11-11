@@ -3,7 +3,7 @@
 // 편집기 내용은 Tiptap 이 다룬다. 사용자 입력은 escapeHtml 로만 HTML 에 넣는다
 renderLayout({ space: 'team', tab: 'reports', hideTabs: false });
 
-const { Editor, StarterKit, TableKit, TextStyle, Color } = window.Tiptap;
+const { Editor, StarterKit, Table, TableRow, TableHeader, TableCell, TextStyle, Color } = window.Tiptap;
 const TODAY = '2026-11-11';
 const ME = '홍길동';
 const MAX_TEXT = 5000;
@@ -219,6 +219,29 @@ function renderStatus() {
 }
 
 // ---------- 편집기 (D-155) ----------
+// 표 셀 배경색·정렬 (D-163). 클릭한 셀 또는 드래그로 고른 셀들에 setCellAttribute 로 넣는다
+const styleOf = (el, re) => ((el.getAttribute('style') || '').match(re) || [])[1] || null;
+const CELL_ATTRS = {
+  backgroundColor: {
+    default: null,
+    // 브라우저는 #RRGGBB 를 rgb(r, g, b) 로 바꿔 적으므로 둘 다 읽어 #RRGGBB 로 맞춘다
+    parseHTML: (el) => {
+      const rgb = el.style.backgroundColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+      if (rgb) { return `#${rgb.slice(1).map((n) => Number(n).toString(16).padStart(2, '0')).join('').toUpperCase()}`; }
+      return styleOf(el, /background-color:\s*(#[0-9a-fA-F]{6})/);
+    },
+    renderHTML: (attrs) => (attrs.backgroundColor ? { style: `background-color: ${attrs.backgroundColor}` } : {}),
+  },
+  textAlign: {
+    default: null,
+    parseHTML: (el) => styleOf(el, /text-align:\s*(center|right)/),
+    renderHTML: (attrs) => (attrs.textAlign ? { style: `text-align: ${attrs.textAlign}` } : {}),
+  },
+};
+const StyledCell = TableCell.extend({ addAttributes() { return { ...this.parent?.(), ...CELL_ATTRS }; } });
+const StyledHeader = TableHeader.extend({ addAttributes() { return { ...this.parent?.(), ...CELL_ATTRS }; } });
+const cellAttrs = (editor) => (editor.isActive('tableHeader') ? editor.getAttributes('tableHeader') : editor.getAttributes('tableCell'));
+
 function makeEditor(element, html, editable, onChange) {
   const editor = new Editor({
     element,
@@ -226,7 +249,10 @@ function makeEditor(element, html, editable, onChange) {
     content: html,
     extensions: [
       StarterKit.configure({ heading: false, code: false, codeBlock: false, blockquote: false, underline: false, link: { openOnClick: !editable, autolink: true, protocols: ['mailto'], HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } } }),
-      TableKit.configure({ table: { resizable: false } }),
+      Table.configure({ resizable: false }),
+      TableRow,
+      StyledHeader,
+      StyledCell,
       TextStyle,
       Color,
     ],
@@ -253,7 +279,7 @@ function focusEditor(editor) {
   refreshToolbar();
 }
 function hideToolbar() {
-  hide('toolbar', 'color-pop', 'link-pop');
+  hide('toolbar', 'color-pop', 'link-pop', 'cell-pop');
   document.querySelectorAll('.editor-box.is-focused').forEach((box) => box.classList.remove('is-focused'));
   document.body.appendChild($('toolbar'));
   ui.focused = null;
@@ -267,6 +293,10 @@ function refreshToolbar() {
   $('toolbar').querySelector('[data-cmd=outdent]').disabled = !editor.can().liftListItem('listItem');
   const inTable = editor.isActive('table');
   $('toolbar').querySelectorAll('.table-only').forEach((el) => el.classList.toggle('is-hidden', !inTable));
+  if (inTable) {
+    const align = cellAttrs(editor).textAlign || 'left';
+    ['left', 'center', 'right'].forEach((a) => $('toolbar').querySelector(`[data-cmd=align-${a}]`).classList.toggle('is-on', align === a));
+  } else { hide('cell-pop'); }
 }
 function runCommand(cmd) {
   const editor = ui.focused;
@@ -276,14 +306,18 @@ function runCommand(cmd) {
     bold: () => chain().toggleBold().run(),
     italic: () => chain().toggleItalic().run(),
     strike: () => chain().toggleStrike().run(),
-    color: () => { hide('link-pop'); $('color-pop').classList.toggle('is-hidden'); },
+    color: () => { hide('link-pop', 'cell-pop'); $('color-pop').classList.toggle('is-hidden'); },
+    cellColor: () => { hide('link-pop', 'color-pop'); $('cell-pop').classList.toggle('is-hidden'); },
+    'align-left': () => chain().setCellAttribute('textAlign', null).run(),
+    'align-center': () => chain().setCellAttribute('textAlign', 'center').run(),
+    'align-right': () => chain().setCellAttribute('textAlign', 'right').run(),
     bullet: () => chain().toggleBulletList().run(),
     ordered: () => chain().toggleOrderedList().run(),
     indent: () => chain().sinkListItem('listItem').run(),
     outdent: () => chain().liftListItem('listItem').run(),
     table: () => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
     hr: () => chain().setHorizontalRule().run(),
-    link: () => { hide('color-pop'); $('link-input').value = editor.getAttributes('link').href || ''; $('link-pop').classList.toggle('is-hidden'); if (!$('link-pop').classList.contains('is-hidden')) { $('link-input').focus(); } },
+    link: () => { hide('color-pop', 'cell-pop'); $('link-input').value = editor.getAttributes('link').href || ''; $('link-pop').classList.toggle('is-hidden'); if (!$('link-pop').classList.contains('is-hidden')) { $('link-input').focus(); } },
     rowAdd: () => chain().addRowAfter().run(),
     rowDel: () => chain().deleteRow().run(),
     colAdd: () => chain().addColumnAfter().run(),
@@ -301,6 +335,12 @@ $('toolbar').addEventListener('click', (event) => {
     const color = colorButton.dataset.color;
     if (color) { ui.focused.chain().focus().setColor(color).run(); } else { ui.focused.chain().focus().unsetColor().run(); }
     hide('color-pop');
+    return;
+  }
+  const bgButton = event.target.closest('button[data-bg]');
+  if (bgButton && ui.focused) {
+    ui.focused.chain().focus().setCellAttribute('backgroundColor', bgButton.dataset.bg || null).run();
+    hide('cell-pop');
   }
 });
 // 링크: http·https·mailto 만 (D-155)
@@ -666,7 +706,7 @@ $('tpl-x').addEventListener('click', closeTemplate);
 closeOnBackdrop('tpl-modal', closeTemplate);
 escapeHandlers.push(() => {
   if (!$('confirm').classList.contains('is-hidden')) { hide('confirm'); confirmAction = null; return; }
-  if (!$('color-pop').classList.contains('is-hidden') || !$('link-pop').classList.contains('is-hidden')) { hide('color-pop', 'link-pop'); return; }
+  if (['color-pop', 'link-pop', 'cell-pop'].some((id) => !$(id).classList.contains('is-hidden'))) { hide('color-pop', 'link-pop', 'cell-pop'); return; }
   if (!$('tpl-modal').classList.contains('is-hidden')) { closeTemplate(); }
 });
 
@@ -702,6 +742,18 @@ async function resetState() {
   show('status-list');
   renderStatus();
 }
+// 시안 상태용: 표의 (행, 열) 범위 셀들을 고른다 (드래그로 고른 것과 같은 CellSelection)
+function selectCells(editor, row1, col1, row2, col2) {
+  const rows = [];
+  editor.state.doc.descendants((node, pos) => {
+    if (node.type.name !== 'tableRow') { return true; }
+    const cells = [];
+    node.forEach((cell, offset) => cells.push(pos + 1 + offset));
+    rows.push(cells);
+    return false;
+  });
+  editor.commands.setCellSelection({ anchorCell: rows[row1][col1], headCell: rows[row2][col2] });
+}
 const selectRow = async (name) => { ui.selected = name; renderStatus(); showReportPane(); await openReport(); };
 const STATES = {
   'default': { label: '기본: 오늘, 작성 전 초안 (직접 눌러 보세요)', run: () => openReport() },
@@ -713,6 +765,7 @@ const STATES = {
   'auto-empty': { label: '자동 구역이 빔 (내 작업 없음)', run: () => { model.tasks = []; openReport(); } },
   'toolbar': { label: '편집기 도구 막대 + 글자 색', run: async () => { await openReport(); ui.editors[3].commands.focus(); show('color-pop'); } },
   'table-tools': { label: '표 안에 커서 (표 도구)', run: async () => { await openReport(); const e = ui.editors[4]; e.commands.focus(); e.commands.setTextSelection(5); refreshToolbar(); } },
+  'cell-style': { label: '표 셀 여러 개 골라 배경색 + 가운데 정렬', run: async () => { await openReport(); const e = ui.editors[4]; e.commands.focus(); selectCells(e, 1, 2, 3, 6); e.chain().setCellAttribute('backgroundColor', '#E8F6EE').setCellAttribute('textAlign', 'center').run(); show('cell-pop'); refreshToolbar(); } },
   'over': { label: '글자 수 넘침', run: async () => { await openReport(); ui.editors[3].commands.setContent(`<p>${'가'.repeat(5001)}</p>`); ui.dirty = true; updateCounts(); } },
   'saving': { label: '저장 중', run: async () => { await openReport(); setLoading($('btn-submit'), '제출 중...'); } },
   'other-read': { label: '남의 보고 읽기 (이영희)', run: () => selectRow('이영희') },

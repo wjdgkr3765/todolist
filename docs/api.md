@@ -742,7 +742,8 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - 저장 API(보고 저장, 양식 저장)는 요청 본문 최대 512kb. 넘으면 400 INVALID_INPUT
 - HTML 정화 (D-155): 보고 내용과 양식의 기본 내용은 서버가 sanitize-html 로 아래만 남기고 나머지 태그·속성은 지운 뒤 저장한다. 화면이 보낸 HTML 을 그대로 믿지 않는다
   - 태그: p, br, strong, em, s, span, ul, ol, li, table, tbody, tr, th, td, hr, a
-  - 속성: span 의 style 은 `color: #RRGGBB` 만, th·td 의 colspan·rowspan (1~10 정수), a 의 href 는 http·https·mailto 만 (그 밖은 a 를 지우고 글자만 남김). a 에는 서버가 target="_blank", rel="noopener noreferrer" 를 붙인다
+  - 속성: span 의 style 은 `color` 만, th·td 의 colspan·rowspan (1~10 정수)과 style 의 `background-color`·`text-align`(left / center / right) 만 (D-163), a 의 href 는 http·https·mailto 만 (그 밖은 a 를 지우고 글자만 남김). a 에는 서버가 target="_blank", rel="noopener noreferrer" 를 붙인다
+  - 색 값은 `#RRGGBB` 또는 `rgb(r, g, b)` (0~255 정수) 형식만 남긴다. 브라우저 편집기가 #RRGGBB 를 rgb() 로 바꿔 보내기 때문이다. 다른 style 속성과 값은 지운다
 - 글자 수: 구역 내용은 태그를 뺀 글자 5,000자 이하, HTML 은 구역마다 20,000자 이하, 보고 하나의 HTML 합계 100,000자 이하. 넘으면 400 INVALID_INPUT (D-161)
 - 구역 형식 (TemplateSection, 양식의 구역):
   | 필드 | 타입 | 설명 |

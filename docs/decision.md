@@ -1411,3 +1411,11 @@
 - 이유: AI 가 정함 (시안 규칙을 지키면서 서버 없이 열리게 하는 방법)
 - 관련 문서/파일: structure.md, frontend/package.json, frontend/scripts/, docs/mockups/vendor/
 - 상태: 유효
+
+### D-163 표 셀 배경색과 정렬
+- 날짜: 2026-11-11
+- 질문/상황: 일일보고 시안을 본 사용자 요청. 표를 누르면 셀에 색을 입히고, 셀을 클릭하거나 드래그해서 왼쪽/가운데/오른쪽 정렬을 할 수 있게
+- 결정: 표 안에 커서가 있으면 도구 막대에 [셀 배경색](없음 + 연한 색 6가지)과 [왼쪽] [가운데] [오른쪽] 정렬을 더한다. 클릭한 셀 하나, 또는 드래그로 고른 여러 셀에 한 번에 적용한다. Tiptap 표 셀 속성(backgroundColor, textAlign)으로 만들고 새 라이브러리는 쓰지 않는다. 서버 HTML 정화는 th·td 의 style 에 background-color 와 text-align(left/center/right)만 더 허용한다. 색 값은 #RRGGBB 또는 rgb(r, g, b) 형식 (브라우저가 rgb() 로 바꿔 보내므로 글자 색도 같은 규칙). 도구 막대가 편집기 폭보다 길면 다음 줄로 넘긴다 (576px 미만은 가로 스크롤)
+- 이유: 사용자 요청. 색 6가지, 셀 속성 방식, 색 값 형식, 도구 막대 줄바꿈은 AI 가 정함
+- 관련 문서/파일: api.md 6.12, DailyReportView_screen.md, docs/mockups/daily_report_view.*, frontend/scripts/mockup-tiptap-entry.js
+- 상태: 유효

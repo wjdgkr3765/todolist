@@ -57,11 +57,14 @@
     .ProseMirror table { border-collapse: collapse; }
     .ProseMirror th, .ProseMirror td { border: 1px solid var(--color-border-strong); padding: 4px 8px; min-width: 48px; vertical-align: top; }
     .ProseMirror th { background: var(--color-input-bg); font-weight: 700; }
-    .ProseMirror .selectedCell { background: var(--color-primary-soft); }
+    .ProseMirror td, .ProseMirror th { position: relative; }
+    .ProseMirror .selectedCell::after { content: ''; position: absolute; inset: 0; background: rgba(31, 170, 89, 0.18); pointer-events: none; }
     .count-line { font-size: 12px; color: var(--color-muted); text-align: right; margin-top: 4px; }
     .count-line.is-warn { color: #f59e0b; }
     .count-line.is-over { color: var(--color-danger); }
-    .toolbar { display: flex; align-items: center; gap: 2px; height: 36px; margin-bottom: 4px; position: relative; overflow-x: auto; }
+    .toolbar { margin-bottom: 4px; position: relative; }
+    .tb-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 2px; min-height: 36px; }
+    @media (max-width: 575.98px) { .tb-buttons { flex-wrap: nowrap; overflow-x: auto; } }
     .toolbar button { width: 32px; height: 32px; flex: 0 0 32px; border: 0; border-radius: 8px; background: transparent; color: var(--color-ink); font-size: 16px; }
     .toolbar button:hover { background: var(--color-hover-bg); }
     .toolbar button.is-on { background: var(--color-primary-soft); color: var(--color-primary-dark); }
@@ -70,6 +73,7 @@
     .tb-pop { position: absolute; z-index: 75; background: #fff; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); padding: 10px; }
     .color-dots { display: flex; gap: 6px; }
     .color-dots button { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--color-border); }
+    .cell-dots button { border-radius: 6px; flex: 0 0 24px; padding: 0; color: var(--color-muted); font-size: 14px; line-height: 1; background: #fff; }
     .link-pop { display: flex; gap: 6px; width: 320px; }
     .link-pop input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0 8px; font-size: 13px; }
     .report-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; }
@@ -157,6 +161,7 @@
 
   <!-- 편집기 도구 막대: 커서가 있는 편집기 위로 옮겨 다닌다 (D-155) -->
   <div id="toolbar" class="toolbar is-hidden" role="toolbar" aria-label="서식">
+    <div class="tb-buttons">
     <button type="button" data-cmd="bold" title="굵게" aria-label="굵게"><i class="bi bi-type-bold"></i></button>
     <button type="button" data-cmd="italic" title="기울임" aria-label="기울임"><i class="bi bi-type-italic"></i></button>
     <button type="button" data-cmd="strike" title="취소선" aria-label="취소선"><i class="bi bi-type-strikethrough"></i></button>
@@ -176,7 +181,12 @@
     <button type="button" class="table-only" data-cmd="colAdd" title="열 추가" aria-label="열 추가"><i class="bi bi-layout-split"></i></button>
     <button type="button" class="table-only" data-cmd="colDel" title="열 삭제" aria-label="열 삭제"><i class="bi bi-layout-sidebar-inset-reverse"></i></button>
     <button type="button" class="table-only" data-cmd="tableDel" title="표 삭제" aria-label="표 삭제"><i class="bi bi-trash3"></i></button>
-    <div id="color-pop" class="tb-pop is-hidden" style="top:36px;left:80px">
+    <span class="tb-sep table-only"></span>
+    <button type="button" class="table-only" data-cmd="cellColor" title="셀 배경색" aria-label="셀 배경색"><i class="bi bi-paint-bucket"></i></button>
+    <button type="button" class="table-only" data-cmd="align-left" title="왼쪽 정렬" aria-label="왼쪽 정렬"><i class="bi bi-text-left"></i></button>
+    <button type="button" class="table-only" data-cmd="align-center" title="가운데 정렬" aria-label="가운데 정렬"><i class="bi bi-text-center"></i></button>
+    <button type="button" class="table-only" data-cmd="align-right" title="오른쪽 정렬" aria-label="오른쪽 정렬"><i class="bi bi-text-right"></i></button>
+    <div id="color-pop" class="tb-pop is-hidden" style="top:100%;left:80px">
       <div class="color-dots">
         <button type="button" data-color="" title="기본" style="background:#111827"></button>
         <button type="button" data-color="#E5484D" title="빨강" style="background:#E5484D"></button>
@@ -187,7 +197,19 @@
         <button type="button" data-color="#6B7280" title="회색" style="background:#6B7280"></button>
       </div>
     </div>
-    <div id="link-pop" class="tb-pop link-pop is-hidden" style="top:36px;left:200px">
+    </div>
+    <div id="cell-pop" class="tb-pop is-hidden" style="top:100%;right:0">
+      <div class="color-dots cell-dots">
+        <button type="button" data-bg="" title="없음" aria-label="배경색 없음"><i class="bi bi-slash-lg"></i></button>
+        <button type="button" data-bg="#FDECEC" title="연한 빨강" style="background:#FDECEC"></button>
+        <button type="button" data-bg="#FEF3C7" title="연한 노랑" style="background:#FEF3C7"></button>
+        <button type="button" data-bg="#E8F6EE" title="연한 초록" style="background:#E8F6EE"></button>
+        <button type="button" data-bg="#EFF6FF" title="연한 파랑" style="background:#EFF6FF"></button>
+        <button type="button" data-bg="#F3E8FF" title="연한 보라" style="background:#F3E8FF"></button>
+        <button type="button" data-bg="#F3F4F6" title="연한 회색" style="background:#F3F4F6"></button>
+      </div>
+    </div>
+    <div id="link-pop" class="tb-pop link-pop is-hidden" style="top:100%;left:200px">
       <input id="link-input" type="text" placeholder="https://" maxlength="500" />
       <button type="button" id="btn-link-set" class="btn-x btn-primary-x" style="width:auto;height:32px;flex:0 0 auto">넣기</button>
       <button type="button" id="btn-link-unset" class="btn-x btn-outline-x" style="width:auto;height:32px;flex:0 0 auto">지우기</button>
