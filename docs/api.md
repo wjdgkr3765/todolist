@@ -472,7 +472,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **응답 data**: `members` TeamMember[] — 내보낸 뒤 팀원 목록
 - **오류**: 400, 401, 403, 404
 - **사용 테이블**: team_members, users, tasks, task_assignees, task_logs, task_log_assignees
-- **작업자 정리 (D-100)**: 같은 트랜잭션에서 그 팀 작업의 작업자에서 대상 회원을 빼고, 빠진 작업마다 update_date 를 바꾸고 수정 내역 `change` + isAssigneeChanged 를 남긴다 (닉네임은 빠진 회원 본인, D-101). 대상 회원이 받은 그 팀의 task_assigned·due_soon 알림도 지운다 (D-127)
+- **작업자 정리 (D-100)**: 같은 트랜잭션에서 그 팀 작업의 작업자에서 대상 회원을 빼고, 빠진 작업마다 update_date 를 바꾸고 수정 내역 `change` + isAssigneeChanged 를 남긴다 (닉네임은 내보낸 회원, D-148). 대상 회원이 받은 그 팀의 task_assigned·due_soon 알림도 지운다 (D-127)
 
 #### POST /api/teams/{id}/members/{userId}/role
 - **설명**: 부관리자 지정·해제. 관리자만
@@ -495,7 +495,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **응답 data**: `isLeft` true
 - **오류**: 400, 401, 403 (관리자), 404
 - **사용 테이블**: team_members, tasks, task_assignees, task_logs, task_log_assignees
-- **작업자 정리 (D-100)**: 내보내기와 같다 (닉네임은 탈퇴한 회원 본인, D-101). 내가 받은 그 팀의 task_assigned·due_soon 알림도 지운다
+- **작업자 정리 (D-100)**: 내보내기와 같다 (닉네임은 탈퇴한 회원 본인, D-148). 내가 받은 그 팀의 task_assigned·due_soon 알림도 지운다
 
 #### POST /api/teams/{id}/delete
 - **설명**: 팀 해체. 관리자만. 서버도 팀 이름을 다시 확인한다 (D-075, D-080). 팀과 관련된 정보를 모두 지운다
@@ -722,7 +722,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **처리 순서**: 입력 검사 → 현재 비밀번호 확인 → 한 트랜잭션에서 내 users 행과 내 team_members 행을 잠그고
   1. 다른 팀원이 있는 팀의 관리자면 409 TEAM_OWNER_CANNOT_WITHDRAW (D-131)
   2. 나 혼자인 팀을 해체한다 (팀 해체와 같은 처리: 그 팀 작업의 알림을 먼저 지우고 teams 삭제, D-131)
-  3. 남은 팀마다 팀 탈퇴와 같은 작업자 정리를 한다 (작업자에서 빼고 "작업자 변경" 기록, 닉네임은 탈퇴하는 회원, D-041, D-100, D-101) → 내 team_members 삭제
+  3. 남은 팀마다 팀 탈퇴와 같은 작업자 정리를 한다 (작업자에서 빼고 "작업자 변경" 기록, 닉네임은 탈퇴하는 회원, D-041, D-100, D-148) → 내 team_members 삭제
   4. 내가 받은 알림 삭제, 내가 보낸 알림의 sender_user_id 를 NULL 로 (sender_nickname 은 남김)
   5. 내 개인 작업의 알림 삭제 → 개인 tasks 삭제 (수정 내역 함께) → 개인 todos 삭제
   6. 내 team_invite_declines, login_tokens, 내 이메일의 email_verifications 삭제 → users 삭제

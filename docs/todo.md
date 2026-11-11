@@ -42,6 +42,7 @@
   - 승인 뒤 설계 추가: D-142 작업 카드·할일 목록은 "~ 종료일"만, 상세 UI 는 시작~종료 (마우스 올리면 전체)
   - 승인 뒤 설계 추가: D-144 히스토리 표 기간은 시작일~종료일, 날짜만(시간 없음), 두 줄 (D-143 종료일만은 잘못 이해해 변경)
   - 승인 뒤 설계 추가: D-147 수정 내역에 "수정한 사람 / 만든 사람" 표시
+  - 승인 뒤 설계 변경: D-148 내보내기로 작업자에서 빠진 기록은 내보낸 회원 닉네임 (D-101 변경)
   - 동작하는 시안 (D-146): 작업 시안(task_view.html + task_view.js) 완료, 사용자 확인 대기. 확인되면 나머지 9개 시안도 같은 방식으로
   - 구현: 시작 전. 사용자 준비(DB·계정·.env·Gmail 앱 비밀번호·공휴일 API 키·Node 24) 확인 후 우선순위 1(회원가입)부터
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
