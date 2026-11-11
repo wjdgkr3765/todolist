@@ -16,7 +16,7 @@
     .history-guide { font-size: 13px; color: var(--color-sub); margin: 4px 0 16px; }
     .history-table { table-layout: fixed; }
     .history-table tbody tr { cursor: pointer; }
-    .history-table .col-period { width: 210px; }
+    .history-table .col-period { width: 140px; }
     .history-table .col-done { width: 120px; }
     .history-table .col-assignee { width: 160px; }
     .row-sub { display: none; font-size: 12px; color: var(--color-sub); margin-top: 2px; }
@@ -104,10 +104,10 @@
     if (!isTeam) { document.querySelectorAll('.team-only').forEach((el) => el.remove()); }
 
     const ROWS = [
-      { title: 'DB 설계', period: '2026.10.20 09:00 ~ 2026.10.27 18:00', done: '2026.10.28', assignees: ['홍길동', '김민수'] },
-      { title: '요구사항 정리 회의록 공유와 다음 회의 일정 잡기까지 마무리', period: '2026.10.15', done: '2026.10.24', assignees: ['이영희'] },
+      { title: 'DB 설계', period: '~ 2026.10.27', done: '2026.10.28', assignees: ['홍길동', '김민수'] },
+      { title: '요구사항 정리 회의록 공유와 다음 회의 일정 잡기까지 마무리', period: '~ 2026.10.15', done: '2026.10.24', assignees: ['이영희'] },
       { title: '참고 사이트 조사', period: null, done: '2026.10.21', assignees: [] },
-      { title: '개발 환경 준비', period: '2026.10.10 ~ 2026.10.14', done: '2026.10.15', assignees: ['홍길동', '이영희', '박지성'] },
+      { title: '개발 환경 준비', period: '~ 2026.10.14', done: '2026.10.15', assignees: ['홍길동', '이영희', '박지성'] },
     ];
     function assigneeText(list) {
       if (!list.length) { return '<span class="muted">없음</span>'; }
@@ -116,7 +116,7 @@
     function periodText(period) { return period || '<span class="badge-x badge-undecided">미정</span>'; }
     $('history-body').innerHTML = ROWS.map((row) => `<tr>
       <td><div class="title-cell">${row.title}</div><div class="row-sub">${row.period || '미정'}${isTeam ? ` · ${row.assignees.length ? assigneeText(row.assignees) : '없음'}` : ''}</div></td>
-      <td class="col-period cell-ellipsis" title="${row.period || '미정'}">${periodText(row.period)}</td><td class="col-done">${row.done}</td>
+      <td class="col-period">${periodText(row.period)}</td><td class="col-done">${row.done}</td>
       ${isTeam ? `<td class="col-assignee">${assigneeText(row.assignees)}</td>` : ''}</tr>`).join('');
 
     addToast('toast-not-found', 'error', '작업을 찾을 수 없습니다.', '');
