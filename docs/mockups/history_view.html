@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>히스토리 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="mockup_common.css" />
+  <style>
+    /* HistoryView_screen.md "7. 디자인 값" */
+    .history-card { background: #fff; border: 1px solid var(--color-border); border-radius: 16px; padding: 20px; }
+    .history-title { font-size: 17px; font-weight: 800; margin: 0; }
+    .history-count { font-size: 14px; font-weight: 600; color: var(--color-muted); margin-left: 4px; }
+    .history-guide { font-size: 13px; color: var(--color-sub); margin: 4px 0 16px; }
+    .history-table { table-layout: fixed; }
+    .history-table tbody tr { cursor: pointer; }
+    .history-table .col-period { width: 210px; }
+    .history-table .col-done { width: 120px; }
+    .history-table .col-assignee { width: 160px; }
+    .row-sub { display: none; font-size: 12px; color: var(--color-sub); margin-top: 2px; }
+    .title-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .muted { color: var(--color-muted); }
+    .pager { display: flex; justify-content: center; gap: 4px; margin-top: 16px; }
+    .pager button { width: 32px; height: 32px; border-radius: 8px; border: 0; background: transparent; color: var(--color-sub); font-size: 14px; font-weight: 600; }
+    .pager button:hover:not(:disabled) { background: var(--color-hover-bg); }
+    .pager button.is-current { background: var(--color-primary); color: #fff; }
+    .pager button:disabled { color: var(--color-border-strong); }
+    .detail-item { margin-bottom: 14px; }
+    .detail-label { font-size: 13px; font-weight: 600; color: var(--color-sub); margin-bottom: 4px; }
+    .detail-value { font-size: 15px; word-break: break-all; }
+    .detail-content { white-space: pre-wrap; max-height: 200px; overflow-y: auto; }
+    .log-section { border-top: 1px solid var(--color-border); padding-top: 16px; }
+    .log-title { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+    .log-title span { color: var(--color-muted); font-weight: 600; margin-left: 2px; }
+    .log-list { max-height: 200px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+    .log-row { padding: 10px 12px; border-radius: 10px; }
+    .log-type { font-size: 14px; font-weight: 600; }
+    .log-meta { font-size: 12px; color: var(--color-sub); margin-top: 2px; }
+    @media (max-width: 767.98px) {
+      .history-table .col-period, .history-table .col-assignee { display: none; }
+      .row-sub { display: block; }
+      .history-table td { height: auto; padding-top: 8px; padding-bottom: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="mockup-bar">
+    <span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select>
+    <span>· 공간: <a href="history_view.html">개인</a> / <a href="history_view.html?space=team">팀</a> · 화면 문서: HistoryView_screen.md</span>
+  </div>
+
+  <div class="main-layout">
+    <nav id="side-nav" class="side-nav" aria-label="공간"></nav>
+    <nav id="menu-tabs" class="menu-tabs" aria-label="메뉴"></nav>
+    <main class="content">
+      <section class="history-card">
+        <h1 class="history-title">히스토리<span id="history-count" class="history-count">(47개)</span></h1>
+        <p class="history-guide">완료한 지 7일이 지난 작업입니다.</p>
+        <table id="history-table" class="table-x history-table">
+          <thead><tr><th>제목</th><th class="col-period">기간</th><th class="col-done">완료일</th><th class="col-assignee team-only">작업자</th></tr></thead>
+          <tbody id="history-body"></tbody>
+        </table>
+        <div id="history-empty" class="empty-box is-hidden"><i class="bi bi-clock-history"></i>히스토리가 없습니다.<span class="empty-sub">완료한 지 7일이 지난 작업이 여기에 모입니다.</span></div>
+        <div id="history-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+        <div id="pager" class="pager">
+          <button type="button" id="pager-prev" aria-label="이전 페이지" disabled><i class="bi bi-chevron-left"></i></button>
+          <button type="button" class="is-current">1</button><button type="button">2</button><button type="button">3</button>
+          <button type="button" id="pager-next" aria-label="다음 페이지"><i class="bi bi-chevron-right"></i></button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 상세 모달 (D-112) -->
+  <div id="detail-modal" class="modal-backdrop-x is-hidden">
+    <div class="modal-x is-wider" role="dialog" aria-label="히스토리 작업 상세">
+      <div class="modal-title-x">작업 상세<button type="button" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
+      <div class="detail-item"><div class="detail-label">상태</div><span class="badge-x badge-history">히스토리</span></div>
+      <div class="detail-item"><div class="detail-label">제목</div><div class="detail-value">DB 설계</div></div>
+      <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value">2026.10.20 ~ 2026.10.27</div></div>
+      <div class="detail-item"><div class="detail-label">완료일</div><div class="detail-value">2026.10.28 17:40</div></div>
+      <div class="detail-item team-only"><div class="detail-label">작업자</div><div class="detail-value">홍길동, 김민수</div></div>
+      <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">회원·팀·작업 테이블을 정한다.
+이름 규칙을 맞춘다.</div></div>
+      <div class="log-section">
+        <div class="log-title">수정 내역<span>(3)</span></div>
+        <div id="log-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span></div>
+        <div id="log-list" class="log-list">
+          <div class="log-row"><div class="log-type">상태 변경 (진행 → 완료)</div><div class="log-meta">2026.10.28 17:40 · 홍길동</div></div>
+          <div class="log-row"><div class="log-type">작업 수정 · 작업자 변경</div><div class="log-meta">2026.10.22 10:12 · 김민수</div></div>
+          <div class="log-row"><div class="log-type">작업 생성</div><div class="log-meta">2026.10.20 09:00 · 홍길동</div></div>
+        </div>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">닫기</button></div>
+    </div>
+  </div>
+
+  <script src="mockup_common.js"></script>
+  <script>
+    const isTeam = pageParams.get('space') === 'team';
+    renderLayout({ space: isTeam ? 'team' : 'personal', tab: 'history', hideTabs: false });
+    if (!isTeam) { document.querySelectorAll('.team-only').forEach((el) => el.remove()); }
+
+    const ROWS = [
+      { title: 'DB 설계', period: '2026.10.20 ~ 2026.10.27', done: '2026.10.28', assignees: ['홍길동', '김민수'] },
+      { title: '요구사항 정리 회의록 공유와 다음 회의 일정 잡기까지 마무리', period: '2026.10.15', done: '2026.10.24', assignees: ['이영희'] },
+      { title: '참고 사이트 조사', period: null, done: '2026.10.21', assignees: [] },
+      { title: '개발 환경 준비', period: '2026.10.10 ~ 2026.10.14', done: '2026.10.15', assignees: ['홍길동', '이영희', '박지성'] },
+    ];
+    function assigneeText(list) {
+      if (!list.length) { return '<span class="muted">없음</span>'; }
+      return list.length === 1 ? list[0] : `${list[0]} 외 ${list.length - 1}명`;
+    }
+    function periodText(period) { return period || '<span class="badge-x badge-undecided">미정</span>'; }
+    $('history-body').innerHTML = ROWS.map((row) => `<tr>
+      <td><div class="title-cell">${row.title}</div><div class="row-sub">${row.period || '미정'}${isTeam ? ` · ${row.assignees.length ? assigneeText(row.assignees) : '없음'}` : ''}</div></td>
+      <td class="col-period">${periodText(row.period)}</td><td class="col-done">${row.done}</td>
+      ${isTeam ? `<td class="col-assignee">${assigneeText(row.assignees)}</td>` : ''}</tr>`).join('');
+
+    addToast('toast-not-found', 'error', '작업을 찾을 수 없습니다.', '');
+    addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
+
+    function resetState() {
+      hideAllToasts();
+      hide('history-empty', 'history-loading', 'detail-modal', 'log-loading');
+      show('history-table', 'pager', 'log-list');
+      $('history-count').textContent = '(47개)';
+    }
+    const STATES = {
+      'default': { label: '기본 (표 + 페이지 번호)', run: () => {} },
+      'loading': { label: '로딩 중', run: () => { hide('history-table', 'pager'); show('history-loading'); } },
+      'empty': { label: '데이터 없음', run: () => { hide('history-table', 'pager'); show('history-empty'); $('history-count').textContent = '(0개)'; } },
+      'one-page': { label: '1페이지뿐 (페이지 번호 숨김)', run: () => { hide('pager'); $('history-count').textContent = '(4개)'; } },
+      'detail': { label: '상세 모달 (수정 내역 포함)', run: () => show('detail-modal') },
+      'detail-loading': { label: '상세 모달 (수정 내역 로딩 중)', run: () => { show('detail-modal', 'log-loading'); hide('log-list'); } },
+      'not-found': { label: '수정 내역 404 (작업 없음)', run: () => show('toast-not-found') },
+      'server-error': { label: '서버 오류', run: () => show('toast-server') },
+    };
+    setupStates(STATES, resetState);
+  </script>
+</body>
+</html>

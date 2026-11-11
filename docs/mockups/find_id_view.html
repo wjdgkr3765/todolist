@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>아이디 찾기 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="mockup_common.css" />
+  <style>
+    /* FindIdView_screen.md "7. 디자인 값" */
+    .result-card { background: var(--color-input-bg); border: 1px solid var(--color-border); border-radius: 16px; padding: 28px 24px; text-align: center; }
+    .result-icon { width: 56px; height: 56px; border-radius: 50%; background: var(--color-primary-soft); color: var(--color-primary); font-size: 26px; display: inline-grid; place-items: center; }
+    .result-text { font-size: 15px; color: var(--color-sub); margin-top: 12px; }
+    .result-id { font-size: 26px; font-weight: 800; color: var(--color-ink); margin-top: 6px; letter-spacing: 0.5px; word-break: break-all; }
+    .result-date { font-size: 13px; color: var(--color-muted); margin-top: 4px; }
+    .result-buttons { display: grid; gap: 8px; margin-top: 20px; }
+    .result-buttons .btn-submit { margin-top: 0; }
+  </style>
+</head>
+<body class="auth-body">
+  <div class="mockup-bar"><span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select><span>· 화면 문서: FindIdView_screen.md</span></div>
+
+  <main class="auth-page">
+    <div class="auth-shell">
+      <section id="brand-panel" class="brand-panel" aria-hidden="true"></section>
+      <section class="form-panel">
+        <h1 class="form-heading">아이디 찾기</h1>
+        <p class="form-subheading">가입할 때 쓴 이메일로 인증번호를 보내 드려요.</p>
+
+        <div id="verify-area">
+          <div class="field">
+            <label class="field-label" for="email">이메일</label>
+            <div class="field-row">
+              <div id="ctl-email" class="control"><span class="control-icon"><i class="bi bi-envelope"></i></span><input id="email" type="email" maxlength="100" placeholder="example@email.com" /></div>
+              <button type="button" id="btn-send" class="btn-side">인증번호 발송</button>
+            </div>
+            <div id="email-message" class="message is-hidden"><i class="bi bi-info-circle"></i><span id="email-message-text"></span></div>
+          </div>
+          <div id="code-field" class="field is-hidden">
+            <label class="field-label" for="code">인증번호</label>
+            <div class="field-row">
+              <div id="ctl-code" class="control"><span class="control-icon"><i class="bi bi-key"></i></span><input id="code" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" />
+                <span class="control-suffix"><span id="timer" class="timer-pill">4:59</span></span></div>
+              <button type="button" id="btn-verify" class="btn-side">확인</button>
+            </div>
+            <div id="code-message" class="message is-hidden"><i class="bi bi-exclamation-circle"></i><span id="code-message-text"></span></div>
+          </div>
+        </div>
+
+        <div id="result-area" class="is-hidden">
+          <div class="result-card">
+            <span class="result-icon"><i class="bi bi-person-check"></i></span>
+            <div class="result-text">회원님의 아이디입니다.</div>
+            <div class="result-id">todo2026</div>
+            <div class="result-date">가입일 2026.11.01</div>
+          </div>
+          <div class="result-buttons">
+            <a href="login_view.html?state=from-find-id" class="btn-submit">로그인하기</a>
+            <a href="find_password_view.html?state=from-find-id" class="btn-x btn-soft-x btn-lg-x btn-block-x">비밀번호 찾기</a>
+          </div>
+        </div>
+
+        <div class="form-footer"><a href="login_view.html">로그인으로 돌아가기</a></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="mockup_common.js"></script>
+  <script>
+    renderBrandPanel();
+    addToast('toast-sent', 'success', '인증번호를 보냈습니다.', '메일을 확인해 주세요.');
+    addToast('toast-mail-failed', 'error', '메일을 보내지 못했습니다.', '잠시 후 다시 시도해 주세요.');
+    addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
+
+    function resetState() {
+      hideAllToasts();
+      hide('code-field', 'email-message', 'code-message', 'result-area');
+      show('verify-area');
+      ['ctl-email', 'ctl-code'].forEach((id) => $(id).classList.remove('is-invalid'));
+      $('email').value = ''; $('code').value = ''; $('timer').textContent = '4:59';
+      $('btn-send').disabled = false; $('btn-send').textContent = '인증번호 발송';
+      $('btn-verify').disabled = false; $('btn-verify').textContent = '확인';
+    }
+    function sent() {
+      $('email').value = 'user@example.com';
+      show('code-field');
+      $('btn-send').disabled = true; $('btn-send').textContent = '재발송 0:59';
+    }
+    function emailMessage(kind, text) {
+      $('email-message').className = `message ${kind}`;
+      $('email-message-text').textContent = text;
+      show('email-message');
+    }
+    function codeError(text) { $('ctl-code').classList.add('is-invalid'); $('code-message').className = 'message is-error'; $('code-message-text').textContent = text; show('code-message'); }
+
+    const STATES = {
+      'default': { label: '기본', run: () => {} },
+      'email-format': { label: '이메일 형식 오류', run: () => { $('email').value = 'user@'; $('ctl-email').classList.add('is-invalid'); emailMessage('is-error', '이메일 형식이 올바르지 않습니다.'); } },
+      'not-registered': { label: '가입되지 않은 이메일', run: () => { $('email').value = 'nobody@example.com'; $('ctl-email').classList.add('is-invalid'); emailMessage('is-error', '가입되지 않은 이메일입니다.'); } },
+      'sending': { label: '발송 중', run: () => { $('email').value = 'user@example.com'; setLoading($('btn-send'), '발송 중...'); } },
+      'sent': { label: '인증번호 발송 후', run: () => { sent(); emailMessage('is-success', '인증번호를 보냈습니다. 메일을 확인해 주세요.'); } },
+      'code-wrong': { label: '인증번호 틀림', run: () => { sent(); $('code').value = '123456'; codeError('인증번호가 틀렸습니다. (남은 횟수 4회)'); } },
+      'code-expired': { label: '인증번호 만료', run: () => { sent(); $('timer').textContent = '0:00'; $('btn-send').disabled = false; $('btn-send').textContent = '재발송'; codeError('인증번호가 만료되었습니다. 다시 발송해 주세요.'); } },
+      'code-locked': { label: '5번 틀려 무효', run: () => { sent(); $('btn-send').disabled = false; $('btn-send').textContent = '재발송'; codeError('인증번호가 무효가 되었습니다. 다시 발송해 주세요.'); } },
+      'verifying': { label: '확인 중', run: () => { sent(); $('code').value = '482913'; setLoading($('btn-verify'), '확인 중...'); } },
+      'result': { label: '결과 (아이디 전체 + 가입일)', run: () => { hide('verify-area'); show('result-area'); } },
+      'expired-30': { label: '인증 30분 지남', run: () => { $('email').value = 'user@example.com'; emailMessage('is-error', '인증 시간이 지났습니다. 다시 인증해 주세요.'); } },
+      'mail-failed': { label: '메일 발송 실패', run: () => { $('email').value = 'user@example.com'; show('toast-mail-failed'); } },
+      'server-error': { label: '서버 오류', run: () => show('toast-server') },
+    };
+    setupStates(STATES, resetState);
+  </script>
+</body>
+</html>

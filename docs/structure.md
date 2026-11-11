@@ -35,7 +35,7 @@
 |프로젝트/frontend/src/views/ProfileView_screen.md|회원정보 수정 화면 설계 문서|
 |프로젝트/frontend/src/layouts/|공통 레이아웃 Vue 파일과 화면 설계 문서|
 |프로젝트/frontend/src/layouts/MainLayout_screen.md|공통 레이아웃 화면 설계 문서|
-|프로젝트/.gitignore|(구현 단계에서 만든다) git에서 제외할 파일 목록. node_modules/, dist/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
+|프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
 |프로젝트/backend/|(구현 단계에서 만든다) 백엔드 폴더 (Node.js 24 + Express 5)|
 |프로젝트/backend/package.json|(구현 단계) 백엔드 의존성과 실행·테스트 명령 (spec.md)|
 |프로젝트/backend/.env|(사용자가 직접 작성, git 제외) DB 접속 정보, 메일 계정, 공휴일 API 키|
@@ -50,7 +50,10 @@
 |프로젝트/backend/src/realtime/|(구현 단계) Socket.IO 연결 인증, 방, 이벤트 보내기 (api.md 6.8)|
 |프로젝트/backend/src/utils/|(구현 단계) 입력 검사, 날짜(한국 시간 오늘), 메일 본문, 공휴일 API 호출|
 |프로젝트/backend/tests/|(구현 단계) 백엔드 테스트 (Vitest + supertest, test.md)|
-|프로젝트/frontend/package.json, vite.config.js, index.html|(구현 단계) 프론트엔드 의존성, Vite 설정(5173, /api·/socket.io 프록시), 시작 HTML|
+|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard 만 먼저 넣었다 (screen.md 시안 작성 규칙). 나머지는 구현 단계에서 더한다|
+|프로젝트/frontend/package-lock.json|npm 이 만든 의존성 잠금 파일|
+|프로젝트/frontend/node_modules/|npm 설치 폴더 (git 제외). 시안이 상대 경로로 bootstrap 등을 불러온다|
+|프로젝트/frontend/vite.config.js, index.html|(구현 단계) Vite 설정(5173, /api·/socket.io 프록시), 시작 HTML|
 |프로젝트/frontend/src/main.js, App.vue|(구현 단계) Vue 앱 시작과 최상위 컴포넌트|
 |프로젝트/frontend/src/router/|(구현 단계) vue-router 경로, 로그인 여부에 따른 이동 (D-051), 없는 주소 처리 (D-119)|
 |프로젝트/frontend/src/stores/|(구현 단계) pinia 상태: 로그인 회원, 팀 목록, 알림 개수|
@@ -64,8 +67,9 @@
 |프로젝트/skills-lock.json|npx skills 로 설치한 스킬 목록과 해시|
 |프로젝트/docs/reference.md|reference 폴더 참고자료 목록 (파일명, 설명, 관련 작업). AI가 폴더를 볼 때 갱신|
 |프로젝트/docs/mockups/|화면 시안 HTML. 서버 없이 바로 열어 보는 파일 (loop.md 2번 와이어프레임)|
-|프로젝트/docs/mockups/login_view.html, signup_view.html, main_layout.html, task_view.html|이전 프로젝트 화면 시안 (와이어프레임 단계에서 설계와 다시 맞춰 보고 승인받는다)|
-|프로젝트/docs/mockups/find_id_view.html, find_password_view.html, team_info_view.html, calendar_view.html, history_view.html, profile_view.html|(와이어프레임 단계에서 만든다) 새 화면 시안|
+|프로젝트/docs/mockups/login_view.html, signup_view.html, find_id_view.html, find_password_view.html|로그인·회원가입·아이디 찾기·비밀번호 찾기 시안|
+|프로젝트/docs/mockups/main_layout.html, task_view.html, calendar_view.html, team_info_view.html, history_view.html, profile_view.html|공통 레이아웃·작업·캘린더·팀 정보·히스토리·회원정보 수정 시안 (작업·캘린더·히스토리는 ?space=team 으로 팀 공간)|
+|프로젝트/docs/mockups/mockup_common.css, mockup_common.js|시안 공통 스타일과 스크립트 (공통 디자인 값, 공통 레이아웃, 브랜드 영역, 상태 선택 막대). 실제 화면 코드가 아니다|
 
 ### 변경 불가능
 - 프로젝트/docs/coding_rule.md

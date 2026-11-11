@@ -107,6 +107,7 @@
       font-size: 16px; font-weight: 700; box-shadow: 0 10px 24px -10px rgba(22, 138, 71, 0.7);
     }
     .btn-submit:disabled { opacity: 0.75; }
+    a.btn-submit { display: flex; align-items: center; justify-content: center; text-decoration: none; }
 
     .find-links { text-align: center; font-size: 14px; color: var(--color-sub); margin-top: 16px; }
     .find-links a { color: var(--color-sub); text-decoration: none; }
@@ -123,6 +124,8 @@
     }
     .toast-icon { font-size: 22px; color: var(--color-danger); display: flex; }
     .toast-sub { font-size: 13px; font-weight: 400; color: var(--color-sub); margin-top: 2px; }
+    .toast-box.is-success { border-left-color: var(--color-primary); }
+    .toast-box.is-success .toast-icon { color: var(--color-primary); }
 
     .is-hidden { display: none !important; }
 
@@ -158,12 +161,29 @@
       <option value="login-locked">로그인 잠김</option>
       <option value="loading">로딩 중</option>
       <option value="server-error">오류</option>
+      <option value="from-find-id">아이디 찾기에서 넘어옴 (아이디 채움)</option>
+      <option value="password-reset">비밀번호 재설정 후 도착</option>
+      <option value="withdrawn">회원 탈퇴 후 도착</option>
+      <option value="session-expired">로그인 만료로 도착 (D-118)</option>
     </select>
+    <span>· 화면 문서: LoginView_screen.md</span>
   </div>
 
   <div id="toast-error" class="toast-box is-hidden" role="alert">
     <span class="toast-icon"><i class="bi bi-exclamation-circle-fill"></i></span>
     <div>일시적인 오류가 발생했습니다.<div class="toast-sub">잠시 후 다시 시도해 주세요.</div></div>
+  </div>
+  <div id="toast-reset" class="toast-box is-success is-hidden" role="alert">
+    <span class="toast-icon"><i class="bi bi-check-circle-fill"></i></span>
+    <div>비밀번호를 바꿨습니다.<div class="toast-sub">새 비밀번호로 로그인해 주세요.</div></div>
+  </div>
+  <div id="toast-withdrawn" class="toast-box is-success is-hidden" role="alert">
+    <span class="toast-icon"><i class="bi bi-check-circle-fill"></i></span>
+    <div>탈퇴가 완료되었습니다.</div>
+  </div>
+  <div id="toast-expired" class="toast-box is-hidden" role="alert">
+    <span class="toast-icon"><i class="bi bi-exclamation-circle-fill"></i></span>
+    <div>로그인이 만료되었습니다.<div class="toast-sub">다시 로그인해 주세요.</div></div>
   </div>
 
   <main class="login-page">
@@ -213,11 +233,11 @@
           <div id="error-failed" class="error-box is-hidden" role="alert"><i class="bi bi-exclamation-circle"></i><span>아이디 또는 비밀번호가 올바르지 않습니다.</span></div>
           <div id="error-locked" class="error-box is-hidden" role="alert"><i class="bi bi-exclamation-circle"></i><span>비밀번호를 5번 틀려 로그인이 잠겼습니다. 10분 뒤 다시 시도해 주세요.</span></div>
 
-          <button id="btn-submit" type="button" class="btn-submit">로그인</button>
+          <a href="task_view.html" id="btn-submit" class="btn-submit">로그인</a>
         </form>
 
-        <div class="find-links"><a href="#">아이디 찾기</a><span class="dot">·</span><a href="#">비밀번호 찾기</a></div>
-        <div class="form-footer">아직 계정이 없으신가요?<a href="#">회원가입</a></div>
+        <div class="find-links"><a href="find_id_view.html">아이디 찾기</a><span class="dot">·</span><a href="find_password_view.html">비밀번호 찾기</a></div>
+        <div class="form-footer">아직 계정이 없으신가요?<a href="signup_view.html">회원가입</a></div>
       </section>
     </div>
   </main>
@@ -263,12 +283,20 @@
         $('password').value = 'abcd123!';
         $('toast-error').classList.remove('is-hidden');
       },
+      'from-find-id': () => { $('login-id').value = 'todo2026'; $('password').focus(); },
+      'password-reset': () => $('toast-reset').classList.remove('is-hidden'),
+      'withdrawn': () => $('toast-withdrawn').classList.remove('is-hidden'),
+      'session-expired': () => $('toast-expired').classList.remove('is-hidden'),
     };
 
     $('state-select').addEventListener('change', (event) => {
       resetState();
       STATES[event.target.value]();
     });
+    // 다른 시안에서 ?state= 로 넘어오면 그 상태로 시작한다. ?check=all 이면 모든 상태를 그려 본다 (검사용)
+    const params = new URLSearchParams(location.search);
+    if (params.get('check') === 'all') { Object.keys(STATES).forEach((key) => { resetState(); STATES[key](); }); console.info('MOCKUP_CHECK_DONE ' + Object.keys(STATES).length); resetState(); }
+    if (STATES[params.get('state')]) { $('state-select').value = params.get('state'); STATES[params.get('state')](); }
   </script>
 </body>
 </html>

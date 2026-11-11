@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>회원정보 수정 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="mockup_common.css" />
+  <style>
+    /* ProfileView_screen.md "7. 디자인 값" */
+    .profile-page { max-width: 640px; }
+    .read-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 18px; }
+    .read-label { font-size: 13px; font-weight: 600; color: var(--color-sub); margin-bottom: 4px; }
+    .read-value { font-size: 15px; }
+    .read-note { font-size: 12px; color: var(--color-muted); margin-top: 2px; }
+    .hint { font-size: 12px; color: var(--color-muted); margin-top: 6px; }
+    .withdraw-text { font-size: 14px; color: var(--color-sub); line-height: 1.6; margin-bottom: 16px; }
+    .team-list-x { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 6px; }
+    .team-list-x li { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+    .team-list-x a { color: var(--color-primary-dark); }
+    .modal-x.is-withdraw { width: 440px; }
+  </style>
+</head>
+<body>
+  <div class="mockup-bar"><span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select><span>· 화면 문서: ProfileView_screen.md</span></div>
+
+  <div class="main-layout">
+    <nav id="side-nav" class="side-nav" aria-label="공간"></nav>
+    <nav id="menu-tabs" class="menu-tabs" aria-label="메뉴"></nav>
+    <main class="content">
+      <div class="profile-page">
+        <h1 class="page-title">회원정보 수정</h1>
+        <div id="page-loading" class="card-x loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+        <div id="page-body">
+          <!-- 내 정보 -->
+          <section class="card-x">
+            <h2 class="card-title-x">내 정보</h2>
+            <div class="read-row">
+              <div><div class="read-label">아이디</div><div class="read-value">todo2026</div><div class="read-note">아이디는 바꿀 수 없습니다.</div></div>
+              <div><div class="read-label">가입일</div><div class="read-value">2026.11.01</div></div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="nickname-input">닉네임</label>
+              <div class="field-row">
+                <div id="ctl-nickname" class="control"><span class="control-icon"><i class="bi bi-emoji-smile"></i></span><input id="nickname-input" type="text" maxlength="8" value="홍길동" /></div>
+                <button type="button" id="btn-nickname" class="btn-side" disabled>저장</button>
+              </div>
+              <div id="nickname-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>한글, 영어, 숫자 1~8자로 입력해 주세요.</div>
+              <div class="hint">이미 남은 수정 내역에는 예전 닉네임이 그대로 보입니다.</div>
+            </div>
+
+            <div class="field">
+              <label class="field-label" for="email-input">이메일</label>
+              <div class="field-row">
+                <div id="ctl-email" class="control"><span class="control-icon"><i class="bi bi-envelope"></i></span><input id="email-input" type="email" maxlength="100" value="user@example.com" />
+                  <span id="email-verified" class="control-suffix is-hidden"><span class="verified-pill"><i class="bi bi-check-circle-fill"></i>인증</span></span></div>
+                <button type="button" id="btn-email-send" class="btn-side" disabled>인증번호 발송</button>
+                <button type="button" id="btn-email-change-cancel" class="btn-side is-hidden">변경</button>
+              </div>
+              <div id="email-message" class="message is-hidden"><i class="bi bi-info-circle"></i><span id="email-message-text"></span></div>
+              <div id="code-row" class="field-row is-hidden" style="margin-top:10px">
+                <div id="ctl-code" class="control"><span class="control-icon"><i class="bi bi-key"></i></span><input type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리" />
+                  <span class="control-suffix"><span id="code-timer" class="timer-pill">4:59</span></span></div>
+                <button type="button" class="btn-side">확인</button>
+              </div>
+              <div id="code-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i><span id="code-error-text"></span></div>
+              <button type="button" id="btn-email-change" class="btn-x btn-primary-x is-hidden" style="margin-top:10px;height:44px">이메일 변경</button>
+            </div>
+
+            <div class="field" style="margin-bottom:0">
+              <label class="field-label" for="phone-input">전화번호</label>
+              <div class="field-row">
+                <div id="ctl-phone" class="control"><span class="control-icon"><i class="bi bi-phone"></i></span><input id="phone-input" type="tel" maxlength="11" value="01012345678" /></div>
+                <button type="button" id="btn-phone" class="btn-side" disabled>저장</button>
+              </div>
+              <div id="phone-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>이미 가입된 전화번호입니다.</div>
+            </div>
+          </section>
+
+          <!-- 비밀번호 변경 -->
+          <section class="card-x">
+            <h2 class="card-title-x">비밀번호 변경</h2>
+            <div class="field">
+              <label class="field-label" for="current-password">현재 비밀번호</label>
+              <div id="ctl-current" class="control"><span class="control-icon"><i class="bi bi-lock"></i></span><input id="current-password" type="password" maxlength="15" placeholder="현재 비밀번호" />
+                <span class="control-suffix"><button type="button" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span></div>
+              <div id="current-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>현재 비밀번호가 맞지 않습니다.</div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="new-password">새 비밀번호</label>
+              <div id="ctl-new" class="control"><span class="control-icon"><i class="bi bi-lock"></i></span><input id="new-password" type="password" maxlength="15" placeholder="영어, 숫자, 특수문자를 모두 포함 8~15자" />
+                <span class="control-suffix"><button type="button" class="icon-button" aria-label="비밀번호 보기"><i class="bi bi-eye"></i></button></span></div>
+              <div id="new-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>영어, 숫자, 특수문자를 모두 포함해 8~15자로 입력해 주세요.</div>
+            </div>
+            <div class="field">
+              <label class="field-label" for="new-password-check">새 비밀번호 확인</label>
+              <div id="ctl-check" class="control"><span class="control-icon"><i class="bi bi-shield-lock"></i></span><input id="new-password-check" type="password" maxlength="15" placeholder="새 비밀번호를 한 번 더 입력" /></div>
+              <div id="check-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>비밀번호가 일치하지 않습니다.</div>
+            </div>
+            <button type="button" id="btn-password" class="btn-x btn-primary-x btn-lg-x btn-block-x">비밀번호 변경</button>
+          </section>
+
+          <!-- 회원 탈퇴 -->
+          <section class="card-x">
+            <h2 class="card-title-x">회원 탈퇴</h2>
+            <p class="withdraw-text">탈퇴하면 회원 정보와 개인 공간의 할일·작업이 모두 지워지고 되돌릴 수 없습니다. 팀 작업과 수정 내역은 팀에 남습니다.</p>
+            <button type="button" class="btn-x btn-outline-danger-x btn-lg-x btn-block-x"><i class="bi bi-box-arrow-right"></i>회원 탈퇴</button>
+          </section>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 탈퇴 막힘 창 -->
+  <div id="withdraw-blocked" class="modal-backdrop-x is-hidden">
+    <div class="modal-x is-withdraw" role="dialog" aria-label="탈퇴할 수 없습니다">
+      <div class="modal-title-x">탈퇴할 수 없습니다</div>
+      <div class="modal-text">관리자인 팀이 있습니다. 먼저 관리자를 넘겨 주세요.</div>
+      <ul class="team-list-x">
+        <li><i class="bi bi-people"></i><a href="team_info_view.html">디자인팀</a></li>
+        <li><i class="bi bi-people"></i><a href="team_info_view.html">프로젝트 A 개발팀</a></li>
+      </ul>
+      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">닫기</button></div>
+    </div>
+  </div>
+
+  <!-- 탈퇴 1단계 -->
+  <div id="withdraw-step1" class="modal-backdrop-x is-hidden">
+    <div class="modal-x is-withdraw" role="dialog" aria-label="회원 탈퇴">
+      <div class="modal-title-x">회원 탈퇴</div>
+      <div class="modal-sub" style="margin-top:0">탈퇴하면 회원 정보와 개인 공간의 할일·작업이 모두 지워지고 되돌릴 수 없습니다. 팀 작업과 수정 내역은 팀에 남습니다.</div>
+      <div id="solo-teams" class="is-hidden" style="margin-top:14px">
+        <div class="modal-text" style="font-size:14px">아래 팀은 나 혼자라 함께 해체됩니다.</div>
+        <ul class="team-list-x"><li><i class="bi bi-people"></i>주말 스터디</li></ul>
+      </div>
+      <div class="field" style="margin:16px 0 0">
+        <label class="field-label" for="withdraw-password">현재 비밀번호</label>
+        <div id="ctl-withdraw-password" class="control"><span class="control-icon"><i class="bi bi-lock"></i></span><input id="withdraw-password" type="password" maxlength="15" placeholder="현재 비밀번호" /></div>
+        <div id="withdraw-password-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>현재 비밀번호가 맞지 않습니다.</div>
+      </div>
+      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">취소</button><button type="button" id="btn-withdraw-next" class="btn-x btn-danger-x" disabled>다음</button></div>
+    </div>
+  </div>
+
+  <!-- 탈퇴 2단계 -->
+  <div id="withdraw-step2" class="modal-backdrop-x is-hidden">
+    <div class="modal-x" role="dialog" aria-label="탈퇴 확인">
+      <div class="modal-title-x">회원 탈퇴</div>
+      <div class="modal-text">정말 탈퇴할까요? 되돌릴 수 없습니다.</div>
+      <div class="modal-actions"><button type="button" class="btn-x btn-outline-x">취소</button><a href="login_view.html" id="btn-withdraw" class="btn-x btn-danger-x">탈퇴</a></div>
+    </div>
+  </div>
+
+  <script src="mockup_common.js"></script>
+  <script>
+    renderLayout({ space: 'none', tab: null, hideTabs: true });
+
+    addToast('toast-nickname', 'success', '닉네임을 바꿨습니다.', '');
+    addToast('toast-email-sent', 'success', '인증번호를 보냈습니다.', '메일을 확인해 주세요.');
+    addToast('toast-email', 'success', '이메일을 바꿨습니다.', '');
+    addToast('toast-phone', 'success', '전화번호를 바꿨습니다.', '');
+    addToast('toast-password', 'success', '비밀번호를 바꿨습니다.', '');
+    addToast('toast-locked', 'error', '비밀번호를 여러 번 틀려 10분 동안 확인할 수 없습니다.', '');
+    addToast('toast-withdrawn', 'success', '탈퇴가 완료되었습니다.', '');
+    addToast('toast-server', 'error', '일시적인 오류가 발생했습니다.', '잠시 후 다시 시도해 주세요.');
+
+    function resetState() {
+      hideAllToasts();
+      ['page-loading', 'nickname-error', 'email-verified', 'btn-email-change-cancel', 'email-message', 'code-row', 'code-error', 'btn-email-change', 'phone-error',
+        'current-error', 'new-error', 'check-error', 'withdraw-blocked', 'withdraw-step1', 'withdraw-step2', 'solo-teams', 'withdraw-password-error'].forEach((id) => hide(id));
+      show('page-body', 'btn-email-send');
+      ['ctl-nickname', 'ctl-email', 'ctl-code', 'ctl-phone', 'ctl-current', 'ctl-new', 'ctl-check', 'ctl-withdraw-password'].forEach((id) => $(id).classList.remove('is-invalid', 'is-locked'));
+      $('nickname-input').value = '홍길동'; $('email-input').value = 'user@example.com'; $('phone-input').value = '01012345678';
+      $('email-input').disabled = false;
+      ['btn-nickname', 'btn-email-send', 'btn-phone'].forEach((id) => { $(id).disabled = true; });
+      $('btn-nickname').textContent = '저장'; $('btn-email-send').textContent = '인증번호 발송'; $('btn-phone').textContent = '저장';
+      $('btn-password').disabled = false; $('btn-password').textContent = '비밀번호 변경';
+      $('btn-email-change').disabled = false; $('btn-email-change').textContent = '이메일 변경';
+      $('btn-withdraw-next').disabled = true;
+      $('withdraw-password').value = '';
+      $('btn-withdraw').innerHTML = '탈퇴';
+      $('btn-withdraw').classList.remove('disabled');
+    }
+    function emailSent() {
+      $('email-input').value = 'new.mail@example.com';
+      $('btn-email-send').disabled = true; $('btn-email-send').textContent = '재발송 0:59';
+      show('code-row');
+    }
+    function emailVerified() {
+      $('email-input').value = 'new.mail@example.com'; $('email-input').disabled = true;
+      $('ctl-email').classList.add('is-locked');
+      hide('btn-email-send'); show('email-verified', 'btn-email-change-cancel', 'btn-email-change');
+    }
+    function step1(withSolo, withPassword) {
+      show('withdraw-step1');
+      if (withSolo) { show('solo-teams'); }
+      if (withPassword) { $('withdraw-password').value = 'abcd123!'; $('btn-withdraw-next').disabled = false; }
+    }
+
+    const STATES = {
+      'default': { label: '기본 (바뀐 것 없음, 저장 비활성)', run: () => {} },
+      'loading': { label: '로딩 중', run: () => { hide('page-body'); show('page-loading'); } },
+      'nickname-changed': { label: '닉네임 입력 ([저장] 활성)', run: () => { $('nickname-input').value = '길동이'; $('btn-nickname').disabled = false; } },
+      'nickname-error': { label: '닉네임 입력 오류', run: () => { $('nickname-input').value = '길동!'; $('ctl-nickname').classList.add('is-invalid'); show('nickname-error'); $('btn-nickname').disabled = false; } },
+      'nickname-saving': { label: '닉네임 저장 중', run: () => { $('nickname-input').value = '길동이'; setLoading($('btn-nickname'), '저장 중...'); } },
+      'nickname-saved': { label: '닉네임 변경 완료', run: () => show('toast-nickname') },
+      'email-typed': { label: '새 이메일 입력 ([인증번호 발송] 활성)', run: () => { $('email-input').value = 'new.mail@example.com'; $('btn-email-send').disabled = false; } },
+      'email-duplicated': { label: '이메일 중복', run: () => { $('email-input').value = 'used@example.com'; $('btn-email-send').disabled = false; $('ctl-email').classList.add('is-invalid'); $('email-message').className = 'message is-error'; $('email-message-text').textContent = '이미 가입된 이메일입니다.'; show('email-message'); } },
+      'email-sent': { label: '인증번호 발송 후', run: () => { emailSent(); show('toast-email-sent'); } },
+      'code-wrong': { label: '인증번호 틀림', run: () => { emailSent(); $('ctl-code').classList.add('is-invalid'); $('code-error-text').textContent = '인증번호가 틀렸습니다. (남은 횟수 4회)'; show('code-error'); } },
+      'code-expired': { label: '인증번호 만료', run: () => { emailSent(); $('code-timer').textContent = '0:00'; $('btn-email-send').disabled = false; $('btn-email-send').textContent = '재발송'; $('ctl-code').classList.add('is-invalid'); $('code-error-text').textContent = '인증번호가 만료되었습니다. 다시 발송해 주세요.'; show('code-error'); } },
+      'email-verified': { label: '이메일 인증 완료 ([이메일 변경])', run: emailVerified },
+      'email-changing': { label: '이메일 변경 중', run: () => { emailVerified(); setLoading($('btn-email-change'), '변경 중...'); } },
+      'email-changed': { label: '이메일 변경 완료', run: () => show('toast-email') },
+      'email-expired-30': { label: '인증 30분 지남', run: () => { $('email-message').className = 'message is-error'; $('email-message-text').textContent = '인증 시간이 지났습니다. 다시 인증해 주세요.'; show('email-message'); } },
+      'phone-changed': { label: '전화번호 입력 ([저장] 활성)', run: () => { $('phone-input').value = '01098765432'; $('btn-phone').disabled = false; } },
+      'phone-duplicated': { label: '전화번호 중복', run: () => { $('phone-input').value = '01098765432'; $('btn-phone').disabled = false; $('ctl-phone').classList.add('is-invalid'); show('phone-error'); } },
+      'phone-saved': { label: '전화번호 변경 완료', run: () => show('toast-phone') },
+      'password-error': { label: '비밀번호 입력 오류', run: () => { ['ctl-new', 'ctl-check'].forEach((id) => $(id).classList.add('is-invalid')); show('new-error', 'check-error'); } },
+      'password-mismatch': { label: '현재 비밀번호 틀림', run: () => { $('ctl-current').classList.add('is-invalid'); show('current-error'); } },
+      'password-locked': { label: '5번 틀려 잠김 (423)', run: () => show('toast-locked') },
+      'password-saving': { label: '비밀번호 변경 중', run: () => setLoading($('btn-password'), '변경 중...') },
+      'password-saved': { label: '비밀번호 변경 완료', run: () => show('toast-password') },
+      'withdraw-blocked': { label: '탈퇴 막힘 (관리자인 팀, → 팀 정보)', run: () => show('withdraw-blocked') },
+      'withdraw-step1': { label: '탈퇴 1단계 (비밀번호 입력 전)', run: () => step1(false, false) },
+      'withdraw-step1-solo': { label: '탈퇴 1단계 (혼자인 팀 함께 해체)', run: () => step1(true, true) },
+      'withdraw-step1-wrong': { label: '탈퇴 1단계 (비밀번호 틀림)', run: () => { step1(false, true); $('ctl-withdraw-password').classList.add('is-invalid'); show('withdraw-password-error'); } },
+      'withdraw-step2': { label: '탈퇴 2단계 (→ 로그인)', run: () => show('withdraw-step2') },
+      'withdrawing': { label: '탈퇴 중', run: () => { show('withdraw-step2'); $('btn-withdraw').innerHTML = '<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>탈퇴 중...'; $('btn-withdraw').classList.add('disabled'); } },
+      'server-error': { label: '서버 오류', run: () => show('toast-server') },
+    };
+    setupStates(STATES, resetState);
+  </script>
+</body>
+</html>

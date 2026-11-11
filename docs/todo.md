@@ -30,14 +30,15 @@
 ### 일정관리 협업 시스템 (프로젝트 전체)
 - 목표: overview.md 핵심 기능 13개 전체를 loop.md 순서(설계 → 와이어프레임 → 구현 → 보안 체크)로 완성한다
 - 범위: 프로젝트 전체
-- 현재 단계: 2. 와이어프레임
-- 단계 승인: 설계(승인 완료, 2026-11-11), 와이어프레임(승인 전), 구현(승인 전), 보안 체크(승인 전)
+- 현재 단계: 3. 구현
+- 단계 승인: 설계(승인 완료, 2026-11-11), 와이어프레임(승인 완료, 2026-11-11), 구현(승인 전), 보안 체크(승인 전)
 - 진행 상황:
   - 끝낸 것: 이전 프로젝트 기획/설계(project_design.md)를 문서에 반영 (2026-11-11, D-082). 상세 설계가 끝난 기능은 회원가입, 로그인/로그아웃, 공통 레이아웃, 작업 페이지 - 할일 목록, 작업 페이지 - 칸반보드이고, 화면 문서 4개(LoginView, SignupView, MainLayout, TaskView)를 만들었다
   - 끝낸 것 (2026-11-11): 미결 1·3 결정 (D-087, D-088). 팀 생성/관리 상세 설계 (database.md teams·team_members, api.md 6.6, TeamInfoView_screen.md 새로 작성, MainLayout_screen.md 팀 목록·팀 만들기 모달·팀 공간 탭, overview.md 화면 경로). 팀 목록 순서·드래그(D-089), 팀 공간 경로(D-090). 팀 초대/알림 상세 설계 (D-091~D-096, database.md notifications, api.md 6.7, TeamInfoView 초대 모달, MainLayout 알림 창). 팀 작업 페이지 상세 설계 (D-097~D-100, todos·tasks team_id, task_assignees, task_log_assignees, task_logs 종류 create/change 로 변경, api.md 6.4·6.5, TaskView 작업자). 인증 메일 모양 승인(D-102), 작업자 변경 기록 닉네임(D-101). 실시간 반영 상세 설계 (D-103~D-105, api.md 6.8, TaskView·MainLayout 실시간 동작). 캘린더 상세 설계 (D-106~D-109, api.md 6.9 캘린더·공휴일, CalendarView_screen.md 새로 작성, spec.md 외부 서비스). 히스토리 상세 설계 (D-110~D-113, api.md 6.10, HistoryView_screen.md 새로 작성, 칸반에서 히스토리 작업 제외 409 TASK_IN_HISTORY). 아이디/비밀번호 찾기 상세 설계 (D-114~D-117, api.md 6.2, FindIdView·FindPasswordView_screen.md 새로 작성). 빠진 설계 7개(D-118~D-124), 추가 기능 4개(D-125~D-128: 기한 지남, 내 작업만, 작업자 지정 알림, 마감 임박 알림), 회원정보 수정/탈퇴 상세 설계 (D-129~D-131, api.md 6.11, ProfileView_screen.md). grilling 스킬 설치 (D-132)
   - /profile 확정 (D-133). structure.md 에 구현 단계에서 만들 폴더·파일 정리 (템플릿 예시 행 삭제). api.md 에 보안 응답 헤더 추가. loop.md 설계 완료 기준 1~7 확인 완료 (화면 문서의 API 가 모두 api.md 에 있음을 스크립트로 대조, 남은 자리표시·옛 문구 정리)
   - 설계 승인 완료 (2026-11-11)
-  - 와이어프레임: 시작. 화면 10개 시안 (이전 시안 4개 갱신 + 새 시안 6개)
+  - 와이어프레임: 화면 10개 시안 완성 (이전 4개 갱신, 새 6개, 공통 mockup_common.css·js). 시안용으로 frontend/package.json 에 bootstrap·bootstrap-icons·pretendard 설치(Node 24, npm audit 0), .gitignore 생성. 완료 기준 1~5 확인 (Chrome headless 로 모든 상태 콘솔 오류 0, 시안 사이 링크 대상 모두 있음). 와이어프레임 승인 완료 (2026-11-11)
+  - 구현: 시작 전. 사용자 준비(DB·계정·.env·Gmail 앱 비밀번호·공휴일 API 키·Node 24) 확인 후 우선순위 1(회원가입)부터
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 없음
 - 메모:
@@ -67,12 +68,13 @@
 ## 세션 인계
 
 - **마지막 갱신**: 2026-11-11
-- **현재 상태**: 설계 승인 완료 (2026-11-11). 2. 와이어프레임 진행 중. 아직 승인받은 단계는 없다. 코드는 없다
-- **다음에 할 일**: 와이어프레임 — 화면 10개 시안 작성 후 loop.md 2번 완료 기준 확인, 승인 요청
+- **현재 상태**: 설계·와이어프레임 승인 완료 (2026-11-11). 3. 구현 시작 전 (코드 없음). 아직 승인받은 단계는 없다. 코드는 없다
+- **다음에 할 일**: 사용자 준비 사항 확인 → 구현 우선순위 1(회원가입)부터 기능마다 test.md 완료 체크리스트
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)는 사용자가 공공데이터포털에서 발급받아야 한다 (D-107, 구현 전까지)
   - git: 커밋과 푸시는 AI가 한다. 커밋 메시지에 서명 줄을 붙이지 않는다 (D-086)
+  - 이 컴퓨터의 기본 Node 는 14. 프로젝트는 Node 24 (nvm 의 v24.22.2). 사용자 상태 표시줄(남은 컨텍스트)은 ~/.claude/statusline.ps1
 
 ---
 

@@ -335,7 +335,7 @@
           <button id="btn-submit" type="button" class="btn-submit">가입하기</button>
         </form>
 
-        <div class="form-footer">이미 계정이 있으신가요?<a href="#">로그인</a></div>
+        <div class="form-footer">이미 계정이 있으신가요?<a href="login_view.html">로그인</a></div>
       </section>
     </div>
   </main>
@@ -462,7 +462,7 @@
         showIdChecked();
         showVerified();
         show('toast-complete');
-        // 가입 완료 후 폼 전체 잠금 (D-052)
+        // 가입 완료 후 폼 전체 잠금 (D-048). 실제 화면은 1.5초 뒤 로그인 화면(login_view.html)으로 이동 (D-040)
         document.querySelectorAll('form .control').forEach((el) => el.classList.add('is-readonly'));
         document.querySelectorAll('form input, form button').forEach((el) => { el.disabled = true; });
       },
@@ -478,6 +478,8 @@
       resetState();
       STATES[event.target.value]();
     });
+    // 검사용: ?check=all 이면 모든 상태를 그려 본다
+    if (new URLSearchParams(location.search).get('check') === 'all') { Object.keys(STATES).forEach((key) => { resetState(); STATES[key](); }); console.info('MOCKUP_CHECK_DONE ' + Object.keys(STATES).length); resetState(); }
   </script>
 </body>
 </html>
