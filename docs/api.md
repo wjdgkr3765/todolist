@@ -262,6 +262,8 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | content | string | 내용 (1~2000자) |
   | startDate | string \| null | 시작일 YYYY-MM-DD (미정이면 null) |
   | endDate | string \| null | 종료일 YYYY-MM-DD (미정이면 null) |
+  | startTime | string \| null | 시작 시각 HH:mm (시간 지정 안 함·미정이면 null, D-135) |
+  | endTime | string \| null | 종료 시각 HH:mm (시간 지정 안 함·미정이면 null) |
   | isPeriodUndecided | boolean | 기간 미정 여부 |
   | createDate | string | 추가 시각 |
 - 할일 요청 형식 (추가·수정 같음):
@@ -272,7 +274,9 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | isPeriodUndecided | boolean | O | 기간 미정 여부 |
   | startDate | string \| null | O | 미정이면 null, 아니면 실제 있는 날짜 YYYY-MM-DD |
   | endDate | string \| null | O | 미정이면 null, 아니면 YYYY-MM-DD, startDate 와 같거나 뒤 |
-- DATE 는 문자열로 주고받고 SQL 에서 CAST 한다 (시간대 변환 방지)
+  | startTime | string \| null | O | 시간 지정 안 함·미정이면 null, 아니면 HH:mm (00:00~23:55, 분은 5의 배수, D-136) |
+  | endTime | string \| null | O | startTime 과 함께 null 이거나 함께 값. 같은 날이면 startTime 과 같거나 뒤 |
+- DATE·TIME 은 문자열로 주고받고 SQL 에서 CAST 한다 (시간대 변환 방지). 시간은 입력한 한국 시간 그대로 (D-135)
 
 | API | 설명 | 요청 | 응답 data | 오류 | 테이블 |
 |---|---|---|---|---|---|
@@ -299,7 +303,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | 필드 | 타입 | 설명 |
   |---|---|---|
   | taskId | number | 작업 id |
-  | title, content, startDate, endDate, isPeriodUndecided | | Todo 와 같은 형식 |
+  | title, content, startDate, endDate, startTime, endTime, isPeriodUndecided | | Todo 와 같은 형식 |
   | status | string | 상태 |
   | sortOrder | number | 같은 상태 안의 순서 |
   | assignees | { userId: number, nickname: string }[] | 작업자 (지정한 순, 지금 닉네임). 없으면 빈 배열 |
@@ -315,7 +319,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | isAssigneeChanged | boolean | 작업자가 바뀜 ("작업자 변경", D-099) |
   | beforeStatus | string \| null | 바뀌기 전 상태 (상태가 바뀐 기록만, "상태 변경 (대기 → 진행)"). 바뀐 것을 "작업 수정 · 작업자 변경 · 상태 변경" 순서로 이어 쓴다 (D-067, D-100) |
   | nickname | string | 그 시점 닉네임 |
-  | title, content, startDate, endDate, isPeriodUndecided, status | | 그 시점 작업 내용 (status 는 바뀐 뒤 상태) |
+  | title, content, startDate, endDate, startTime, endTime, isPeriodUndecided, status | | 그 시점 작업 내용 (status 는 바뀐 뒤 상태) |
   | assigneeNicknames | string[] | 그 시점 작업자 닉네임 (없으면 빈 배열) |
   | createDate | string | 기록 시각 |
 
@@ -357,7 +361,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   - 작업자가 바뀜: task_assignees 를 요청한 목록으로 바꾼다, isAssigneeChanged (D-099)
   - 상태가 바뀜: 옮겨 간 공간 맨 위(D-069), 떠난 공간 순서 다시 매김, 완료 시각 처리, beforeStatus
   - 하나라도 바뀌면 update_date 를 바꾸고 수정 내역 `change` 한 줄 (바뀐 것을 모두 표시, D-067, D-100)
-  - 알림: 새로 들어간 작업자 중 나 아닌 회원에게 task_assigned 알림 (D-127). 완료로 바뀌거나 기간이 바뀌면 그 작업의 due_soon 알림을 모두 지우고, 작업자에서 빠진 회원의 due_soon 알림을 지운다 (D-128). 커밋 뒤 알림이 바뀐 회원에게 `notifications:changed`
+  - 알림: 새로 들어간 작업자 중 나 아닌 회원에게 task_assigned 알림 (D-127). 완료로 바뀌거나 기간(날짜·시간)이 바뀌면 그 작업의 due_soon 알림을 모두 지우고, 작업자에서 빠진 회원의 due_soon 알림을 지운다 (D-128). 커밋 뒤 알림이 바뀐 회원에게 `notifications:changed`
 
 #### POST /api/tasks/{id}/move
 - **설명**: 칸반 드래그. 작업을 그 작업 공간(개인/팀)의 status 공간 index 자리에 놓는다 (D-069)
@@ -514,6 +518,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | taskId | number \| null | 작업 id (팀 초대면 null) |
   | taskTitle | string \| null | 작업의 지금 제목 |
   | taskEndDate | string \| null | 작업의 지금 종료일 YYYY-MM-DD (마감 임박만) |
+  | taskEndTime | string \| null | 작업의 지금 종료 시각 HH:mm (마감 임박이고 시간이 있을 때만, D-138) |
   | senderNickname | string \| null | 보낸 회원의 그 시점 닉네임 (마감 임박이면 null) |
   | isRead | boolean | 알림 창에서 본 여부 |
   | createDate | string | 알림 시각 |
@@ -553,7 +558,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **응답 data**: `notifications` Notification[] (없으면 빈 배열), `unreadCount` number — 안 본 알림 수 (D-096)
 - **오류**: 401
 - **사용 테이블**: notifications, teams, tasks, task_assignees
-- **마감 임박 알림 만들기 (D-128)**: 예약 작업 없이 이 API 가 불릴 때 만든다. 대상은 종료일이 오늘 또는 내일(한국 시간)이고 상태가 대기·진행이며 히스토리가 아닌 작업 중 내 개인 작업과 내가 작업자인 팀 작업. 아직 due_soon 알림이 없는 작업마다 하나 만든다 (UNIQUE 필터 인덱스로 겹치지 않게, 동시 요청의 UNIQUE 위반은 무시)
+- **마감 임박 알림 만들기 (D-128, D-138)**: 예약 작업 없이 이 API 가 불릴 때 만든다. 대상은 종료일 전날 00시 00분(한국 시간)부터 마감 전까지인 작업, 즉 오늘(한국 시간)이 종료일 전날이거나 종료일이고 아직 기한 지남이 아닌(시간이 있으면 종료 시각 전, D-137) 대기·진행 작업 중 내 개인 작업과 내가 작업자인 팀 작업. 아직 due_soon 알림이 없는 작업마다 하나 만든다 (UNIQUE 필터 인덱스로 겹치지 않게, 동시 요청의 UNIQUE 위반은 무시)
 
 #### POST /api/notifications/read
 - **설명**: 내 알림을 모두 본 것으로 바꾼다. 알림 창을 열 때 부른다 (D-096)
@@ -618,7 +623,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | 필드 | 타입 | 설명 |
   |---|---|---|
   | taskId | number | 작업 id |
-  | title, content, startDate, endDate, status | | Task 와 같은 형식 (기간 미정은 오지 않는다) |
+  | title, content, startDate, endDate, startTime, endTime, status | | Task 와 같은 형식 (기간 미정은 오지 않는다) |
   | assignees | { userId: number, nickname: string }[] | 작업자 (팀 공간만, 개인 공간이면 빈 배열) |
   | isHistory | boolean | 히스토리 작업 여부 |
 - **오류**: 400, 401, 404 (팀)
@@ -651,7 +656,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | 필드 | 타입 | 설명 |
   |---|---|---|
   | taskId | number | 작업 id |
-  | title, content, startDate, endDate, isPeriodUndecided | | Task 와 같은 형식 |
+  | title, content, startDate, endDate, startTime, endTime, isPeriodUndecided | | Task 와 같은 형식 |
   | doneDate | string | 완료 공간으로 옮긴 시각 |
   | assignees | { userId: number, nickname: string }[] | 작업자 (팀 공간만, 개인 공간이면 빈 배열) |
 - **오류**: 400, 401, 404 (팀)

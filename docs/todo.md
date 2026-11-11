@@ -38,6 +38,7 @@
   - /profile 확정 (D-133). structure.md 에 구현 단계에서 만들 폴더·파일 정리 (템플릿 예시 행 삭제). api.md 에 보안 응답 헤더 추가. loop.md 설계 완료 기준 1~7 확인 완료 (화면 문서의 API 가 모두 api.md 에 있음을 스크립트로 대조, 남은 자리표시·옛 문구 정리)
   - 설계 승인 완료 (2026-11-11)
   - 와이어프레임: 화면 10개 시안 완성 (이전 4개 갱신, 새 6개, 공통 mockup_common.css·js). 시안용으로 frontend/package.json 에 bootstrap·bootstrap-icons·pretendard 설치(Node 24, npm audit 0), .gitignore 생성. 완료 기준 1~5 확인 (Chrome headless 로 모든 상태 콘솔 오류 0, 시안 사이 링크 대상 모두 있음). 와이어프레임 승인 완료 (2026-11-11)
+  - 승인 뒤 설계 추가 (사용자 요청, loop.md 앞 단계 변경): 기간에 시간 넣기 D-135~D-140 (todos·tasks·task_logs 에 start_time·end_time, api.md 기간 형식·마감 임박 시점, TaskView 시간 지정 입력, 기한 지남·캘린더·히스토리 표시, 시안 3개). D-134(히스토리 완료일 시간)는 잘못 이해한 변경이라 되돌림(D-141)
   - 구현: 시작 전. 사용자 준비(DB·계정·.env·Gmail 앱 비밀번호·공휴일 API 키·Node 24) 확인 후 우선순위 1(회원가입)부터
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 없음

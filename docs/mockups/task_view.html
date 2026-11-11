@@ -37,7 +37,9 @@
     .task-card.is-ghost > * { visibility: hidden; }
     .is-drag-locked .task-card { cursor: default; }
     .card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .card-period { font-size: 12px; color: var(--color-sub); margin-top: 4px; display: flex; align-items: center; flex-wrap: wrap; }
+    .card-period { font-size: 12px; color: var(--color-sub); margin-top: 4px; display: flex; align-items: center; min-width: 0; }
+    .period-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+    .card-period .badge-x { flex: 0 0 auto; }
     .card-period.is-overdue { color: var(--color-danger); }
     .card-assignee { font-size: 12px; color: var(--color-sub); margin-top: 4px; display: flex; align-items: center; gap: 4px; min-width: 0; }
     .card-assignee i { font-size: 12px; flex: 0 0 auto; }
@@ -59,6 +61,8 @@
     .period-row span { color: var(--color-muted); flex: 0 0 auto; }
     .period-row .control { flex: 1 1 0; }
     .period-row .control input { padding: 0 8px; font-size: 14px; }
+    .period-row.is-time { margin-top: 8px; }
+    .period-checks { display: flex; gap: 16px; }
     .undecided-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--color-sub); }
     .undecided-check input { width: 18px; height: 18px; accent-color: var(--color-primary); }
     .form-buttons { display: flex; gap: 8px; margin-top: 8px; }
@@ -125,7 +129,7 @@
           <!-- 할일 목록 -->
           <section class="panel">
             <div class="todo-header">
-              <h2 class="panel-title">할일 목록<span id="todo-count" class="panel-count">(3개)</span></h2>
+              <h2 class="panel-title">할일 목록<span id="todo-count" class="panel-count">(4개)</span></h2>
               <div class="todo-actions">
                 <button type="button" id="btn-add" class="btn-x btn-primary-x"><i class="bi bi-plus-lg"></i>추가</button>
                 <button type="button" id="btn-edit" class="btn-x btn-soft-x" disabled><i class="bi bi-pencil"></i>수정</button>
@@ -136,8 +140,9 @@
             <table id="todo-table" class="todo-table">
               <thead><tr><th>제목</th><th>기간</th></tr></thead>
               <tbody>
-                <tr id="todo-row-1"><td>디자인 시스템 정리</td><td>2026.11.12 ~ 2026.11.18</td></tr>
-                <tr><td>팀 회의 자료 준비하기 위해 필요한 내용 정리하고 공유하기</td><td>2026.11.13</td></tr>
+                <tr id="todo-row-1"><td>디자인 시스템 정리</td><td title="2026.11.12 10:00 ~ 2026.11.18 17:30">2026.11.12 10:00 ~ 2026.11.18 17:30</td></tr>
+                <tr><td>팀 회의 자료 준비하기 위해 필요한 내용 정리하고 공유하기</td><td title="2026.11.13 14:00 ~ 15:30">2026.11.13 14:00 ~ 15:30</td></tr>
+                <tr><td>디자인 리뷰 준비</td><td title="2026.11.16 ~ 2026.11.17">2026.11.16 ~ 2026.11.17</td></tr>
                 <tr><td>참고 자료 찾기</td><td><span class="badge-x badge-undecided">미정</span></td></tr>
               </tbody>
             </table>
@@ -168,8 +173,15 @@
               <div id="ctl-start" class="control no-icon"><input id="todo-start" type="date" aria-label="시작일" /></div><span>~</span>
               <div id="ctl-end" class="control no-icon"><input id="todo-end" type="date" aria-label="종료일" /></div>
             </div>
-            <label class="undecided-check"><input id="todo-undecided" type="checkbox" />기간 미정</label>
-            <div id="todo-period-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i>시작일과 종료일을 선택해 주세요.</div>
+            <div id="todo-time-row" class="period-row is-time is-hidden">
+              <div id="ctl-start-time" class="control no-icon"><input id="todo-start-time" type="time" step="300" value="09:00" aria-label="시작 시각" /></div><span>~</span>
+              <div id="ctl-end-time" class="control no-icon"><input id="todo-end-time" type="time" step="300" value="18:00" aria-label="종료 시각" /></div>
+            </div>
+            <div class="period-checks">
+              <label class="undecided-check"><input id="todo-undecided" type="checkbox" />기간 미정</label>
+              <label class="undecided-check"><input id="todo-time" type="checkbox" />시간 지정</label>
+            </div>
+            <div id="todo-period-error" class="message is-error is-hidden"><i class="bi bi-exclamation-circle"></i><span id="todo-period-error-text">시작일과 종료일을 선택해 주세요.</span></div>
           </div>
           <div class="form-buttons">
             <button type="button" class="btn-x btn-outline-x">취소</button>
@@ -185,7 +197,7 @@
           <div id="detail-read">
             <div class="detail-item"><div class="detail-label">상태</div><span class="badge-x badge-waiting">대기</span></div>
             <div class="detail-item"><div class="detail-label">제목</div><div class="detail-value">API 명세 검토</div></div>
-            <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value is-overdue">2026.11.05 ~ 2026.11.09<span class="badge-x badge-overdue">기한 지남</span></div></div>
+            <div class="detail-item"><div class="detail-label">기간</div><div class="detail-value is-overdue">2026.11.05 09:00 ~ 2026.11.09 18:00<span class="badge-x badge-overdue">기한 지남</span></div></div>
             <div id="detail-assignee-read" class="detail-item team-only"><div class="detail-label">작업자</div><div class="detail-value">김민수, 홍길동</div></div>
             <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">회원·팀 API 의 요청과 응답 형식을 다시 확인한다.
 오류 코드가 화면 문서와 맞는지도 본다.</div></div>
@@ -205,7 +217,14 @@
                 <div class="control no-icon"><input type="date" value="2026-11-05" aria-label="시작일" /></div><span>~</span>
                 <div class="control no-icon"><input type="date" value="2026-11-09" aria-label="종료일" /></div>
               </div>
-              <label class="undecided-check"><input type="checkbox" />기간 미정</label></div>
+              <div class="period-row is-time">
+                <div class="control no-icon"><input type="time" step="300" value="09:00" aria-label="시작 시각" /></div><span>~</span>
+                <div class="control no-icon"><input type="time" step="300" value="18:00" aria-label="종료 시각" /></div>
+              </div>
+              <div class="period-checks">
+                <label class="undecided-check"><input type="checkbox" />기간 미정</label>
+                <label class="undecided-check"><input type="checkbox" checked />시간 지정</label>
+              </div></div>
             <div class="field team-only"><span class="field-label">작업자</span>
               <div class="assignee-picker">
                 <div class="control no-icon"><span id="picker-value" class="value">김민수, 홍길동</span><span class="control-suffix"><i class="bi bi-chevron-down"></i></span></div>
@@ -286,13 +305,13 @@
     const ME = '홍길동';
     const COLUMNS = [
       { key: 'waiting', label: '대기', cards: [
-        { id: 'c1', title: '메인 화면 시안 정리', period: '2026.11.10 ~ 2026.11.20', assignees: ['홍길동', '이영희', '김민수'] },
-        { id: 'c2', title: 'API 명세 검토', period: '2026.11.05 ~ 2026.11.09', overdue: true, assignees: ['김민수', '홍길동'] },
+        { id: 'c1', title: '메인 화면 시안 정리', period: '2026.11.10 09:00 ~ 2026.11.20 18:00', assignees: ['홍길동', '이영희', '김민수'] },
+        { id: 'c2', title: 'API 명세 검토', period: '2026.11.05 09:00 ~ 2026.11.09 18:00', overdue: true, assignees: ['김민수', '홍길동'] },
         { id: 'c3', title: '회의록 공유', period: null, assignees: [] },
       ] },
       { key: 'progress', label: '진행', cards: [
         { id: 'c4', title: '로그인 화면 구현', period: '2026.11.11 ~ 2026.11.14', assignees: ['홍길동'] },
-        { id: 'c5', title: '주간 보고서 작성 길게 넘치는 제목 테스트 문구입니다', period: '2026.11.12', assignees: ['이영희'] },
+        { id: 'c5', title: '주간 보고서 작성 길게 넘치는 제목 테스트 문구입니다', period: '2026.11.12 09:00 ~ 18:00', assignees: ['이영희'] },
       ] },
       { key: 'done', label: '완료', cards: [
         { id: 'c6', title: 'DB 설계', period: '2026.11.01 ~ 2026.11.07', assignees: ['홍길동'] },
@@ -301,7 +320,7 @@
 
     function cardHtml(card) {
       const period = card.period
-        ? `<div class="card-period${card.overdue ? ' is-overdue' : ''}">${card.period}${card.overdue ? '<span class="badge-x badge-overdue">기한 지남</span>' : ''}</div>`
+        ? `<div class="card-period${card.overdue ? ' is-overdue' : ''}" title="${card.period}"><span class="period-text">${card.period}</span>${card.overdue ? '<span class="badge-x badge-overdue">기한 지남</span>' : ''}</div>`
         : '<div class="card-period"><span class="badge-x badge-undecided">미정</span></div>';
       let assignee = '';
       if (isTeam && card.assignees.length === 1) {
@@ -353,7 +372,11 @@
       $('btn-start').innerHTML = '<i class="bi bi-play-fill"></i>작업 시작';
       ['ctl-todo-title', 'ctl-todo-content', 'ctl-start', 'ctl-end'].forEach((id) => $(id).classList.remove('is-invalid', 'is-locked'));
       ['todo-start', 'todo-end'].forEach((id) => { $(id).disabled = false; $(id).value = ''; });
-      $('todo-undecided').checked = false;
+      $('todo-undecided').checked = false; $('todo-time').checked = false; $('todo-time').disabled = false;
+      hide('todo-time-row');
+      ['ctl-start-time', 'ctl-end-time'].forEach((id) => $(id).classList.remove('is-invalid'));
+      $('todo-start-time').value = '09:00'; $('todo-end-time').value = '18:00';
+      $('todo-period-error-text').textContent = '시작일과 종료일을 선택해 주세요.';
       $('todo-title').value = ''; $('todo-content').value = '';
       $('todo-title-count').textContent = '0'; $('todo-content-count').textContent = '0';
       ['btn-todo-save', 'btn-task-save'].forEach((id) => { $(id).disabled = false; $(id).textContent = SAVE_LABEL; });
@@ -374,7 +397,9 @@
       'loading': { label: '로딩 중', run: () => { renderKanban({ loading: true }); hide('todo-table'); show('todo-loading'); } },
       'todo-add': { label: '할일 입력 UI (추가)', run: () => openTodoForm('할일 추가') },
       'todo-edit': { label: '할일 입력 UI (수정)', run: fillTodoForm },
-      'todo-undecided': { label: '기간 미정', run: () => { openTodoForm('할일 추가'); $('todo-undecided').checked = true; ['todo-start', 'todo-end'].forEach((id) => { $(id).disabled = true; }); ['ctl-start', 'ctl-end'].forEach((id) => $(id).classList.add('is-locked')); } },
+      'todo-time': { label: '시간 지정 켜짐 (09:00 ~ 18:00)', run: () => { openTodoForm('할일 추가'); $('todo-time').checked = true; show('todo-time-row'); $('todo-start').value = '2026-11-12'; $('todo-end').value = '2026-11-12'; } },
+      'todo-time-error': { label: '시간 입력 오류 (종료 시각이 앞)', run: () => { openTodoForm('할일 추가'); $('todo-time').checked = true; show('todo-time-row', 'todo-period-error'); $('todo-start').value = '2026-11-12'; $('todo-end').value = '2026-11-12'; $('todo-start-time').value = '15:00'; $('todo-end-time').value = '10:00'; $('ctl-end-time').classList.add('is-invalid'); $('todo-period-error-text').textContent = '종료 시각은 시작 시각과 같거나 뒤여야 합니다.'; } },
+      'todo-undecided': { label: '기간 미정 (시간 지정 꺼짐·잠금)', run: () => { openTodoForm('할일 추가'); $('todo-undecided').checked = true; $('todo-time').disabled = true; ['todo-start', 'todo-end'].forEach((id) => { $(id).disabled = true; }); ['ctl-start', 'ctl-end'].forEach((id) => $(id).classList.add('is-locked')); } },
       'todo-error': { label: '입력 오류', run: () => { openTodoForm('할일 추가'); ['ctl-todo-title', 'ctl-todo-content', 'ctl-start', 'ctl-end'].forEach((id) => $(id).classList.add('is-invalid')); show('todo-title-error', 'todo-content-error', 'todo-period-error'); } },
       'todo-saving': { label: '저장 중', run: () => { fillTodoForm(); setLoading($('btn-todo-save'), '저장 중...'); } },
       'todo-added': { label: '안내 토스트 (할일 추가)', run: () => show('toast-todo-added') },

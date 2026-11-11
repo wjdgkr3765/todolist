@@ -11,7 +11,7 @@
 - **DB**: Microsoft SQL Server 2019, DB 이름 `todolist` (D-031)
 - **서버**: localhost\SQLEXPRESS (이름 있는 인스턴스, D-034). 환경 변수 DB_INSTANCE, DB_PORT 를 적으면 포트 우선
 - **접속**: SQL Server 인증(아이디/비밀번호). DB와 로그인 계정은 사용자가 SSMS에서 만들고, 접속 정보는 사용자가 직접 backend/.env 에 넣는다 (D-031, D-034)
-- **시각**: `DATETIME2`, UTC 저장, 기본값 `SYSUTCDATETIME()` (D-032). 단 할일·작업의 기간은 달력 날짜라 `DATE` (시간대 변환 안 함)
+- **시각**: `DATETIME2`, UTC 저장, 기본값 `SYSUTCDATETIME()` (D-032). 단 할일·작업의 기간은 달력 날짜라 `DATE`, 기간 시간은 따로 `TIME(0)` 이고 입력한 한국 시간 그대로 저장한다 (시간대 변환 안 함, D-135)
 
 ---
 
@@ -159,6 +159,7 @@ CREATE INDEX idx_email_verifications_email ON email_verifications (email, purpos
 ### todos (할일)
 - 제목 1~50자, 내용 1~2000자, 기간 필수 또는 미정 (D-010, D-058)
 - 미정이면 start_date, end_date 모두 NULL. 미정이 아니면 둘 다 있고 start_date ≤ end_date
+- 기간 시간 (D-135, D-136): start_time, end_time 은 함께 있거나 함께 NULL(날짜만 있는 기간). 5분 단위, 초는 0. 같은 날이면 start_time ≤ end_time
 - 개인 공간 할일: user_id = 소유자, team_id = NULL. 팀 공간 할일: team_id = 팀, user_id = NULL (만든 회원이 탈퇴해도 팀 할일이 남도록, D-041). 둘 중 하나만 있다
 - 팀을 해체하면 팀 할일도 지운다 (ON DELETE CASCADE, D-075)
 - 삭제는 완전 삭제 (D-056)
@@ -170,6 +171,8 @@ CREATE TABLE todos (
     content             NVARCHAR(2000) NOT NULL,                         -- 내용 (1~2000자)
     start_date          DATE           NULL,                             -- 기간 시작일 (미정이면 NULL)
     end_date            DATE           NULL,                             -- 기간 종료일 (미정이면 NULL)
+    start_time          TIME(0)        NULL,                             -- 기간 시작 시각 (시간 지정 안 함·미정이면 NULL, D-135)
+    end_time            TIME(0)        NULL,                             -- 기간 종료 시각 (시간 지정 안 함·미정이면 NULL)
     user_id             BIGINT         NULL,                             -- 개인 공간 소유자 (팀 공간이면 NULL)
     team_id             BIGINT         NULL,                             -- 팀 공간 (개인 공간이면 NULL)
     is_period_undecided BIT            NOT NULL DEFAULT 0,               -- 기간 미정 여부
@@ -183,9 +186,15 @@ CREATE TABLE todos (
         OR (user_id IS NULL AND team_id IS NOT NULL)
     ),
     CHECK (
-        (is_period_undecided = 1 AND start_date IS NULL AND end_date IS NULL)
-        OR (is_period_undecided = 0 AND start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= end_date)
-    )
+        (is_period_undecided = 1 AND start_date IS NULL AND end_date IS NULL AND start_time IS NULL AND end_time IS NULL)
+        OR (is_period_undecided = 0 AND start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= end_date
+            AND (
+                (start_time IS NULL AND end_time IS NULL)
+                OR (start_time IS NOT NULL AND end_time IS NOT NULL AND (start_date < end_date OR start_time <= end_time))
+            ))
+    ),
+    CHECK (start_time IS NULL OR (DATEPART(MINUTE, start_time) % 5 = 0 AND DATEPART(SECOND, start_time) = 0)),
+    CHECK (end_time IS NULL OR (DATEPART(MINUTE, end_time) % 5 = 0 AND DATEPART(SECOND, end_time) = 0))
 );
 
 CREATE INDEX idx_todos_user_id ON todos (user_id, create_date);
@@ -194,7 +203,7 @@ CREATE INDEX idx_todos_team_id ON todos (team_id, create_date);
 
 ### tasks (작업)
 - [작업 시작]으로 할일을 옮겨 만든다: 할일은 지우고 작업을 만든다 (D-059)
-- 제목·내용·기간 규칙은 todos 와 같다
+- 제목·내용·기간(시간 포함) 규칙은 todos 와 같다
 - status: waiting(대기), progress(진행), done(완료)
 - sort_order: 같은 공간(개인 공간이면 그 회원, 팀 공간이면 그 팀)·같은 상태 안의 순서. 0 부터 작을수록 위. [작업 시작]으로 올린 작업은 대기 맨 위(0)에 두고 나머지를 1씩 민다 (D-064). 드래그하면 옮긴 공간과 떠난 공간의 순서를 0 부터 다시 매긴다
 - done_date: 완료 공간으로 옮긴 시각. 완료에서 빠지면 NULL, 다시 완료로 옮기면 그 시각을 새로 넣는다 (D-015, D-066). 히스토리는 이 값 + 7일을 기준으로 쓴다
@@ -210,6 +219,8 @@ CREATE TABLE tasks (
     content             NVARCHAR(2000) NOT NULL,                          -- 내용 (1~2000자)
     start_date          DATE           NULL,                              -- 기간 시작일 (미정이면 NULL)
     end_date            DATE           NULL,                              -- 기간 종료일 (미정이면 NULL)
+    start_time          TIME(0)        NULL,                              -- 기간 시작 시각 (시간 지정 안 함·미정이면 NULL, D-135)
+    end_time            TIME(0)        NULL,                              -- 기간 종료 시각 (시간 지정 안 함·미정이면 NULL)
     status              NVARCHAR(10)   NOT NULL DEFAULT 'waiting',        -- 상태 (waiting / progress / done)
     sort_order          INT            NOT NULL,                          -- 같은 상태 안의 순서 (0 부터, 작을수록 위)
     user_id             BIGINT         NULL,                              -- 개인 공간 소유자 (팀 공간이면 NULL)
@@ -228,9 +239,15 @@ CREATE TABLE tasks (
     CHECK (status IN ('waiting', 'progress', 'done')),
     CHECK (sort_order >= 0),
     CHECK (
-        (is_period_undecided = 1 AND start_date IS NULL AND end_date IS NULL)
-        OR (is_period_undecided = 0 AND start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= end_date)
+        (is_period_undecided = 1 AND start_date IS NULL AND end_date IS NULL AND start_time IS NULL AND end_time IS NULL)
+        OR (is_period_undecided = 0 AND start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= end_date
+            AND (
+                (start_time IS NULL AND end_time IS NULL)
+                OR (start_time IS NOT NULL AND end_time IS NOT NULL AND (start_date < end_date OR start_time <= end_time))
+            ))
     ),
+    CHECK (start_time IS NULL OR (DATEPART(MINUTE, start_time) % 5 = 0 AND DATEPART(SECOND, start_time) = 0)),
+    CHECK (end_time IS NULL OR (DATEPART(MINUTE, end_time) % 5 = 0 AND DATEPART(SECOND, end_time) = 0)),
     CHECK (
         (status = 'done' AND done_date IS NOT NULL)
         OR (status <> 'done' AND done_date IS NULL)
@@ -263,6 +280,8 @@ CREATE TABLE task_logs (
     content             NVARCHAR(2000) NOT NULL,                          -- 그 시점 내용
     start_date          DATE           NULL,                              -- 그 시점 기간 시작일 (미정이면 NULL)
     end_date            DATE           NULL,                              -- 그 시점 기간 종료일 (미정이면 NULL)
+    start_time          TIME(0)        NULL,                              -- 그 시점 기간 시작 시각 (시간 지정 안 함·미정이면 NULL, D-135)
+    end_time            TIME(0)        NULL,                              -- 그 시점 기간 종료 시각 (시간 지정 안 함·미정이면 NULL)
     status              NVARCHAR(10)   NOT NULL,                          -- 그 시점 상태 (바뀐 뒤 상태)
     task_id             BIGINT         NOT NULL,                          -- 대상 작업
     is_period_undecided BIT            NOT NULL DEFAULT 0,                -- 그 시점 기간 미정 여부
@@ -279,9 +298,15 @@ CREATE TABLE task_logs (
         OR (log_type = 'change' AND (before_status IS NOT NULL OR is_content_changed = 1 OR is_assignee_changed = 1))
     ),
     CHECK (
-        (is_period_undecided = 1 AND start_date IS NULL AND end_date IS NULL)
-        OR (is_period_undecided = 0 AND start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= end_date)
-    )
+        (is_period_undecided = 1 AND start_date IS NULL AND end_date IS NULL AND start_time IS NULL AND end_time IS NULL)
+        OR (is_period_undecided = 0 AND start_date IS NOT NULL AND end_date IS NOT NULL AND start_date <= end_date
+            AND (
+                (start_time IS NULL AND end_time IS NULL)
+                OR (start_time IS NOT NULL AND end_time IS NOT NULL AND (start_date < end_date OR start_time <= end_time))
+            ))
+    ),
+    CHECK (start_time IS NULL OR (DATEPART(MINUTE, start_time) % 5 = 0 AND DATEPART(SECOND, start_time) = 0)),
+    CHECK (end_time IS NULL OR (DATEPART(MINUTE, end_time) % 5 = 0 AND DATEPART(SECOND, end_time) = 0))
 );
 
 CREATE INDEX idx_task_logs_task_id ON task_logs (task_id, create_date);

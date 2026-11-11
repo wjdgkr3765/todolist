@@ -72,7 +72,7 @@ const NOTIFICATION_ITEMS = `
   </div>
   <div class="notification-item">
     <i class="bi bi-alarm is-alarm"></i>
-    <a href="task_view.html?state=detail-read" class="notification-link">"주간 보고서 작성" 작업의 마감이 내일입니다.
+    <a href="task_view.html?state=detail-read" class="notification-link">"주간 보고서 작성" 작업이 11.12 18:00에 마감됩니다.
       <span class="notification-sub">개인</span>
       <span class="notification-time">2026.11.11 09:00</span>
     </a>

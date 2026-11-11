@@ -92,9 +92,9 @@
           <div class="more-pop-title">11월 12일</div>
           <button type="button" class="cal-bar bar-waiting">메인 화면 시안 정리</button>
           <button type="button" class="cal-bar bar-progress">로그인 화면 구현</button>
-          <button type="button" class="cal-bar is-single single-progress">주간 보고서 작성</button>
+          <button type="button" class="cal-bar is-single single-progress">09:00 주간 보고서 작성</button>
           <button type="button" class="cal-bar is-single single-waiting">디자인 리뷰</button>
-          <button type="button" class="cal-bar is-single single-done">코드 리뷰</button>
+          <button type="button" class="cal-bar is-single single-done">14:00 코드 리뷰</button>
         </div>
       </div>
     </main>
@@ -106,7 +106,7 @@
       <div class="modal-title-x">작업 상세<button type="button" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
       <div class="detail-item"><div class="detail-label">상태</div><span id="detail-status" class="badge-x badge-progress">진행</span></div>
       <div class="detail-item"><div class="detail-label">제목</div><div id="detail-title" class="detail-value">로그인 화면 구현</div></div>
-      <div class="detail-item"><div class="detail-label">기간</div><div id="detail-period" class="detail-value">2026.11.11 ~ 2026.11.14</div></div>
+      <div class="detail-item"><div class="detail-label">기간</div><div id="detail-period" class="detail-value">2026.11.11 09:00 ~ 2026.11.14 18:00</div></div>
       <div id="detail-assignee" class="detail-item"><div class="detail-label">작업자</div><div class="detail-value">홍길동, 김민수</div></div>
       <div class="detail-item"><div class="detail-label">내용</div><div class="detail-value detail-content">로그인 화면을 시안대로 만든다.
 로그인 실패·잠김 문구를 확인한다.</div></div>
@@ -127,9 +127,9 @@
       { title: 'API 명세 검토', start: '2026-11-05', end: '2026-11-09', status: 'waiting' },
       { title: '메인 화면 시안 정리', start: '2026-11-10', end: '2026-11-20', status: 'waiting' },
       { title: '로그인 화면 구현', start: '2026-11-11', end: '2026-11-14', status: 'progress' },
-      { title: '주간 보고서 작성', start: '2026-11-12', end: '2026-11-12', status: 'progress' },
+      { title: '주간 보고서 작성', start: '2026-11-12', end: '2026-11-12', time: '09:00', status: 'progress' },
       { title: '디자인 리뷰', start: '2026-11-12', end: '2026-11-12', status: 'waiting' },
-      { title: '코드 리뷰', start: '2026-11-12', end: '2026-11-12', status: 'done' },
+      { title: '코드 리뷰', start: '2026-11-12', end: '2026-11-12', time: '14:00', status: 'done' },
       { title: '배포 준비', start: '2026-11-24', end: '2026-12-02', status: 'waiting' },
       { title: '연말 회고', start: '2026-12-28', end: '2026-12-30', status: 'waiting' },
     ];
@@ -176,7 +176,7 @@
           if (lane >= maxLanes) { for (let i = from; i <= to; i += 1) { hidden[i] += 1; } return; }
           const single = task.start === task.end;
           const cls = single ? `is-single single-${task.status}` : `bar-${task.status}`;
-          cells += `<button type="button" class="cal-bar ${cls}" style="grid-row:${lane + 2};grid-column:${from + 1} / ${to + 2}">${task.title}</button>`;
+          cells += `<button type="button" class="cal-bar ${cls}" style="grid-row:${lane + 2};grid-column:${from + 1} / ${to + 2}">${single && task.time ? `${task.time} ` : ''}${task.title}</button>`;
         });
         hidden.forEach((count, i) => { if (count) { cells += `<button type="button" class="cal-more" style="grid-row:${maxLanes + 2};grid-column:${i + 1}">+${count}</button>`; } });
         html += `<div class="cal-week">${cells}</div>`;
@@ -208,7 +208,7 @@
       'other-month': { label: '다른 달 보기 + 공휴일 (2026.12)', run: () => renderMonth(2026, 12, { holidays: true }) },
       'no-holiday': { label: '공휴일 정보 없음 (2026.12)', run: () => renderMonth(2026, 12, { holidays: false }) },
       'more': { label: '더보기 창 (+N 클릭)', run: () => show('more-pop') },
-      'detail': { label: '상세 모달 (진행)', run: () => openDetail('progress', '진행', '로그인 화면 구현', '2026.11.11 ~ 2026.11.14') },
+      'detail': { label: '상세 모달 (진행)', run: () => openDetail('progress', '진행', '로그인 화면 구현', '2026.11.11 09:00 ~ 2026.11.14 18:00') },
       'detail-history': { label: '상세 모달 (히스토리)', run: () => openDetail('history', '히스토리', '기획 회의 정리', '2026.10.29 ~ 2026.11.03') },
       'server-error': { label: '서버 오류', run: () => { renderMonth(2026, 11, { holidays: true, empty: true }); show('toast-server'); } },
     };
