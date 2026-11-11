@@ -1,0 +1,234 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>일일보고 시안</title>
+  <link rel="stylesheet" href="../../frontend/node_modules/pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+  <link rel="stylesheet" href="../../frontend/node_modules/bootstrap-icons/font/bootstrap-icons.min.css" />
+  <link rel="stylesheet" href="mockup_common.css" />
+  <style>
+    /* DailyReportView_screen.md "7. 디자인 값" */
+    .report-head { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; margin-bottom: 16px; }
+    .report-head h1 { font-size: 20px; font-weight: 800; margin: 0; }
+    .date-nav { display: flex; align-items: center; gap: 4px; }
+    .date-nav .date-text { font-size: 15px; font-weight: 700; min-width: 132px; text-align: center; }
+    .date-nav .icon-button:disabled { color: var(--color-border-strong); background: transparent; }
+    .head-right { margin-left: auto; }
+    .report-layout { display: flex; gap: 20px; align-items: flex-start; }
+    .status-card { width: 280px; flex: 0 0 280px; background: #fff; border: 1px solid var(--color-border); border-radius: 16px; padding: 16px; }
+    .status-title { display: flex; align-items: baseline; justify-content: space-between; font-size: 15px; font-weight: 800; margin-bottom: 10px; }
+    .status-title small { font-size: 12px; font-weight: 600; color: var(--color-muted); }
+    .status-list { display: flex; flex-direction: column; gap: 4px; }
+    .status-row { display: block; width: 100%; text-align: left; border: 0; border-left: 3px solid transparent; background: transparent; border-radius: 10px; min-height: 56px; padding: 8px 10px; }
+    .status-row:hover { background: var(--color-hover-bg); }
+    .status-row.is-selected { background: var(--color-primary-soft); border-left-color: var(--color-primary); }
+    .status-line { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 15px; font-weight: 700; }
+    .status-line .me-mark { color: var(--color-muted); font-weight: 500; margin-left: 4px; }
+    .status-sub { font-size: 12px; color: var(--color-sub); margin-top: 2px; min-height: 16px; }
+    .rb { font-size: 12px; font-weight: 700; padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+    .rb-submitted { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+    .rb-draft { background: var(--color-hover-bg); color: var(--color-sub); }
+    .rb-none { border: 1px solid var(--color-border); color: var(--color-muted); }
+    .report-card { flex: 1 1 auto; min-width: 0; background: #fff; border: 1px solid var(--color-border); border-radius: 16px; padding: 20px; }
+    .report-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid var(--color-border); margin-bottom: 16px; }
+    .report-who { font-size: 16px; font-weight: 800; }
+    .report-who small { font-size: 13px; color: var(--color-sub); font-weight: 600; margin-left: 6px; }
+    .report-state { font-size: 13px; color: var(--color-sub); margin-left: auto; }
+    .report-tools { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .report-tools .form-check { margin: 0; font-size: 14px; }
+    .back-button { display: none; margin-bottom: 12px; }
+    .report-header-line { font-size: 15px; font-weight: 500; margin-bottom: 16px; }
+    .rs-title { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 800; margin: 20px 0 6px; }
+    .section-block:first-child .rs-title { margin-top: 0; }
+    .rs-title .reload { margin-left: auto; font-size: 12px; height: 26px; padding: 0 8px; }
+    .editor-box { border: 1px solid var(--color-border); border-radius: 10px; padding: 12px; min-height: 72px; font-size: 14px; line-height: 1.6; position: relative; }
+    .editor-box.is-focused { border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+    .editor-box.is-readonly { border: 0; padding: 0; min-height: 0; }
+    .editor-box.is-empty:not(.is-readonly)::before { content: '내용을 입력해 주세요.'; position: absolute; left: 12px; top: 12px; color: var(--color-muted); pointer-events: none; }
+    .editor-box.is-readonly.is-empty::before { content: '(내용 없음)'; color: var(--color-muted); }
+    .ProseMirror { outline: none; white-space: pre-wrap; word-break: break-word; }
+    .ProseMirror p { margin: 0; }
+    .ProseMirror ul, .ProseMirror ol { margin: 0; padding-left: 22px; }
+    .ProseMirror hr { margin: 8px 0; }
+    .ProseMirror a { color: #2563eb; text-decoration: underline; }
+    .ProseMirror .tableWrapper { overflow-x: auto; margin: 4px 0; }
+    .ProseMirror table { border-collapse: collapse; }
+    .ProseMirror th, .ProseMirror td { border: 1px solid var(--color-border-strong); padding: 4px 8px; min-width: 48px; vertical-align: top; }
+    .ProseMirror th { background: var(--color-input-bg); font-weight: 700; }
+    .ProseMirror .selectedCell { background: var(--color-primary-soft); }
+    .count-line { font-size: 12px; color: var(--color-muted); text-align: right; margin-top: 4px; }
+    .count-line.is-warn { color: #f59e0b; }
+    .count-line.is-over { color: var(--color-danger); }
+    .toolbar { display: flex; align-items: center; gap: 2px; height: 36px; margin-bottom: 4px; position: relative; overflow-x: auto; }
+    .toolbar button { width: 32px; height: 32px; flex: 0 0 32px; border: 0; border-radius: 8px; background: transparent; color: var(--color-ink); font-size: 16px; }
+    .toolbar button:hover { background: var(--color-hover-bg); }
+    .toolbar button.is-on { background: var(--color-primary-soft); color: var(--color-primary-dark); }
+    .toolbar button:disabled { color: var(--color-border-strong); background: transparent; }
+    .toolbar .tb-sep { width: 1px; height: 20px; background: var(--color-border); margin: 0 4px; flex: 0 0 1px; }
+    .tb-pop { position: absolute; z-index: 75; background: #fff; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); padding: 10px; }
+    .color-dots { display: flex; gap: 6px; }
+    .color-dots button { width: 24px; height: 24px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--color-border); }
+    .link-pop { display: flex; gap: 6px; width: 320px; }
+    .link-pop input { flex: 1; min-width: 0; height: 32px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0 8px; font-size: 13px; }
+    .report-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 20px; }
+    .report-actions .right { margin-left: auto; }
+    .tpl-modal { width: 640px; }
+    .tpl-sections { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .tpl-card { border: 1px solid var(--color-border); border-radius: 12px; padding: 12px; background: #fff; }
+    .tpl-row { display: flex; gap: 8px; align-items: center; }
+    .tpl-row .grip { cursor: grab; color: var(--color-muted); font-size: 18px; }
+    .tpl-row input[type=text] { flex: 1; min-width: 0; height: 36px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0 10px; font-size: 14px; }
+    .tpl-row input.is-invalid { border-color: var(--color-danger); }
+    .tpl-row select, .tpl-sub select { height: 36px; border: 1px solid var(--color-border); border-radius: 8px; padding: 0 8px; font-size: 14px; background: #fff; }
+    .tpl-sub { margin: 10px 0 0 26px; display: flex; flex-direction: column; gap: 8px; font-size: 14px; }
+    .tpl-sub .checks { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+    .tpl-sub .range { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    .tpl-sub .label { font-size: 13px; font-weight: 600; color: var(--color-sub); }
+    .tpl-card.sortable-ghost { opacity: 0.5; box-shadow: inset 0 2px 0 var(--color-primary); }
+    .tpl-card.sortable-drag { box-shadow: var(--shadow-pop); }
+    .tpl-guide { font-size: 13px; color: var(--color-sub); margin: -6px 0 14px; }
+    .tpl-head-guide { font-size: 12px; color: var(--color-muted); margin-top: 4px; }
+
+    /* 992px 미만: 목록만 → 보고 전체 화면 (D-161) */
+    body.is-narrow .status-card { width: 100%; flex-basis: auto; }
+    body.is-narrow .report-layout.show-list .report-card { display: none; }
+    body.is-narrow .report-layout.show-report .status-card { display: none; }
+    body.is-narrow .back-button { display: inline-flex; }
+  </style>
+</head>
+<body>
+  <!-- 시안 (D-146, D-149): 서버 없이 이 화면 안에서만 동작한다. 리치 에디터는 실제 화면과 같은 Tiptap 을 묶은 vendor/tiptap.iife.js (D-162) -->
+  <div class="mockup-bar">
+    <span>시안 상태</span><select id="state-select" class="form-select form-select-sm"></select>
+    <span>· 화면 문서: DailyReportView_screen.md · 시안 규칙: 오늘은 2026.11.11 (수), 나는 홍길동</span>
+  </div>
+
+  <div class="main-layout">
+    <nav id="side-nav" class="side-nav" aria-label="공간"></nav>
+    <nav id="menu-tabs" class="menu-tabs" aria-label="메뉴"></nav>
+    <main class="content">
+      <div class="report-head">
+        <h1>일일보고</h1>
+        <div class="date-nav">
+          <button type="button" id="btn-prev-day" class="icon-button" aria-label="전날"><i class="bi bi-chevron-left"></i></button>
+          <span id="date-text" class="date-text">2026.11.11 (수)</span>
+          <button type="button" id="btn-next-day" class="icon-button" aria-label="다음날"><i class="bi bi-chevron-right"></i></button>
+          <button type="button" id="btn-today" class="btn-x btn-outline-x">오늘</button>
+        </div>
+        <div class="head-right"><button type="button" id="btn-template" class="btn-x btn-soft-x"><i class="bi bi-sliders"></i>양식 설정</button></div>
+      </div>
+
+      <div id="report-layout" class="report-layout show-list">
+        <section class="status-card" aria-label="팀원 보고 현황">
+          <div class="status-title">팀원 보고 현황<small id="status-count"></small></div>
+          <div id="status-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+          <div id="status-list" class="status-list"></div>
+        </section>
+
+        <section id="report-card" class="report-card" aria-label="보고">
+          <button type="button" id="btn-back" class="btn-x btn-outline-x back-button"><i class="bi bi-chevron-left"></i>목록</button>
+          <div id="report-loading" class="loading-box is-hidden"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span>불러오는 중...</div>
+          <div id="report-body">
+            <div class="report-top">
+              <div id="report-who" class="report-who"></div>
+              <div id="report-state" class="report-state"></div>
+            </div>
+            <div id="report-tools" class="report-tools">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch" id="carry-switch" />
+                <label class="form-check-label" for="carry-switch">지난 보고 이어받기</label>
+              </div>
+              <button type="button" id="btn-apply-template" class="btn-x btn-outline-x"><i class="bi bi-arrow-repeat"></i>새 양식 적용</button>
+            </div>
+            <div id="report-header-line" class="report-header-line"></div>
+            <div id="sections"></div>
+            <div id="report-actions" class="report-actions">
+              <button type="button" id="btn-draft" class="btn-x btn-outline-x">임시저장</button>
+              <button type="button" id="btn-submit" class="btn-x btn-primary-x right">제출</button>
+            </div>
+          </div>
+          <div id="report-empty" class="empty-box is-hidden"><i class="bi bi-journal-x"></i>제출한 보고가 없습니다.</div>
+        </section>
+      </div>
+    </main>
+  </div>
+
+  <!-- 편집기 도구 막대: 커서가 있는 편집기 위로 옮겨 다닌다 (D-155) -->
+  <div id="toolbar" class="toolbar is-hidden" role="toolbar" aria-label="서식">
+    <button type="button" data-cmd="bold" title="굵게" aria-label="굵게"><i class="bi bi-type-bold"></i></button>
+    <button type="button" data-cmd="italic" title="기울임" aria-label="기울임"><i class="bi bi-type-italic"></i></button>
+    <button type="button" data-cmd="strike" title="취소선" aria-label="취소선"><i class="bi bi-type-strikethrough"></i></button>
+    <button type="button" data-cmd="color" title="글자 색" aria-label="글자 색"><i class="bi bi-palette"></i></button>
+    <span class="tb-sep"></span>
+    <button type="button" data-cmd="bullet" title="글머리 목록" aria-label="글머리 목록"><i class="bi bi-list-ul"></i></button>
+    <button type="button" data-cmd="ordered" title="번호 목록" aria-label="번호 목록"><i class="bi bi-list-ol"></i></button>
+    <button type="button" data-cmd="indent" title="들여쓰기" aria-label="들여쓰기"><i class="bi bi-text-indent-left"></i></button>
+    <button type="button" data-cmd="outdent" title="내어쓰기" aria-label="내어쓰기"><i class="bi bi-text-indent-right"></i></button>
+    <span class="tb-sep"></span>
+    <button type="button" data-cmd="table" title="표 넣기" aria-label="표 넣기"><i class="bi bi-table"></i></button>
+    <button type="button" data-cmd="hr" title="구분선" aria-label="구분선"><i class="bi bi-hr"></i></button>
+    <button type="button" data-cmd="link" title="링크" aria-label="링크"><i class="bi bi-link-45deg"></i></button>
+    <span class="tb-sep table-only"></span>
+    <button type="button" class="table-only" data-cmd="rowAdd" title="행 추가" aria-label="행 추가"><i class="bi bi-plus-square"></i></button>
+    <button type="button" class="table-only" data-cmd="rowDel" title="행 삭제" aria-label="행 삭제"><i class="bi bi-dash-square"></i></button>
+    <button type="button" class="table-only" data-cmd="colAdd" title="열 추가" aria-label="열 추가"><i class="bi bi-layout-split"></i></button>
+    <button type="button" class="table-only" data-cmd="colDel" title="열 삭제" aria-label="열 삭제"><i class="bi bi-layout-sidebar-inset-reverse"></i></button>
+    <button type="button" class="table-only" data-cmd="tableDel" title="표 삭제" aria-label="표 삭제"><i class="bi bi-trash3"></i></button>
+    <div id="color-pop" class="tb-pop is-hidden" style="top:36px;left:80px">
+      <div class="color-dots">
+        <button type="button" data-color="" title="기본" style="background:#111827"></button>
+        <button type="button" data-color="#E5484D" title="빨강" style="background:#E5484D"></button>
+        <button type="button" data-color="#F59E0B" title="주황" style="background:#F59E0B"></button>
+        <button type="button" data-color="#1FAA59" title="초록" style="background:#1FAA59"></button>
+        <button type="button" data-color="#2563EB" title="파랑" style="background:#2563EB"></button>
+        <button type="button" data-color="#7C3AED" title="보라" style="background:#7C3AED"></button>
+        <button type="button" data-color="#6B7280" title="회색" style="background:#6B7280"></button>
+      </div>
+    </div>
+    <div id="link-pop" class="tb-pop link-pop is-hidden" style="top:36px;left:200px">
+      <input id="link-input" type="text" placeholder="https://" maxlength="500" />
+      <button type="button" id="btn-link-set" class="btn-x btn-primary-x" style="width:auto;height:32px;flex:0 0 auto">넣기</button>
+      <button type="button" id="btn-link-unset" class="btn-x btn-outline-x" style="width:auto;height:32px;flex:0 0 auto">지우기</button>
+    </div>
+  </div>
+
+  <!-- 양식 설정 모달 (D-152) -->
+  <div id="tpl-modal" class="modal-backdrop-x is-hidden">
+    <div class="modal-x tpl-modal" role="dialog" aria-label="보고 양식 설정">
+      <div class="modal-title-x">보고 양식 설정<button type="button" id="tpl-x" class="icon-button" aria-label="닫기"><i class="bi bi-x-lg"></i></button></div>
+      <p class="tpl-guide">저장하면 새로 여는 보고부터 적용됩니다.</p>
+      <div class="field" style="margin-bottom:12px">
+        <label class="field-label" for="tpl-header">머리말</label>
+        <div id="ctl-tpl-header" class="control no-icon"><input id="tpl-header" type="text" maxlength="100" placeholder="{날짜} 진행 사항입니다." /></div>
+        <div class="tpl-head-guide">{날짜}는 보고일(11/11)로 바뀝니다.</div>
+      </div>
+      <div class="field-label" style="margin:0">구역</div>
+      <div id="tpl-sections" class="tpl-sections"></div>
+      <button type="button" id="btn-tpl-add" class="btn-x btn-soft-x" style="margin-top:10px"><i class="bi bi-plus-lg"></i>구역 추가</button>
+      <div class="modal-actions">
+        <button type="button" id="btn-tpl-cancel" class="btn-x btn-outline-x">취소</button>
+        <button type="button" id="btn-tpl-save" class="btn-x btn-primary-x">저장</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 확인창 -->
+  <div id="confirm" class="modal-backdrop-x is-hidden">
+    <div class="modal-x" role="alertdialog" aria-labelledby="confirm-title">
+      <div id="confirm-title" class="modal-title-x"></div>
+      <p id="confirm-text" class="modal-text"></p>
+      <div class="modal-actions">
+        <button type="button" id="confirm-cancel" class="btn-x btn-outline-x">취소</button>
+        <button type="button" id="confirm-ok" class="btn-x btn-primary-x">확인</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="../../frontend/node_modules/sortablejs/Sortable.min.js"></script>
+  <script src="vendor/tiptap.iife.js"></script>
+  <script src="mockup_common.js"></script>
+  <script src="daily_report_view.js"></script>
+</body>
+</html>

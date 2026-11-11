@@ -1403,3 +1403,11 @@
 - 이유: 사용자 답변 (3라운드 Q8, 4라운드 Q8). 최소 1개, 머리말 빈 값 허용, 글자 수는 태그를 뺀 글자로 세고 HTML 은 구역당 20,000자·보고 전체 100,000자까지(요청 본문 512kb) 받는 것은 AI 가 정함
 - 관련 문서/파일: api.md 6.12, DailyReportView_screen.md
 - 상태: 유효
+
+### D-162 시안용 Tiptap 묶음
+- 날짜: 2026-11-11
+- 질문/상황: 시안 규칙(screen.md)은 라이브러리를 쓰는 동작을 시안에서도 같은 라이브러리로 만들라고 한다. Tiptap 은 ES 모듈로만 배포되고, 서버 없이 연 파일(file://)에서는 Chrome 이 모듈 스크립트를 막는다
+- 결정: spec.md 에 있는 Tiptap 3.32.0 과 Vite 8.3.6(개발 의존성)을 frontend 에 설치하고, Vite 라이브러리 빌드로 Tiptap 을 일반 스크립트 하나(docs/mockups/vendor/tiptap.iife.js, window.Tiptap)로 묶어 저장소에 함께 둔다. 다시 만들 때는 frontend 에서 `npm run mockup:tiptap`. 새 의존성은 추가하지 않는다
+- 이유: AI 가 정함 (시안 규칙을 지키면서 서버 없이 열리게 하는 방법)
+- 관련 문서/파일: structure.md, frontend/package.json, frontend/scripts/, docs/mockups/vendor/
+- 상태: 유효

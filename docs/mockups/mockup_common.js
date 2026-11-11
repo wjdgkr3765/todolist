@@ -96,6 +96,7 @@ const TEAM_TABS = [
   { key: 'calendar', label: '캘린더', href: 'calendar_view.html?space=team' },
   { key: 'info', label: '팀 정보', href: 'team_info_view.html' },
   { key: 'history', label: '히스토리', href: 'history_view.html?space=team' },
+  { key: 'reports', label: '일일보고', href: 'daily_report_view.html' },
 ];
 
 const NOTIFICATION_ITEMS = `

@@ -51,7 +51,7 @@
 |프로젝트/backend/src/realtime/|(구현 단계) Socket.IO 연결 인증, 방, 이벤트 보내기 (api.md 6.8)|
 |프로젝트/backend/src/utils/|(구현 단계) 입력 검사, 날짜(한국 시간 오늘), 메일 본문, 공휴일 API 호출, 일일보고 HTML 정화(sanitize-html, D-155)|
 |프로젝트/backend/tests/|(구현 단계) 백엔드 테스트 (Vitest + supertest, test.md)|
-|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard, vuedraggable(작업 시안의 칸반 드래그에 sortablejs 를 쓴다)만 먼저 넣었다 (screen.md 시안 작성 규칙, D-146). 나머지는 구현 단계에서 더한다|
+|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard, vuedraggable(작업 시안의 칸반 드래그에 sortablejs 를 쓴다), 일일보고 시안의 Tiptap 과 그 묶음을 만드는 vite(개발 의존성, D-162)만 먼저 넣었다 (screen.md 시안 작성 규칙, D-146). 나머지는 구현 단계에서 더한다. 스크립트 mockup:tiptap|
 |프로젝트/frontend/package-lock.json|npm 이 만든 의존성 잠금 파일|
 |프로젝트/frontend/node_modules/|npm 설치 폴더 (git 제외). 시안이 상대 경로로 bootstrap 등을 불러온다|
 |프로젝트/frontend/vite.config.js, index.html|(구현 단계) Vite 설정(5173, /api·/socket.io 프록시), 시작 HTML|
@@ -70,6 +70,9 @@
 |프로젝트/docs/mockups/|화면 시안 HTML. 서버 없이 바로 열어 보는 파일 (loop.md 2번 와이어프레임)|
 |프로젝트/docs/mockups/login_view.html, signup_view.html, find_id_view.html, find_password_view.html|로그인·회원가입·아이디 찾기·비밀번호 찾기 시안|
 |프로젝트/docs/mockups/main_layout.html, task_view.html, calendar_view.html, team_info_view.html, history_view.html, profile_view.html|공통 레이아웃·작업·캘린더·팀 정보·히스토리·회원정보 수정 시안 (작업·캘린더·히스토리는 ?space=team 으로 팀 공간)|
+|프로젝트/docs/mockups/daily_report_view.html, daily_report_view.js|일일보고 시안과 동작 스크립트 (D-150, D-146)|
+|프로젝트/docs/mockups/vendor/tiptap.iife.js|시안용 Tiptap 묶음 (window.Tiptap). 서버 없이 연 시안은 ES 모듈을 못 불러와서 만든다. 직접 고치지 않고 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)|
+|프로젝트/frontend/scripts/build-mockup-tiptap.js, mockup-tiptap-entry.js|시안용 Tiptap 묶음을 만드는 스크립트와 묶을 목록 (Vite 라이브러리 빌드, D-162)|
 |프로젝트/docs/mockups/task_view.js|작업 시안의 동작 스크립트 (D-146). 서버 없이 시안 안에서만 버튼·저장·삭제·드래그·입력 검사를 흉내 낸다|
 |프로젝트/docs/mockups/mockup_common.css, mockup_common.js|시안 공통 스타일과 스크립트 (공통 디자인 값, 공통 레이아웃, 브랜드 영역, 상태 선택 막대). 실제 화면 코드가 아니다|
 
