@@ -27,11 +27,59 @@
 - 메모: 
 -->
 
-### 일정관리 협업 시스템 (프로젝트 전체)
+### 마감 임박 알림 개선
+- 목표: 종료일을 내일로 정해 작업을 만들면 바로 마감 임박 알림이 오는 불편을 없앤다
+- 범위: 추가 기능: overview.md 핵심 기능 중 팀 초대/알림(마감 임박 알림, D-128·D-138)
+- 현재 단계: 1. 설계 (2026-11-12 시작)
+- 단계 승인: 설계(승인 전), 와이어프레임( ), 구현( ), 보안 체크( )
+- 진행 상황: 사용자 요청 (2026-11-12). 방법 후보를 사용자에게 제시하고 선택을 기다리는 중
+- 관련 파일: docs/decision.md D-128·D-138, docs/api.md 6.7 GET /api/notifications, backend/src/services/notificationService.js, frontend/src/layouts/MainLayout_screen.md
+- 재시도 기록: 없음
+- 메모:
+
+---
+
+## 백로그
+
+우선순위가 높은 순서로 적는다. overview.md 핵심 기능의 우선순위를 기준으로 적는다.
+
+"진행 중"에서 옮긴 작업은 "진행 중" 형식의 내용을 그대로 유지한 채 옮긴다.
+
+- (없음. 핵심 기능 14개는 모두 "진행 중" 작업의 범위다)
+
+---
+
+## 막힌 일
+
+사용자의 결정, 외부 조건, 또는 반복 실패(loop.md "종료 조건") 때문에 진행할 수 없는 항목이다.
+
+- (없음)
+
+---
+
+## 세션 인계
+
+- **마지막 갱신**: 2026-11-12
+- **현재 상태**: 프로젝트 전체(핵심 기능 14개) 4단계 모두 승인, 완료 (2026-11-12). 새 작업 "마감 임박 알림 개선" 1. 설계 시작 — 방법 후보를 제시하고 사용자 선택을 기다림
+- **다음에 할 일**: 사용자가 고른 방법을 decision.md 에 기록하고 api.md 6.7·MainLayout_screen.md 를 고친다 → 설계 승인 → (화면 변경이 없으면 와이어프레임은 사용자와 확인) → 구현 → 보안 체크
+- **주의 사항**:
+  - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
+  - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)
+  - git: 커밋과 푸시는 AI가 한다. 커밋 메시지에 서명 줄을 붙이지 않는다 (D-086)
+  - 시안 검사: Chrome headless 를 Node 24 내장 WebSocket 으로 조작 (CDP). 일일보고 시안의 Tiptap 묶음은 frontend 에서 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)
+  - 이 컴퓨터의 기본 Node 는 14. 프로젝트는 Node 24 (nvm 의 v24.22.2). 전역 nvm 은 바꾸지 않고 명령 앞에 `export PATH=/c/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2:$PATH` 를 붙여 실행한다 (npx 는 전역 node 를 써서 v14 로 실패함, 2026-11-12)
+  - 회사 보안 프로그램(Somansa)이 Gmail SMTP 의 TLS 인증서를 바꿔 끼운다. 백엔드는 --use-system-ca 로 Windows 인증서 저장소를 믿어야 메일이 나간다 (package.json dev/start, .claude/launch.json 에 넣음, 2026-11-12)
+  - sqlcmd 로 SQL 을 실행할 때는 -I(QUOTED_IDENTIFIER ON) 가 필요하다. schema.sql 맨 위에 SET 으로 넣어 두었다 사용자 상태 표시줄(남은 컨텍스트)은 ~/.claude/statusline.ps1
+
+---
+
+## 완료
+
+### 일정관리 협업 시스템 (프로젝트 전체) — 완료 2026-11-12
 - 목표: overview.md 핵심 기능 14개 전체를 loop.md 순서(설계 → 와이어프레임 → 구현 → 보안 체크)로 완성한다
 - 범위: 프로젝트 전체
-- 현재 단계: 4. 보안 체크 (2026-11-12 시작). 3. 구현은 승인 완료. 승인 뒤 추가한 일일보고(D-150)도 설계·와이어프레임 승인 완료 (2026-11-11), 구현 범위에 포함 (우선순위 14)
-- 단계 승인: 설계(승인 완료, 2026-11-11), 와이어프레임(승인 완료, 2026-11-11), 구현(승인 완료, 2026-11-12), 보안 체크(승인 전)
+- 현재 단계: 완료 (2026-11-12). 4단계 모두 승인. 승인 뒤 추가한 일일보고(D-150)도 설계·와이어프레임 승인 완료 (2026-11-11), 구현 범위에 포함 (우선순위 14)
+- 단계 승인: 설계(승인 완료, 2026-11-11), 와이어프레임(승인 완료, 2026-11-11), 구현(승인 완료, 2026-11-12), 보안 체크(승인 완료, 2026-11-12)
 - 진행 상황:
   - 끝낸 것: 이전 프로젝트 기획/설계(project_design.md)를 문서에 반영 (2026-11-11, D-082). 상세 설계가 끝난 기능은 회원가입, 로그인/로그아웃, 공통 레이아웃, 작업 페이지 - 할일 목록, 작업 페이지 - 칸반보드이고, 화면 문서 4개(LoginView, SignupView, MainLayout, TaskView)를 만들었다
   - 끝낸 것 (2026-11-11): 미결 1·3 결정 (D-087, D-088). 팀 생성/관리 상세 설계 (database.md teams·team_members, api.md 6.6, TeamInfoView_screen.md 새로 작성, MainLayout_screen.md 팀 목록·팀 만들기 모달·팀 공간 탭, overview.md 화면 경로). 팀 목록 순서·드래그(D-089), 팀 공간 경로(D-090). 팀 초대/알림 상세 설계 (D-091~D-096, database.md notifications, api.md 6.7, TeamInfoView 초대 모달, MainLayout 알림 창). 팀 작업 페이지 상세 설계 (D-097~D-100, todos·tasks team_id, task_assignees, task_log_assignees, task_logs 종류 create/change 로 변경, api.md 6.4·6.5, TaskView 작업자). 인증 메일 모양 승인(D-102), 작업자 변경 기록 닉네임(D-101). 실시간 반영 상세 설계 (D-103~D-105, api.md 6.8, TaskView·MainLayout 실시간 동작). 캘린더 상세 설계 (D-106~D-109, api.md 6.9 캘린더·공휴일, CalendarView_screen.md 새로 작성, spec.md 외부 서비스). 히스토리 상세 설계 (D-110~D-113, api.md 6.10, HistoryView_screen.md 새로 작성, 칸반에서 히스토리 작업 제외 409 TASK_IN_HISTORY). 아이디/비밀번호 찾기 상세 설계 (D-114~D-117, api.md 6.2, FindIdView·FindPasswordView_screen.md 새로 작성). 빠진 설계 7개(D-118~D-124), 추가 기능 4개(D-125~D-128: 기한 지남, 내 작업만, 작업자 지정 알림, 마감 임박 알림), 회원정보 수정/탈퇴 상세 설계 (D-129~D-131, api.md 6.11, ProfileView_screen.md). grilling 스킬 설치 (D-132)
@@ -65,45 +113,7 @@
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 로그인 테스트 "잠금 남은 시간" 1회 실패 (2026-11-12) — 잠금 시각은 DB 시계, 남은 시간은 Node 시계로 계산해 10분이 11분으로 나옴. 남은 초를 DB 에서 계산하도록 고친 뒤 3회 연속 통과
 - 메모:
+  - 보안 체크 승인 (2026-11-12). 승인 전 사용자 요청으로 입력 화면 Tab 이동을 입력칸끼리만 바꿈 (D-165), 사용자 승인 (2026-11-12)
+  - 사용자에게 부탁한 화면 확인 중 캘린더 막대 쌓임·일일보고 도구 막대 클릭은 답을 받지 못한 채 완료
   - docs/mockups/ 의 시안 4개는 이전 프로젝트 시안이다. 와이어프레임 단계에서 설계와 다시 맞춰 보고 승인받는다 (D-085). 시안 안의 결정 번호는 이전 번호다 (새 번호는 decision.md D-083 표)
   - 이전 프로젝트에서 미결로 남은 것: 없음 (D-087, D-088, D-102 로 모두 결정)
-
----
-
-## 백로그
-
-우선순위가 높은 순서로 적는다. overview.md 핵심 기능의 우선순위를 기준으로 적는다.
-
-"진행 중"에서 옮긴 작업은 "진행 중" 형식의 내용을 그대로 유지한 채 옮긴다.
-
-- (없음. 핵심 기능 14개는 모두 "진행 중" 작업의 범위다)
-
----
-
-## 막힌 일
-
-사용자의 결정, 외부 조건, 또는 반복 실패(loop.md "종료 조건") 때문에 진행할 수 없는 항목이다.
-
-- (없음)
-
----
-
-## 세션 인계
-
-- **마지막 갱신**: 2026-11-12
-- **현재 상태**: 4. 보안 체크 — 28개 항목 확인 끝 (고친 것 없음), 사용자에게 보안 체크 승인 요청함
-- **다음에 할 일**: 승인되면 todo.md "단계 승인"에 보안 체크 승인 날짜를 적고 loop.md "완료"를 진행한다 (진행 중 작업을 "완료"로 옮기고 세션 인계 갱신, 백로그가 비어 있으니 사용자에게 다음 작업을 묻는다). 사용자에게 부탁한 화면 확인(캘린더 막대 쌓임, 일일보고 도구 막대 클릭)의 답을 아직 받지 못함
-- **주의 사항**:
-  - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
-  - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)
-  - git: 커밋과 푸시는 AI가 한다. 커밋 메시지에 서명 줄을 붙이지 않는다 (D-086)
-  - 시안 검사: Chrome headless 를 Node 24 내장 WebSocket 으로 조작 (CDP). 일일보고 시안의 Tiptap 묶음은 frontend 에서 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)
-  - 이 컴퓨터의 기본 Node 는 14. 프로젝트는 Node 24 (nvm 의 v24.22.2). 전역 nvm 은 바꾸지 않고 명령 앞에 `export PATH=/c/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2:$PATH` 를 붙여 실행한다 (npx 는 전역 node 를 써서 v14 로 실패함, 2026-11-12)
-  - 회사 보안 프로그램(Somansa)이 Gmail SMTP 의 TLS 인증서를 바꿔 끼운다. 백엔드는 --use-system-ca 로 Windows 인증서 저장소를 믿어야 메일이 나간다 (package.json dev/start, .claude/launch.json 에 넣음, 2026-11-12)
-  - sqlcmd 로 SQL 을 실행할 때는 -I(QUOTED_IDENTIFIER ON) 가 필요하다. schema.sql 맨 위에 SET 으로 넣어 두었다 사용자 상태 표시줄(남은 컨텍스트)은 ~/.claude/statusline.ps1
-
----
-
-## 완료
-
-- (없음)
