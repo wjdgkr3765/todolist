@@ -12,7 +12,7 @@ export const LOGIN_PATH = '/login';
 const ComingSoonView = () => import('../views/ComingSoonView.vue');
 // 공통 레이아웃 안 화면. 아직 만들지 않은 화면은 ComingSoonView 로 둔다
 const VIEWS = {
-  tasks: ComingSoonView,
+  tasks: () => import('../views/TaskView.vue'),
   calendar: ComingSoonView,
   history: ComingSoonView,
   info: ComingSoonView,

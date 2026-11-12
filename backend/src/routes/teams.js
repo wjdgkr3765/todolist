@@ -3,7 +3,7 @@ import { Router } from 'express';
 import { invalidInput } from '../utils/appError.js';
 import { parsePathId, readTeamName, requireBodyObject } from '../utils/validation.js';
 import { requireLogin } from '../middlewares/requireLogin.js';
-import { createTeam, listTeams, moveTeam } from '../services/teamService.js';
+import { createTeam, listMembers, listTeams, moveTeam } from '../services/teamService.js';
 
 export const teamsRouter = Router();
 teamsRouter.use(requireLogin);
@@ -24,4 +24,8 @@ teamsRouter.post('/:id/move', async (req, res) => {
     throw invalidInput();
   }
   res.json({ data: { teams: await moveTeam(req.user.userId, teamId, index) } });
+});
+
+teamsRouter.get('/:id/members', async (req, res) => {
+  res.json({ data: { members: await listMembers(req.user.userId, parsePathId(req.params.id)) } });
 });

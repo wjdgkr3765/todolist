@@ -33,6 +33,11 @@ beforeEach(() => {
     'GET /api/notifications': () => ok({ notifications: [INVITE, ASSIGNED, DUE], unreadCount: 2 }),
     'POST /api/notifications/read': () => ok({ unreadCount: 0 }),
   };
+  // 작업 화면이 부르는 목록 (개인·팀)
+  for (const prefix of ['/api/personal', '/api/teams/1', '/api/teams/2', '/api/teams/99']) {
+    handlers[`GET ${prefix}/todos`] = () => ok({ todos: [] });
+    handlers[`GET ${prefix}/tasks`] = () => ok({ tasks: [] });
+  }
   vi.stubGlobal('fetch', vi.fn(async (url, options = {}) => {
     const key = `${options.method} ${url.split('?')[0]}`;
     calls.push({ key, body: options.body ? JSON.parse(options.body) : undefined });
@@ -72,7 +77,7 @@ describe('기본 화면', () => {
     expect(texts(wrapper, '.menu-tab')).toEqual(['작업', '캘린더', '히스토리']);
     expect(wrapper.find('.menu-tab.is-active').text()).toBe('작업');
     expect(wrapper.find('.bell-badge').text()).toBe('2');
-    expect(wrapper.find('.page-title').text()).toBe('작업');
+    expect(wrapper.find('.task-view').exists()).toBe(true);
   });
   test('팀 공간: 그 팀 선택, 탭 5개', async () => {
     const { wrapper } = await mountAt('/teams/2/history');
@@ -119,7 +124,7 @@ describe('알림 창', () => {
     calls.length = 0;
     await wrapper.find('.bell-button').trigger('click');
     await flushPromises();
-    expect(calls.map((c) => c.key)).toEqual(['GET /api/notifications', 'POST /api/notifications/read']);
+    expect(calls.map((c) => c.key).filter((key) => key.includes('notifications'))).toEqual(['GET /api/notifications', 'POST /api/notifications/read']);
     expect(wrapper.find('.bell-badge').exists()).toBe(false);
     const items = texts(wrapper, '.notification-item');
     expect(items[0]).toContain('김민수님이 마케팅팀 팀에 초대했습니다.');
@@ -185,7 +190,10 @@ describe('알림 창', () => {
     await flushPromises();
     await wrapper.findAll('.notification-link')[0].trigger('click');
     await flushPromises();
-    expect(router.currentRoute.value.fullPath).toBe('/teams/1/tasks?taskId=31');
+    // 작업 화면이 taskId 를 처리하고 주소에서 지운다. 목록에 없는 작업이라 안내 토스트
+    await vi.waitFor(() => expect(router.currentRoute.value.fullPath).toBe('/teams/1/tasks'));
+    expect(calls.map((c) => c.key)).toContain('GET /api/teams/1/tasks');
+    await vi.waitFor(() => expect(wrapper.find('.toast-box.is-error').text()).toContain('작업을 찾을 수 없습니다.'));
     expect(wrapper.find('.notification-box').exists()).toBe(false);
   });
   test('실시간 notifications:changed → 배지 바꿈', async () => {

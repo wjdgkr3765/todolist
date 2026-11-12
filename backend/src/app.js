@@ -7,6 +7,7 @@ import { emailVerificationsRouter } from './routes/emailVerifications.js';
 import { sessionsRouter } from './routes/sessions.js';
 import { teamsRouter } from './routes/teams.js';
 import { notificationsRouter } from './routes/notifications.js';
+import { workRouter } from './routes/work.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 export function createApp() {
@@ -29,6 +30,8 @@ export function createApp() {
   app.use('/api/sessions', sessionsRouter);
   app.use('/api/teams', teamsRouter);
   app.use('/api/notifications', notificationsRouter);
+  // 할일·작업: /api/personal/..., /api/teams/{id}/todos·tasks, /api/todos/..., /api/tasks/...
+  app.use('/api', workRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

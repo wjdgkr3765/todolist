@@ -37,6 +37,20 @@ export async function getMyTeam(userId, teamId, runner = null) {
   return toTeam(result.recordset[0]);
 }
 
+// 팀원 목록: 관리자 → 부관리자 → 팀원, 같은 역할은 먼저 합류한 순 (D-076)
+export async function listMembers(userId, teamId) {
+  await getMyTeam(userId, teamId);
+  const pool = await getPool();
+  const result = await pool.request().input('teamId', sql.BigInt, teamId)
+    .query(`SELECT m.user_id, u.nickname, u.email, m.role, m.create_date
+            FROM team_members m JOIN users u ON u.id = m.user_id
+            WHERE m.team_id = @teamId
+            ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, m.create_date, m.id`);
+  return result.recordset.map((row) => ({
+    userId: Number(row.user_id), nickname: row.nickname, email: row.email, role: row.role, joinDate: row.create_date.toISOString(),
+  }));
+}
+
 // 내 users 행을 잠그고 가입된 팀 수를 센다 (D-078). 트랜잭션 안에서 부른다
 export async function countMyTeamsLocked(transaction, userId) {
   const result = await new sql.Request(transaction).input('userId', sql.BigInt, userId)

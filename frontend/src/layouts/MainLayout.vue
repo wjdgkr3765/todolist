@@ -103,13 +103,12 @@ let teamsBeforeDrag = [];
 function onDragStart() {
   teamsBeforeDrag = [...teams.value];
 }
-async function onDragEnd(event) {
-  if (event.oldIndex === event.newIndex) {
+async function onDragChange(event) {
+  if (!event.moved) {
     return;
   }
-  const moved = teams.value[event.newIndex];
   try {
-    await teamsStore.moveTeam(moved.teamId, event.newIndex, teamsBeforeDrag);
+    await teamsStore.moveTeam(event.moved.element.teamId, event.moved.newIndex, teamsBeforeDrag);
   } catch (error) {
     if (error.status > 0 && error.status < 500) {
       toastStore.showServerError();
@@ -200,7 +199,7 @@ watch(() => route.fullPath, async () => {
       <div class="nav-section-title">팀<button type="button" class="nav-add" aria-label="팀 만들기" @click.stop="openTeamModal"><i class="bi bi-plus-lg"></i></button></div>
       <draggable v-if="teams.length > 0" v-model="teams" item-key="teamId" class="nav-team-list" :animation="150" :delay="150"
         :delay-on-touch-only="true" :force-fallback="true" :fallback-tolerance="5" ghost-class="nav-ghost" fallback-class="nav-dragging"
-        @start="onDragStart" @end="onDragEnd">
+        @start="onDragStart" @change="onDragChange">
         <template #item="{ element }">
           <RouterLink :to="`/teams/${element.teamId}/tasks`" class="nav-item" :class="{ 'is-active': currentTeamId === element.teamId }">
             <i class="bi bi-people"></i><span class="nav-text">{{ element.name }}</span>

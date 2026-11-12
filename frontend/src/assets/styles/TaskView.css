@@ -1,0 +1,91 @@
+/* 작업 화면 (TaskView_screen.md 7. 디자인 값). 시안 docs/mockups/task_view.html 과 같은 값 */
+.task-view { display: flex; gap: 20px; align-items: flex-start; min-width: 420px; }
+.work-area { flex: 1 1 auto; min-width: 420px; min-height: 560px; display: flex; flex-direction: column; gap: 20px; }
+.panel { background: #fff; border: 1px solid var(--color-border); border-radius: 16px; padding: 20px; }
+.panel-title { font-size: 17px; font-weight: 800; margin: 0; }
+.panel-count { font-size: 14px; font-weight: 600; color: var(--color-muted); margin-left: 4px; }
+.kanban-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.my-only { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--color-sub); }
+.my-only .form-check-input { margin: 0; cursor: pointer; }
+.my-only .form-check-input:checked { background-color: var(--color-primary); border-color: var(--color-primary); }
+.my-only-note { font-size: 12px; color: var(--color-muted); font-weight: 400; }
+.kanban-columns { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+.kanban-column { background: var(--color-input-bg); border-radius: 12px; padding: 10px; min-width: 0; }
+.column-head { display: flex; align-items: center; gap: 6px; padding: 2px 4px 10px; font-size: 14px; font-weight: 700; }
+.column-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--status-color); }
+.column-count { font-size: 13px; font-weight: 600; color: var(--color-muted); }
+.status-waiting { --status-color: var(--color-waiting); }
+.status-progress { --status-color: var(--color-progress); }
+.status-done { --status-color: var(--color-done); }
+.card-list { min-height: 160px; max-height: 360px; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; user-select: none; }
+.task-card { background: #fff; border: 1px solid var(--color-border); border-radius: 10px; padding: 10px 12px; cursor: grab; flex: 0 0 auto; }
+.task-card:hover { border-color: var(--color-border-strong); box-shadow: 0 2px 6px rgba(17, 24, 39, 0.08); }
+.task-card.is-selected { border: 1.5px solid var(--color-primary); background: #f6fbf8; }
+/* 끌고 있는 카드 (SortableJS fallbackClass) / 놓일 자리 (ghostClass). TaskView_screen.md 7. 디자인 값 */
+.task-card.is-dragging { box-shadow: 0 10px 24px -6px rgba(17, 24, 39, 0.25); transform: rotate(2deg); opacity: 1 !important; cursor: grabbing; }
+.task-card.is-ghost { background: var(--color-primary-soft); border: 1.5px dashed var(--color-primary); }
+.task-card.is-ghost > * { visibility: hidden; }
+.is-drag-locked .task-card { cursor: pointer; }
+.card-title { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.card-period { font-size: 12px; color: var(--color-sub); margin-top: 4px; display: flex; align-items: center; min-width: 0; }
+.period-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.card-period .badge-x { flex: 0 0 auto; }
+.card-period.is-overdue { color: var(--color-danger); }
+.card-assignee { font-size: 12px; color: var(--color-sub); margin-top: 4px; display: flex; align-items: center; gap: 4px; min-width: 0; }
+.card-assignee i { font-size: 12px; flex: 0 0 auto; }
+.card-assignee .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.card-assignee .more { flex: 0 0 auto; white-space: nowrap; }
+.column-empty { font-size: 13px; color: var(--color-muted); text-align: center; padding: 24px 0; }
+.todo-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 14px; }
+.todo-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.todo-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 15px; }
+.todo-table th { background: var(--color-input-bg); font-size: 13px; font-weight: 700; color: var(--color-sub); text-align: left; padding: 10px 14px; }
+.todo-table th:last-child, .todo-table td:last-child { width: 210px; }
+.todo-table td { height: 48px; padding: 0 14px; border-bottom: 1px solid var(--color-border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.todo-table tbody tr { cursor: pointer; }
+.todo-table tbody tr:hover { background: var(--color-input-bg); }
+.todo-table tbody tr.is-selected { background: var(--color-primary-soft); box-shadow: inset 3px 0 0 var(--color-primary); }
+.side-panel { flex: 0 0 340px; width: 340px; }
+.side-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.period-row { display: flex; align-items: center; gap: 6px; }
+.period-row span { color: var(--color-muted); flex: 0 0 auto; }
+.period-row .control { flex: 1 1 0; }
+.period-row .control input { padding: 0 8px; font-size: 14px; }
+.period-row.is-time { margin-top: 8px; }
+.period-checks { display: flex; gap: 16px; }
+.undecided-check { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 14px; color: var(--color-sub); }
+.undecided-check input { width: 18px; height: 18px; accent-color: var(--color-primary); }
+.form-buttons { display: flex; gap: 8px; margin-top: 8px; }
+.form-buttons .btn-submit { margin-top: 0; height: 48px; flex: 1; }
+.form-buttons .btn-x { height: 48px; padding: 0 18px; }
+.detail-item { margin-bottom: 14px; }
+.detail-label { font-size: 13px; font-weight: 600; color: var(--color-sub); margin-bottom: 4px; }
+.detail-value { font-size: 15px; word-break: break-all; display: flex; align-items: center; flex-wrap: wrap; }
+.detail-value.is-overdue { color: var(--color-danger); }
+.detail-value .muted { color: var(--color-muted); }
+.detail-content { white-space: pre-wrap; max-height: 220px; overflow-y: auto; display: block; }
+.detail-buttons { display: flex; gap: 8px; margin: 4px 0 16px; }
+.detail-buttons .btn-x { flex: 1; height: 40px; }
+.assignee-picker { position: relative; }
+.assignee-picker .control { cursor: pointer; }
+.assignee-picker .control span.value { flex: 1; padding: 0 14px; height: 48px; display: flex; align-items: center; font-size: 15px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.assignee-picker .placeholder-text { color: var(--color-muted); }
+.assignee-menu { position: absolute; left: 0; right: 0; top: calc(100% + 6px); z-index: 30; background: #fff; border: 1px solid var(--color-border); border-radius: 12px; box-shadow: var(--shadow-pop); max-height: 240px; overflow-y: auto; padding: 4px 0; }
+.assignee-option { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 12px; cursor: pointer; margin: 0; }
+.assignee-option:hover { background: var(--color-input-bg); }
+.assignee-option input { width: 16px; height: 16px; accent-color: var(--color-primary); }
+.assignee-option b { font-size: 14px; font-weight: 600; }
+.assignee-option small { font-size: 12px; color: var(--color-sub); margin-left: 8px; }
+.assignee-option > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.log-section { border-top: 1px solid var(--color-border); padding-top: 16px; }
+.log-title { font-size: 15px; font-weight: 800; margin-bottom: 8px; }
+.log-title span { color: var(--color-muted); font-weight: 600; margin-left: 2px; }
+.log-list { max-height: 240px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+.log-row { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; cursor: pointer; }
+.log-row:hover { background: var(--color-input-bg); }
+.log-row > div { flex: 1; min-width: 0; }
+.log-type { font-size: 14px; font-weight: 600; }
+.log-meta { font-size: 12px; color: var(--color-sub); margin-top: 2px; }
+.log-row i { color: var(--color-muted); }
+.log-modal-info { background: var(--color-input-bg); border-radius: 10px; padding: 10px 12px; margin-bottom: 16px; }
+.confirm-target { font-size: 15px; font-weight: 600; background: var(--color-input-bg); border-radius: 10px; padding: 10px 12px; margin: 8px 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
