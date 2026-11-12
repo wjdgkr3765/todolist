@@ -32,7 +32,7 @@
 - 범위: 추가 기능: overview.md 핵심 기능 중 팀 초대/알림(마감 임박 알림, D-128·D-138)
 - 현재 단계: 1. 설계 (2026-11-12 시작)
 - 단계 승인: 설계(승인 전), 와이어프레임( ), 구현( ), 보안 체크( )
-- 진행 상황: 사용자 요청 (2026-11-12). 방법 후보를 사용자에게 제시하고 선택을 기다리는 중
+- 진행 상황: 사용자 요청 (2026-11-12). 사용자가 1번(기간을 정할 때 이미 구간 안이면 알리지 않음) 선택 → D-166. 설계 문서 고침: database.md tasks.period_update_date, api.md 6.7 마감 임박 알림 만들기, overview.md 8.8, decision.md D-138 상태. 화면 변화 없음(와이어프레임 해당 없음). 사용자에게 설계 승인 요청함. 구현 때 사용자가 SSMS 에서 ALTER TABLE 을 실행해야 함
 - 관련 파일: docs/decision.md D-128·D-138, docs/api.md 6.7 GET /api/notifications, backend/src/services/notificationService.js, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 없음
 - 메모:
@@ -60,7 +60,7 @@
 ## 세션 인계
 
 - **마지막 갱신**: 2026-11-12
-- **현재 상태**: 프로젝트 전체(핵심 기능 14개) 4단계 모두 승인, 완료 (2026-11-12). 새 작업 "마감 임박 알림 개선" 1. 설계 시작 — 방법 후보를 제시하고 사용자 선택을 기다림
+- **현재 상태**: "마감 임박 알림 개선" 1. 설계 — D-166 설계 문서 작성, 사용자 설계 승인 기다림
 - **다음에 할 일**: 사용자가 고른 방법을 decision.md 에 기록하고 api.md 6.7·MainLayout_screen.md 를 고친다 → 설계 승인 → (화면 변경이 없으면 와이어프레임은 사용자와 확인) → 구현 → 보안 체크
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요

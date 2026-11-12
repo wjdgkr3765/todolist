@@ -209,6 +209,7 @@ CREATE INDEX idx_todos_team_id ON todos (team_id, create_date);
 - status: waiting(대기), progress(진행), done(완료)
 - sort_order: 같은 공간(개인 공간이면 그 회원, 팀 공간이면 그 팀)·같은 상태 안의 순서. 0 부터 작을수록 위. [작업 시작]으로 올린 작업은 대기 맨 위(0)에 두고 나머지를 1씩 민다 (D-064). 드래그하면 옮긴 공간과 떠난 공간의 순서를 0 부터 다시 매긴다
 - done_date: 완료 공간으로 옮긴 시각. 완료에서 빠지면 NULL, 다시 완료로 옮기면 그 시각을 새로 넣는다 (D-015, D-066). 히스토리는 이 값 + 7일을 기준으로 쓴다
+- period_update_date: 기간을 정한 시각. [작업 시작]으로 작업을 만든 시각, 기간(시작·종료일, 시간, 미정)을 바꾸면 그 시각. 이 값이 이미 마감 임박 알림 구간(종료일 전날 00시 00분, 한국 시간) 안이면 마감 임박 알림을 만들지 않는다 (D-166). 이 컬럼을 넣기 전에 있던 작업은 create_date 로 채운다
 - 개인 공간·팀 공간 구분은 todos 와 같다 (user_id 또는 team_id 중 하나). [작업 시작]으로 만든 작업은 할일의 공간을 그대로 이어받는다
 - 작업자는 task_assignees 에 둔다 (팀 공간 작업만, D-060, D-097)
 - 팀을 해체하면 팀 작업도 지운다 (ON DELETE CASCADE, D-075)
@@ -229,6 +230,7 @@ CREATE TABLE tasks (
     team_id             BIGINT         NULL,                              -- 팀 공간 (개인 공간이면 NULL)
     is_period_undecided BIT            NOT NULL DEFAULT 0,                -- 기간 미정 여부
     done_date           DATETIME2      NULL,                              -- 완료 공간으로 옮긴 시각 (UTC, 완료가 아니면 NULL)
+    period_update_date  DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(), -- 기간을 정한 시각 (UTC, 작업 시작 또는 기간 변경, D-166)
     update_date         DATETIME2      NULL,                              -- 마지막 수정 시각 (UTC, 순서만 바꾼 경우는 기록하지 않음)
     create_date         DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(), -- 작업 시작 시각 (UTC)
 
