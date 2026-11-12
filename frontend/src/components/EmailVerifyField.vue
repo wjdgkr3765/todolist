@@ -21,6 +21,10 @@ const props = defineProps({
   isLocked: { type: Boolean, default: false },
   label: { type: String, default: '이메일' },
   inputId: { type: String, default: 'email' },
+  // 회원정보 수정: 인증번호 줄을 이메일 바로 아래(라벨 없이)에 둔다
+  isCodeInline: { type: Boolean, default: false },
+  // 회원정보 수정: 지금 이메일과 같으면 발송 버튼을 잠근다
+  isSendDisabled: { type: Boolean, default: false },
 });
 const emit = defineEmits(['update:modelValue', 'verified', 'reset']);
 defineExpose({ reset, focusEmail, setEmailError, isVerified: () => state.isVerified, verificationId: () => state.id });
@@ -157,7 +161,7 @@ async function change() {
         <span v-if="state.isVerified" class="control-suffix"><span class="verified-pill"><i class="bi bi-check-circle-fill"></i>인증</span></span>
       </div>
       <button v-if="state.isVerified && canChange" type="button" class="btn-side" :disabled="isLocked" @click="change">변경</button>
-      <button v-else-if="!state.isVerified" type="button" class="btn-side" :disabled="isSending || isLocked || (state.isCodeSent && resendLeft > 0)" @click="send">
+      <button v-else-if="!state.isVerified" type="button" class="btn-side" :disabled="isSending || isLocked || isSendDisabled || (state.isCodeSent && resendLeft > 0)" @click="send">
         <LoadingLabel :is-loading="isSending" loading-text="발송 중"
           :text="!state.isCodeSent ? '인증번호 발송' : (resendLeft > 0 ? `재발송 ${formatSeconds(resendLeft)}` : '재발송')" />
       </button>
@@ -165,8 +169,23 @@ async function change() {
     <div v-if="emailError" class="message is-error"><i class="bi bi-exclamation-circle"></i><span>{{ emailError }}</span></div>
     <div v-else-if="state.isVerified" class="message is-success"><i class="bi bi-check-circle"></i><span>{{ verifiedText }}</span></div>
     <div v-else-if="state.isCodeSent && !codeError" class="message is-info"><i class="bi bi-info-circle"></i><span>인증번호를 보냈습니다. 메일을 확인해 주세요.</span></div>
+    <template v-if="isCodeInline && state.isCodeSent && !state.isVerified">
+    <div class="field-row" style="margin-top: 10px">
+      <div class="control" :class="{ 'is-invalid': codeError }">
+        <span class="control-icon"><i class="bi bi-key"></i></span>
+        <input :id="`${inputId}-code`" ref="codeInput" v-model="code" type="text" inputmode="numeric" maxlength="6" placeholder="인증번호 6자리"
+          autocomplete="one-time-code" :disabled="isLocked" @input="code = code.replace(/\D/g, '')" @keydown.enter.prevent="verify" />
+        <span class="control-suffix"><span class="timer-pill">{{ formatSeconds(remaining) }}</span></span>
+      </div>
+      <button type="button" class="btn-side" :disabled="!isVerificationCode(code) || isVerifying || isLocked" @click="verify">
+        <LoadingLabel :is-loading="isVerifying" loading-text="확인 중" text="확인" />
+      </button>
+    </div>
+    <div v-if="codeError" class="message is-error"><i class="bi bi-exclamation-circle"></i><span>{{ codeError }}</span></div>
+    </template>
+    <slot name="after"></slot>
   </div>
-  <div v-if="state.isCodeSent && !state.isVerified" class="field">
+  <div v-if="!isCodeInline && state.isCodeSent && !state.isVerified" class="field">
     <label class="field-label" :for="`${inputId}-code`">인증번호</label>
     <div class="field-row">
       <div class="control" :class="{ 'is-invalid': codeError }">

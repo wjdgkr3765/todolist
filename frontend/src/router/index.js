@@ -17,7 +17,7 @@ const VIEWS = {
   history: () => import('../views/HistoryView.vue'),
   info: () => import('../views/TeamInfoView.vue'),
   reports: ComingSoonView,
-  profile: ComingSoonView,
+  profile: () => import('../views/ProfileView.vue'),
 };
 
 const TEAM_ID = ':teamId(\\d+)';

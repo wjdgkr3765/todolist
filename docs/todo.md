@@ -56,6 +56,7 @@
   - 우선순위 10 캘린더·11 히스토리 완료 (2026-11-12): API 6.9 캘린더·공휴일(실제 키로 호출 확인, 24시간 캐시), 6.10 히스토리. FullCalendar v7 구성을 공식 문서로 확인해 spec.md 를 고침 (@fullcalendar/vue3 + temporal-polyfill, 하위 경로 daygrid·locales/ko, @fullcalendar/core 없음). v7 내부 클래스는 무작위 이름이라 role 속성으로 스타일을 맞추고, skeleton.css 의 !important 를 같은 방식으로 덮음. 테스트: 백엔드 258개, 프론트엔드 146개. 브라우저(1440x1000)에서 칸 높이·선·막대 크기·색·+N·오늘 원 확인
   - 확인 못 한 것: pane 이 숨겨져 requestAnimationFrame 이 돌지 않아, 한 칸에 작업이 여러 개일 때 막대가 세로로 쌓이는지(위치 계산)는 확인하지 못함 (모두 top 0 으로 겹쳐 보임). 승인 요청 때 사용자에게 화면으로 확인을 부탁한다
   - 우선순위 12 아이디/비밀번호 찾기 완료 (2026-11-12): API find-id·reset-password(로그인 무효·실시간 끊기 D-116). 프론트엔드 FindIdView·FindPasswordView, 공통 EmailVerifyField (회원가입 화면은 이미 확인을 마쳐 그대로 둠). 화면 이동 상태는 router.options.history.state 로 읽도록 LoginView 도 고침. 테스트: 백엔드 269개, 프론트엔드 153개. 브라우저에서 화면·빈 값 검사 확인 (인증 메일은 보내지 않음)
+  - 우선순위 13 회원정보 수정/탈퇴 완료 (2026-11-12): API 6.11 전부 (현재 비밀번호 확인은 로그인과 같은 실패 제한을 쓰도록 sessionService 의 checkPasswordWithLimit 으로 떼어냄, 탈퇴 7단계 한 트랜잭션, 막는 팀은 오류 응답 teams 로). 프론트엔드 ProfileView, EmailVerifyField 에 인증번호 줄 붙이기·발송 잠금 옵션, API 오류의 추가 필드 전달. 테스트: 백엔드 279개, 프론트엔드 161개
   - 브라우저 pane 이 숨겨져 있으면 화면 크기가 0 으로 잡혀 높이 값이 줄어 보인다. 크기 확인은 resize_window 로 1280x800 을 지정한 뒤 한다
   - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 사용자가 작성 (아직 없음)
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
@@ -87,8 +88,8 @@
 ## 세션 인계
 
 - **마지막 갱신**: 2026-11-12
-- **현재 상태**: 3. 구현 진행 중. 우선순위 1~12 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
-- **다음에 할 일**: 우선순위 13 회원정보 수정/탈퇴 (ProfileView, api.md 6.11) → 14 일일보고 (DailyReportView, 6.12, sanitize-html·Tiptap) → 전체 체크리스트 → 승인 요청 (캘린더 막대 쌓임은 사용자 화면 확인 부탁)
+- **현재 상태**: 3. 구현 진행 중. 우선순위 1~13 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
+- **다음에 할 일**: 우선순위 14 일일보고 (DailyReportView, api.md 6.12, sanitize-html 백엔드, Tiptap 프론트엔드, team:reports-changed) → ComingSoonView 지우기 → 전체 체크리스트 → 승인 요청 (캘린더 막대 쌓임은 사용자 화면 확인 부탁)
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)

@@ -45,7 +45,7 @@ function checkTarget(roles, userId, targetUserId) {
 }
 
 // 팀을 나가는 회원을 그 팀 작업의 작업자에서 빼고 기록을 남긴다 (D-100, D-148). 그 팀의 작업자 지정·마감 임박 알림도 지운다
-async function removeFromAssignees(transaction, teamId, targetUserId, actorNickname) {
+export async function removeFromAssignees(transaction, teamId, targetUserId, actorNickname) {
   const tasks = await new sql.Request(transaction).input('teamId', sql.BigInt, teamId).input('userId', sql.BigInt, targetUserId)
     .query(`SELECT a.task_id FROM task_assignees a JOIN tasks t ON t.id = a.task_id
             WHERE t.team_id = @teamId AND a.user_id = @userId`);

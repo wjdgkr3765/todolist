@@ -43,16 +43,9 @@ async function lockUser(pool, userId) {
   return result.recordset[0].remaining_seconds;
 }
 
-export async function login({ loginId, password }) {
-  const pool = await getPool();
-  const found = await pool.request().input('loginId', sql.NVarChar(15), loginId)
-    .query('SELECT id, login_id, password_hash, nickname, email FROM users WHERE login_id = @loginId');
-  const user = found.recordset[0];
-  if (!user) {
-    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
-    throw loginFailed();
-  }
-
+// 비밀번호 확인 + 실패 제한 (D-049, D-130): 틀리면 횟수를 올리고 5번이면 10분 잠금(423). 잠겨 있으면 423.
+// 맞으면 true, 틀리면 false (틀린 횟수 초기화는 부르는 쪽에서 한다)
+export async function checkPasswordWithLimit(pool, user, password) {
   // 비교 전에 틀린 횟수를 먼저 1 올린다. 잠겨 있거나 이미 5면 올리지 못한다
   const counted = await pool.request()
     .input('id', sql.BigInt, user.id)
@@ -70,12 +63,27 @@ export async function login({ loginId, password }) {
     // 잠그기 전에 멈춰 횟수가 5로 남은 경우: 그때부터 10분 잠금 (영구 잠김 방지)
     throw loginLocked(remainingSeconds ?? await lockUser(pool, user.id));
   }
-
   const failCount = counted.recordset[0].login_fail_count;
   if (!(await bcrypt.compare(password, user.password_hash))) {
     if (failCount >= MAX_FAIL_COUNT) {
       throw loginLocked(await lockUser(pool, user.id));
     }
+    return false;
+  }
+  return true;
+}
+
+export async function login({ loginId, password }) {
+  const pool = await getPool();
+  const found = await pool.request().input('loginId', sql.NVarChar(15), loginId)
+    .query('SELECT id, login_id, password_hash, nickname, email FROM users WHERE login_id = @loginId');
+  const user = found.recordset[0];
+  if (!user) {
+    await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+    throw loginFailed();
+  }
+
+  if (!(await checkPasswordWithLimit(pool, user, password))) {
     throw loginFailed();
   }
 

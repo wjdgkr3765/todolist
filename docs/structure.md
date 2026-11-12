@@ -49,7 +49,7 @@
 |프로젝트/backend/src/config/|env.js(환경 변수 읽기), db.js(mssql 연결·트랜잭션), mail.js(nodemailer 메일 발송)|
 |프로젝트/backend/src/middlewares/|errorHandler.js(없는 경로·공통 오류 응답), requireLogin.js(로그인 확인, 401 UNAUTHORIZED)|
 |프로젝트/backend/src/routes/|API 경로. api.md 6.x 구역마다 나눈다 (health.js, users.js, emailVerifications.js, sessions.js, teams.js, notifications.js, work.js(할일·작업), calendar.js(캘린더·공휴일·히스토리). work.js·calendar.js 는 /api 아래에서 경로마다 로그인 확인)|
-|프로젝트/backend/src/services/|업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다 (userService.js, emailVerificationService.js, sessionService.js, teamService.js, notificationService.js, spaceService.js(공간 권한·기간 값), todoService.js, taskCore.js(작업 조회·잠금·순서·수정 내역), taskService.js, calendarService.js(캘린더·히스토리), teamManageService.js(팀 정보·이름·내보내기·역할·관리자 넘기기·탈퇴·해체), invitationService.js(팀 초대))|
+|프로젝트/backend/src/services/|업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다 (userService.js, emailVerificationService.js, sessionService.js, teamService.js, notificationService.js, spaceService.js(공간 권한·기간 값), todoService.js, taskCore.js(작업 조회·잠금·순서·수정 내역), taskService.js, calendarService.js(캘린더·히스토리), profileService.js(회원정보 수정·탈퇴), teamManageService.js(팀 정보·이름·내보내기·역할·관리자 넘기기·탈퇴·해체), invitationService.js(팀 초대))|
 |프로젝트/backend/src/realtime/|index.js: Socket.IO 연결 인증(로그인 쿠키), user·team 방, 이벤트 보내기, 로그아웃·새 로그인·토큰 만료 때 끊기 (api.md 6.8)|
 |프로젝트/backend/src/utils/|appError.js(실패 응답 오류), validation.js(입력 검사), mailTemplate.js(인증 메일·팀 초대 안내 메일 본문), koreaDate.js(한국 시간 오늘·시각), reportDefaults.js(일일보고 기본 양식), todoInput.js(할일·작업 입력 검사), holidayApi.js(공휴일 외부 API 호출·24시간 캐시). 이후 공휴일 API 호출, 일일보고 HTML 정화(sanitize-html, D-155)|
 |프로젝트/backend/tests/|백엔드 테스트 (Vitest + supertest, test.md). setup.js(.env 읽기), helpers.js(메일 가로채기, 테스트 행 정리), 기능별 *.test.js|
@@ -68,7 +68,7 @@
 |프로젝트/frontend/src/assets/styles/TaskView.css|작업 화면 스타일 (시안 task_view.html 과 같은 값). 캘린더·히스토리 상세도 같은 클래스를 쓴다|
 |프로젝트/frontend/src/assets/styles/CalendarView.css|캘린더 화면 스타일 (시안 calendar_view.html 값 + FullCalendar 를 시안 모양으로 맞추는 규칙)|
 |프로젝트/frontend/src/assets/styles/theme.css|공통 디자인 값 (overview.md 9)과 인증 화면 카드·입력·버튼·문구, 회원 화면 레이아웃·버튼·모달·카드·배지·표 공통 스타일 (시안 mockup_common.css 와 같은 값)|
-|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue, layouts/MainLayout.vue, TaskView.vue, TeamInfoView.vue, CalendarView.vue, HistoryView.vue, FindIdView.vue, FindPasswordView.vue, ComingSoonView.vue(아직 만들지 않은 메뉴 화면 자리, 모든 화면을 만들면 지운다)|
+|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue, layouts/MainLayout.vue, TaskView.vue, TeamInfoView.vue, CalendarView.vue, HistoryView.vue, FindIdView.vue, FindPasswordView.vue, ProfileView.vue, ComingSoonView.vue(아직 만들지 않은 메뉴 화면 자리, 모든 화면을 만들면 지운다)|
 |프로젝트/frontend/tests/|프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
 |프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, Node 24 경로 지정)|

@@ -4,8 +4,10 @@
 import { useToastStore } from '../stores/toast.js';
 
 export class ApiError extends Error {
-  constructor(status, code, message) {
+  // extra: 오류 응답에 함께 온 값 (예: 탈퇴를 막는 팀 목록 teams)
+  constructor(status, code, message, extra = {}) {
     super(message);
+    Object.assign(this, extra);
     this.status = status;
     this.code = code;
   }
@@ -46,5 +48,6 @@ export async function apiRequest(method, path, { query, body } = {}) {
     useToastStore().show('error', '로그인이 만료되었습니다. 다시 로그인해 주세요.');
     await onSessionExpired?.();
   }
-  throw new ApiError(response.status, error?.code ?? 'INTERNAL_ERROR', error?.message ?? '');
+  const { code, message, ...extra } = error ?? {};
+  throw new ApiError(response.status, code ?? 'INTERNAL_ERROR', message ?? '', extra);
 }

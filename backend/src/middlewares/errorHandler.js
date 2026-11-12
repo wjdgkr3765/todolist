@@ -9,7 +9,8 @@ export function notFoundHandler(req, res) {
 // eslint-disable-next-line no-unused-vars
 export function errorHandler(error, req, res, next) {
   if (error instanceof AppError) {
-    res.status(error.status).json({ error: { code: error.code, message: error.message } });
+    // extra: 오류에 함께 담을 값 (예: 탈퇴를 막는 팀 목록, api.md POST /api/users/me/withdraw)
+    res.status(error.status).json({ error: { code: error.code, message: error.message, ...(error.extra ?? {}) } });
     return;
   }
   // JSON 본문 형식 오류, 본문 크기 초과 → 400 INVALID_INPUT
