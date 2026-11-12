@@ -1,0 +1,119 @@
+/* 공통 디자인 값 (overview.md 9, D-043). 모든 화면이 같이 쓴다 */
+:root {
+  --color-primary: #1faa59;
+  --color-primary-dark: #168a47;
+  --color-primary-soft: #e8f6ee;
+  --color-brand-from: #1faa59;
+  --color-brand-to: #0e7c66;
+  --color-ink: #111827;
+  --color-sub: #6b7280;
+  --color-muted: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-input-bg: #f9fafb;
+  --color-readonly-bg: #f3f4f6;
+  --color-success: #16a34a;
+  --color-danger: #e5484d;
+  --color-danger-soft: #fdecec;
+  --color-page-bg: #eef3f0;
+  --radius-card: 20px;
+  --radius-control: 12px;
+  --shadow-card: 0 24px 60px -20px rgba(17, 24, 39, 0.18), 0 2px 6px rgba(17, 24, 39, 0.04);
+  --font-base: 'Pretendard Variable', Pretendard, system-ui, -apple-system, 'Malgun Gothic', sans-serif;
+}
+
+body {
+  font-family: var(--font-base);
+  color: var(--color-ink);
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #dff3e7 0%, transparent 60%),
+    radial-gradient(900px 500px at 110% 110%, #d9efe9 0%, transparent 55%),
+    var(--color-page-bg);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---------- 인증 화면 카드 (회원가입·로그인·아이디/비밀번호 찾기) ---------- */
+.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 40px 16px; }
+.auth-shell {
+  /* minmax(0, …): 입력칸·버튼의 최소 폭 때문에 칸이 카드 밖으로 넓어지지 않게 한다 */
+  width: 100%; max-width: 1040px; display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  background: #fff; border-radius: var(--radius-card); box-shadow: var(--shadow-card); overflow: hidden;
+}
+.form-panel { padding: 48px 52px; }
+.form-heading { font-size: 26px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 6px; }
+.form-subheading { font-size: 15px; color: var(--color-sub); margin-bottom: 28px; }
+.form-section-title { font-size: 12px; font-weight: 700; color: var(--color-muted); letter-spacing: 1px; text-transform: uppercase; margin: 8px 0 14px; display: flex; align-items: center; gap: 10px; }
+.form-section-title::after { content: ''; flex: 1; height: 1px; background: var(--color-border); }
+.form-footer { text-align: center; font-size: 14px; color: var(--color-sub); margin-top: 22px; }
+.form-footer a { color: var(--color-primary-dark); font-weight: 700; text-decoration: none; margin-left: 4px; }
+.form-footer a:hover { text-decoration: underline; }
+
+/* ---------- 입력 ---------- */
+.field { margin-bottom: 18px; }
+.field-label { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: block; }
+.field-row { display: flex; gap: 8px; }
+
+.control {
+  position: relative; flex: 1 1 auto; display: flex; align-items: center; min-width: 0;
+  background: var(--color-input-bg); border: 1.5px solid var(--color-border); border-radius: var(--radius-control);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.control:focus-within { background: #fff; border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+.control.is-invalid { border-color: var(--color-danger); background: #fff; }
+.control.is-invalid:focus-within { box-shadow: 0 0 0 4px rgba(229, 72, 77, 0.14); }
+.control.is-valid { border-color: var(--color-success); background: #fff; }
+.control.is-readonly { background: var(--color-readonly-bg); }
+.control-icon { padding-left: 14px; color: var(--color-muted); font-size: 17px; display: flex; }
+.control:focus-within .control-icon { color: var(--color-primary); }
+.control input {
+  flex: 1 1 auto; min-width: 0; border: 0; outline: 0; background: transparent;
+  height: 48px; padding: 0 14px 0 10px; font-size: 15px; color: var(--color-ink);
+}
+.control input::placeholder { color: var(--color-muted); }
+.control input:read-only { color: var(--color-sub); }
+.control-suffix { padding-right: 12px; display: flex; align-items: center; gap: 6px; }
+.icon-button { border: 0; background: transparent; color: var(--color-muted); font-size: 17px; padding: 4px; line-height: 1; }
+.icon-button:hover { color: var(--color-ink); }
+.timer-pill { font-size: 13px; font-weight: 700; color: var(--color-danger); background: var(--color-danger-soft); border-radius: 999px; padding: 3px 10px; font-variant-numeric: tabular-nums; }
+.valid-mark { color: var(--color-success); font-size: 18px; display: flex; }
+
+/* ---------- 버튼 ---------- */
+.btn-soft {
+  height: 51px; padding: 0 18px; border-radius: var(--radius-control); border: 0; white-space: nowrap;
+  background: var(--color-primary-soft); color: var(--color-primary-dark); font-weight: 700; font-size: 14px;
+  transition: background 0.15s, color 0.15s;
+}
+.btn-soft:hover:not(:disabled) { background: var(--color-primary); color: #fff; }
+.btn-soft:disabled { background: var(--color-readonly-bg); color: var(--color-muted); }
+.btn-ghost { height: 51px; padding: 0 18px; border-radius: var(--radius-control); border: 1.5px solid var(--color-border); background: #fff; color: var(--color-sub); font-weight: 700; font-size: 14px; white-space: nowrap; }
+.btn-ghost:hover:not(:disabled) { border-color: var(--color-sub); color: var(--color-ink); }
+.btn-submit {
+  width: 100%; height: 54px; border: 0; border-radius: var(--radius-control); margin-top: 10px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%); color: #fff;
+  font-size: 16px; font-weight: 700; letter-spacing: 0.2px;
+  box-shadow: 0 10px 24px -10px rgba(22, 138, 71, 0.7);
+  transition: transform 0.1s, box-shadow 0.15s, filter 0.15s;
+}
+.btn-submit:hover:not(:disabled) { filter: brightness(1.05); box-shadow: 0 14px 28px -10px rgba(22, 138, 71, 0.75); }
+.btn-submit:active:not(:disabled) { transform: translateY(1px); }
+.btn-submit:disabled { opacity: 0.75; }
+
+/* ---------- 안내·오류 문구 ---------- */
+.message { font-size: 13px; margin-top: 7px; display: flex; align-items: center; gap: 5px; }
+.message.is-success { color: var(--color-success); }
+.message.is-error { color: var(--color-danger); }
+.message.is-info { color: var(--color-sub); }
+
+/* ---------- 반응형 ---------- */
+@media (max-width: 991.98px) {
+  .auth-shell { grid-template-columns: minmax(0, 1fr); max-width: 560px; }
+  .form-panel { padding: 32px 32px 36px; }
+}
+@media (max-width: 575.98px) {
+  .auth-page { padding: 16px; align-items: flex-start; }
+  .auth-shell { border-radius: 16px; }
+  .form-panel { padding: 24px 20px 28px; }
+  .form-heading { font-size: 22px; }
+  .form-subheading { margin-bottom: 20px; }
+  .btn-soft, .btn-ghost { padding: 0 14px; }
+}

@@ -37,34 +37,39 @@
 |프로젝트/frontend/src/layouts/|공통 레이아웃 Vue 파일과 화면 설계 문서|
 |프로젝트/frontend/src/layouts/MainLayout_screen.md|공통 레이아웃 화면 설계 문서|
 |프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
-|프로젝트/backend/|(구현 단계에서 만든다) 백엔드 폴더 (Node.js 24 + Express 5)|
-|프로젝트/backend/package.json|(구현 단계) 백엔드 의존성과 실행·테스트 명령 (spec.md)|
+|프로젝트/backend/|백엔드 폴더 (Node.js 24 + Express 5)|
+|프로젝트/backend/package.json, package-lock.json|백엔드 의존성과 실행·테스트 명령 (spec.md). dev/start 는 node --env-file=.env 로 .env 를 읽는다|
+|프로젝트/backend/node_modules/|npm 설치 폴더 (git 제외)|
+|프로젝트/backend/vitest.config.js|백엔드 테스트 설정 (개발 DB 를 같이 써서 테스트 파일을 하나씩 실행)|
 |프로젝트/backend/.env|(사용자가 직접 작성, git 제외) DB 접속 정보, 메일 계정, 공휴일 API 키|
-|프로젝트/backend/.env.example|(구현 단계) 환경 변수 이름만 적고 값은 비운다 (DB 접속, DB_INSTANCE, DB_PORT, MAIL_USER, 메일 비밀번호, HOLIDAY_API_KEY, NODE_ENV 등, security.md 1번)|
-|프로젝트/backend/sql/schema.sql|(구현 단계) database.md 4번의 테이블 생성 SQL. 사용자가 SSMS 에서 실행한다|
-|프로젝트/backend/src/server.js|(구현 단계) HTTP 서버와 Socket.IO 시작 (포트 3000)|
-|프로젝트/backend/src/app.js|(구현 단계) Express 앱과 공통 처리 (본문 100kb 제한(일일보고 저장·양식 저장은 512kb), 보안 응답 헤더, 공통 오류 응답, api.md 1)|
-|프로젝트/backend/src/config/|(구현 단계) DB 연결(mssql), 메일 발송(nodemailer), 환경 변수 읽기|
-|프로젝트/backend/src/middlewares/|(구현 단계) 로그인 확인(requireLogin), 오류 처리|
-|프로젝트/backend/src/routes/|(구현 단계) API 경로. api.md 6.x 구역마다 파일 하나 (예: teams.js, notifications.js)|
-|프로젝트/backend/src/services/|(구현 단계) 업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다|
+|프로젝트/backend/.env.example|환경 변수 이름만 적고 값은 비운다: NODE_ENV, DB_SERVER, DB_INSTANCE, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, MAIL_USER, MAIL_PASSWORD, HOLIDAY_API_KEY (security.md 1번)|
+|프로젝트/backend/sql/schema.sql|database.md 4번의 테이블 생성 SQL. 사용자가 SSMS 에서 실행한다|
+|프로젝트/backend/src/server.js|HTTP 서버 시작 (포트 3000). Socket.IO 는 실시간 반영 기능 때 붙인다|
+|프로젝트/backend/src/app.js|Express 앱과 공통 처리 (본문 100kb 제한(일일보고 저장·양식 저장은 512kb), 보안 응답 헤더, 공통 오류 응답, api.md 1)|
+|프로젝트/backend/src/config/|env.js(환경 변수 읽기), db.js(mssql 연결·트랜잭션), mail.js(nodemailer 메일 발송)|
+|프로젝트/backend/src/middlewares/|errorHandler.js(없는 경로·공통 오류 응답). 로그인 확인(requireLogin)은 로그인 기능 때 만든다|
+|프로젝트/backend/src/routes/|API 경로. api.md 6.x 구역마다 나눈다 (health.js, users.js, emailVerifications.js, 이후 teams.js 등)|
+|프로젝트/backend/src/services/|업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다 (userService.js, emailVerificationService.js)|
 |프로젝트/backend/src/realtime/|(구현 단계) Socket.IO 연결 인증, 방, 이벤트 보내기 (api.md 6.8)|
-|프로젝트/backend/src/utils/|(구현 단계) 입력 검사, 날짜(한국 시간 오늘), 메일 본문, 공휴일 API 호출, 일일보고 HTML 정화(sanitize-html, D-155)|
-|프로젝트/backend/tests/|(구현 단계) 백엔드 테스트 (Vitest + supertest, test.md)|
-|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard, vuedraggable(작업 시안의 칸반 드래그에 sortablejs 를 쓴다), 일일보고 시안의 Tiptap 과 그 묶음을 만드는 vite(개발 의존성, D-162)만 먼저 넣었다 (screen.md 시안 작성 규칙, D-146). 나머지는 구현 단계에서 더한다. 스크립트 mockup:tiptap|
+|프로젝트/backend/src/utils/|appError.js(실패 응답 오류), validation.js(입력 검사), mailTemplate.js(인증 메일 본문). 이후 날짜(한국 시간 오늘), 공휴일 API 호출, 일일보고 HTML 정화(sanitize-html, D-155)|
+|프로젝트/backend/tests/|백엔드 테스트 (Vitest + supertest, test.md). setup.js(.env 읽기), helpers.js(메일 가로채기, 테스트 행 정리), 기능별 *.test.js|
+|프로젝트/frontend/package.json|프론트엔드 의존성. 와이어프레임 단계에서 시안이 쓰는 bootstrap, bootstrap-icons, pretendard, vuedraggable(작업 시안의 칸반 드래그에 sortablejs 를 쓴다), 일일보고 시안의 Tiptap 과 그 묶음을 만드는 vite(개발 의존성, D-162)만 먼저 넣었다 (screen.md 시안 작성 규칙, D-146). 구현 단계에서 vue, vue-router, pinia, @vitejs/plugin-vue, vitest, @vue/test-utils, jsdom 을 더했다 (overrides 로 glob·minimatch 고정, spec.md). 스크립트 dev, build, preview, test, mockup:tiptap|
 |프로젝트/frontend/package-lock.json|npm 이 만든 의존성 잠금 파일|
 |프로젝트/frontend/node_modules/|npm 설치 폴더 (git 제외). 시안이 상대 경로로 bootstrap 등을 불러온다|
-|프로젝트/frontend/vite.config.js, index.html|(구현 단계) Vite 설정(5173, /api·/socket.io 프록시), 시작 HTML|
-|프로젝트/frontend/src/main.js, App.vue|(구현 단계) Vue 앱 시작과 최상위 컴포넌트|
-|프로젝트/frontend/src/router/|(구현 단계) vue-router 경로, 로그인 여부에 따른 이동 (D-051), 없는 주소 처리 (D-119)|
-|프로젝트/frontend/src/stores/|(구현 단계) pinia 상태: 로그인 회원, 팀 목록, 알림 개수|
-|프로젝트/frontend/src/api/|(구현 단계) API 호출 공통 처리 (401 로그인 만료 D-118, 서버 오류 토스트)|
+|프로젝트/frontend/vite.config.js, index.html|Vite 설정(5173, /api·/socket.io 프록시, 테스트 jsdom), 시작 HTML|
+|프로젝트/frontend/dist/|빌드 결과물 (git 제외)|
+|프로젝트/frontend/src/main.js, App.vue|Vue 앱 시작과 최상위 컴포넌트|
+|프로젝트/frontend/src/router/|index.js: vue-router 경로. 로그인 여부에 따른 이동 (D-051), 없는 주소 처리 (D-119)는 로그인 기능 때 넣는다|
+|프로젝트/frontend/src/stores/|pinia 상태: toast.js(알림 토스트). 이후 로그인 회원, 팀 목록, 알림 개수|
+|프로젝트/frontend/src/api/|client.js: API 호출 공통 처리 (서버 오류 토스트. 401 로그인 만료 D-118 은 로그인 기능 때)|
+|프로젝트/frontend/src/utils/|validation.js: 화면 입력 검사 (서버와 같은 규칙), 남은 시간 표시|
 |프로젝트/frontend/src/realtime/|(구현 단계) socket.io-client 연결과 이벤트 받기 (api.md 6.8)|
-|프로젝트/frontend/src/components/|(구현 단계) 여러 화면이 쓰는 조각: AuthBrandPanel, KanbanBoard, TaskDetailPanel, TaskLogModal, 토스트, 확인창 등|
-|프로젝트/frontend/src/assets/styles/theme.css|(구현 단계) 공통 디자인 값 (overview.md 9)|
-|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|(구현 단계) 화면 11개. overview.md 5 화면 목록과 같다|
-|프로젝트/frontend/tests/|(구현 단계) 프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
+|프로젝트/frontend/src/components/|여러 화면이 쓰는 조각: AuthBrandPanel(인증 화면 브랜드 영역), AppToast(토스트), LoadingLabel(로딩 중 버튼 글자). 이후 KanbanBoard, TaskDetailPanel, TaskLogModal, 확인창 등|
+|프로젝트/frontend/src/assets/styles/theme.css|공통 디자인 값 (overview.md 9)과 인증 화면 카드·입력·버튼·문구 공통 스타일|
+|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue|
+|프로젝트/frontend/tests/|프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
+|프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, Node 24 경로 지정)|
 |프로젝트/skills-lock.json|npx skills 로 설치한 스킬 목록과 해시|
 |프로젝트/docs/reference.md|reference 폴더 참고자료 목록 (파일명, 설명, 관련 작업). AI가 폴더를 볼 때 갱신|
 |프로젝트/docs/mockups/|화면 시안 HTML. 서버 없이 바로 열어 보는 파일 (loop.md 2번 와이어프레임)|

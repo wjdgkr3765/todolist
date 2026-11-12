@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "backend",
+      "runtimeExecutable": "C:/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2/node.exe",
+      "runtimeArgs": ["--use-system-ca", "--env-file=backend/.env", "backend/src/server.js"],
+      "port": 3000
+    },
+    {
+      "name": "frontend",
+      "runtimeExecutable": "C:/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2/node.exe",
+      "runtimeArgs": ["frontend/node_modules/vite/bin/vite.js", "frontend"],
+      "port": 5173
+    }
+  ]
+}

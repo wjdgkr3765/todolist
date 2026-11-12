@@ -30,7 +30,7 @@
 ### 일정관리 협업 시스템 (프로젝트 전체)
 - 목표: overview.md 핵심 기능 14개 전체를 loop.md 순서(설계 → 와이어프레임 → 구현 → 보안 체크)로 완성한다
 - 범위: 프로젝트 전체
-- 현재 단계: 3. 구현 (시작 전). 승인 뒤 추가한 일일보고(D-150)도 설계·와이어프레임 승인 완료 (2026-11-11), 구현 범위에 포함 (우선순위 14)
+- 현재 단계: 3. 구현 (진행 중, 2026-11-12 시작). 승인 뒤 추가한 일일보고(D-150)도 설계·와이어프레임 승인 완료 (2026-11-11), 구현 범위에 포함 (우선순위 14)
 - 단계 승인: 설계(승인 완료, 2026-11-11), 와이어프레임(승인 완료, 2026-11-11), 구현(승인 전), 보안 체크(승인 전)
 - 진행 상황:
   - 끝낸 것: 이전 프로젝트 기획/설계(project_design.md)를 문서에 반영 (2026-11-11, D-082). 상세 설계가 끝난 기능은 회원가입, 로그인/로그아웃, 공통 레이아웃, 작업 페이지 - 할일 목록, 작업 페이지 - 칸반보드이고, 화면 문서 4개(LoginView, SignupView, MainLayout, TaskView)를 만들었다
@@ -45,8 +45,11 @@
   - 승인 뒤 설계 변경: D-148 내보내기로 작업자에서 빠진 기록은 내보낸 회원 닉네임 (D-101 변경)
   - 동작하는 시안 (D-146): 시안 10개 모두 동작하게 완료 (2026-11-11). 나머지 9개는 이전 세션에서 만든 동작 코드를 Chrome headless 로 "4. 동작"마다 눌러 확인하고, 빠진 3곳을 고침 (로그인 입력 시 오류 지우기, 비밀번호 찾기 새 비밀번호 blur 검사, 팀 탈퇴·해체 뒤 안내 토스트와 팀 목록에서 빼기). 모든 시안·모든 상태 콘솔 오류 0. 사용자 승인 완료 (2026-11-11)
   - 승인 뒤 기능 추가: 일일보고 (14번째 핵심 기능, D-150~D-161). grilling 으로 결정 → 설계 문서 작성 완료 (overview.md 8.15, database.md report_templates·daily_reports·users.is_report_carry_over, api.md 6.12·6.6·6.8·6.11, spec.md Tiptap·sanitize-html, structure.md, MainLayout_screen.md 탭, DailyReportView_screen.md 새로 작성). 설계 승인 완료 (2026-11-11). 시안 daily_report_view.html + .js 완성 (Tiptap 묶음 D-162, 상태 32개, Chrome headless 로 동작·콘솔 오류 확인, 다른 시안 팀 탭에 일일보고 추가). 사용자 요청으로 표 셀 배경색·정렬 추가 (D-163). 와이어프레임 승인 완료 (2026-11-11)
-  - 구현: 시작 전. 사용자가 "아직 구현 단계로 넘어가지 마"라고 함 (2026-11-11). 사용자가 시작하라고 할 때까지 코드를 만들지 않는다
-  - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 구현을 시작하면서 AI 가 .env.example(키 이름만)을 만든 뒤 사용자가 작성 (아직 없음). DB(todolist) 생성 여부는 확인하지 않음
+  - 구현: 사용자가 구현 시작을 지시함 (2026-11-12). DB 확인 결과 todolist DB 있음, todolist_app 은 SQL 로그인이고 todolist DB 의 db_owner, 테이블 0개 (Windows 인증 sqlcmd 로 확인). backend/.env.example 작성 완료. 사용자가 DB·로그인을 다시 만들고 backend/.env 작성 완료 (키 10개 확인, todolist_app 접속 확인)
+  - 우선순위 1 회원가입 (완료, 2026-11-12): 백엔드(기본 구조, health, 아이디 중복 확인, 인증번호 발송·확인, 회원가입 API)와 sql/schema.sql(트랜잭션 안에서 실행 후 되돌려 14개 생성 확인), 프론트엔드(기본 구조, theme.css, 토스트, AuthBrandPanel, SignupView) 작성. 사용자가 SSMS 에서 schema.sql 실행 (2026-11-12, 테이블 14개·인덱스 18개 확인). test.md 체크리스트: 코드 검토 1~10, 빌드, 테스트(백엔드 117개 실제 DB, 프론트엔드 55개), 화면 확인(브라우저 pane 에서 요소·크기·동작·375px, 콘솔 오류 0 — 경고 1건은 아직 없는 /login 경로), git 확인 통과. 사용자가 자기 메일로 인증 메일을 받아 끝까지 가입 성공 (users 1행, bcrypt 해시, 인증 기록 삭제 확인). 다음: 우선순위 2 로그인/로그아웃. 스크린샷은 pane 이 숨겨져 있어 찍지 못함
+  - 회원가입에서 미룬 것: 인증번호 발송 purpose=change_email (로그인 필요, 로그인/회원정보 기능 때), 로그인한 회원이 /signup 에 오면 보내기(D-051, 로그인 기능 때), /login 화면(우선순위 2)
+  - 설계에 없던 작은 화면 동작 (사용자 확인 필요): 인증번호 칸은 숫자만 받고, 6자리를 모두 넣어야 [확인] 버튼이 눌린다 (6자리가 아닐 때 보여줄 문구가 설계에 없어서)
+  - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 사용자가 작성 (아직 없음)
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 없음
 - 메모:
@@ -75,15 +78,17 @@
 
 ## 세션 인계
 
-- **마지막 갱신**: 2026-11-11 (세션 종료)
-- **현재 상태**: 핵심 기능 14개(일일보고 포함, D-150~D-163) 설계·와이어프레임 승인 완료 (2026-11-11). 시안 11개 모두 동작하는 시안. 3. 구현 시작 전 (코드 없음). 사용자가 구현 시작을 보류함
-- **다음에 할 일**: 사용자가 구현 시작을 말하면 → DB(todolist) 생성 여부 확인, backend/.env.example 작성 후 사용자에게 .env 작성 안내 → 구현 우선순위 1(회원가입)부터 기능마다 test.md 완료 체크리스트. 그 전에는 구현하지 않는다
+- **마지막 갱신**: 2026-11-12
+- **현재 상태**: 3. 구현 진행 중. 우선순위 1 회원가입 완료 (test.md 체크리스트 통과, 실제 메일로 가입 성공, 2026-11-12). DB 테이블 14개 생성됨 (사용자가 schema.sql 실행)
+- **다음에 할 일**: 우선순위 2 로그인/로그아웃 (LoginView, POST /api/sessions·logout·me, requireLogin, 라우터 로그인 이동 D-051, 401 처리 D-118). 그때 인증번호 change_email 용도와 /signup 로그인 회원 보내기도 넣는다. 사용자에게 인증번호 [확인] 버튼 동작(6자리 다 넣어야 눌림) 승인 여부를 받아 SignupView_screen.md 에 적는다
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)
   - git: 커밋과 푸시는 AI가 한다. 커밋 메시지에 서명 줄을 붙이지 않는다 (D-086)
   - 시안 검사: Chrome headless 를 Node 24 내장 WebSocket 으로 조작 (CDP). 일일보고 시안의 Tiptap 묶음은 frontend 에서 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)
-  - 이 컴퓨터의 기본 Node 는 14. 프로젝트는 Node 24 (nvm 의 v24.22.2). 사용자 상태 표시줄(남은 컨텍스트)은 ~/.claude/statusline.ps1
+  - 이 컴퓨터의 기본 Node 는 14. 프로젝트는 Node 24 (nvm 의 v24.22.2). 전역 nvm 은 바꾸지 않고 명령 앞에 `export PATH=/c/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2:$PATH` 를 붙여 실행한다 (npx 는 전역 node 를 써서 v14 로 실패함, 2026-11-12)
+  - 회사 보안 프로그램(Somansa)이 Gmail SMTP 의 TLS 인증서를 바꿔 끼운다. 백엔드는 --use-system-ca 로 Windows 인증서 저장소를 믿어야 메일이 나간다 (package.json dev/start, .claude/launch.json 에 넣음, 2026-11-12)
+  - sqlcmd 로 SQL 을 실행할 때는 -I(QUOTED_IDENTIFIER ON) 가 필요하다. schema.sql 맨 위에 SET 으로 넣어 두었다 사용자 상태 표시줄(남은 컨텍스트)은 ~/.claude/statusline.ps1
 
 ---
 
