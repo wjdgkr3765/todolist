@@ -30,7 +30,7 @@ async function focusField(name) {
 
 // 아이디 찾기 결과의 [로그인하기]로 넘어오면 찾은 아이디를 채운다 (화면 이동 상태로 받는다)
 onMounted(() => {
-  const foundLoginId = window.history.state?.loginId;
+  const foundLoginId = router.options.history.state?.loginId;
   if (typeof foundLoginId === 'string' && foundLoginId) {
     form.loginId = foundLoginId;
     focusField('password');

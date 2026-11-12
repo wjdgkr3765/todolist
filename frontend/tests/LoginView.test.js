@@ -136,13 +136,9 @@ describe('로그인 화면', () => {
     expect(wrapper.find('#password').attributes('type')).toBe('password');
   });
   test('아이디 찾기에서 넘어오면 아이디 채우고 비밀번호에 포커스', async () => {
-    const { wrapper } = await mountAt('/login');
-    window.history.replaceState({ loginId: 'found123' }, '');
-    const { wrapper: second } = await mountAt('/login');
-    expect(second.find('#login-id').element.value).toBe('found123');
+    const { wrapper } = await mountAt('/login', { loginId: 'found123' });
+    expect(wrapper.find('#login-id').element.value).toBe('found123');
     expect(document.activeElement.id).toBe('password');
-    window.history.replaceState(null, '');
-    wrapper.unmount();
   });
   test('링크: 아이디 찾기, 비밀번호 찾기, 회원가입', async () => {
     const { wrapper } = await mountAt('/login');

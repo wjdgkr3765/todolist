@@ -25,6 +25,8 @@ const TEAM_ID = ':teamId(\\d+)';
 export const routes = [
   { path: '/login', name: 'login', component: () => import('../views/LoginView.vue'), meta: { guestOnly: true } },
   { path: '/signup', name: 'signup', component: () => import('../views/SignupView.vue'), meta: { guestOnly: true } },
+  { path: '/find-id', name: 'find-id', component: () => import('../views/FindIdView.vue'), meta: { guestOnly: true } },
+  { path: '/find-password', name: 'find-password', component: () => import('../views/FindPasswordView.vue'), meta: { guestOnly: true } },
   { path: '/', redirect: HOME_PATH },
   {
     path: '/',

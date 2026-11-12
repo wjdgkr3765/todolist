@@ -77,3 +77,52 @@ export async function createUser({ loginId, password, nickname, email, phone, ve
     throw error;
   }
 }
+
+// 인증 완료 후 30분 안의 그 용도 인증인지 (D-044, D-116)
+async function checkPurposeVerified(pool, { email, verificationId, purpose }) {
+  const result = await pool.request()
+    .input('id', sql.BigInt, verificationId)
+    .input('email', sql.NVarChar(100), email)
+    .input('purpose', sql.NVarChar(20), purpose)
+    .query(`SELECT TOP 1 id FROM email_verifications
+            WHERE id = @id AND email = @email AND purpose = @purpose AND is_verified = 1
+              AND verify_date > DATEADD(MINUTE, -30, SYSUTCDATETIME())`);
+  if (result.recordset.length === 0) {
+    throw new AppError(400, 'EMAIL_NOT_VERIFIED', '이메일 인증을 완료해 주세요.');
+  }
+}
+
+// 아이디 찾기 결과 (api.md POST /api/users/find-id, D-114). 성공하면 그 이메일의 find_id 인증 기록을 지운다
+export async function findLoginId({ email, verificationId }) {
+  const pool = await getPool();
+  await checkPurposeVerified(pool, { email, verificationId, purpose: 'find_id' });
+  const result = await pool.request().input('email', sql.NVarChar(100), email)
+    .query(`SELECT login_id, create_date FROM users WHERE email = @email;
+            DELETE FROM email_verifications WHERE email = @email AND purpose = 'find_id';`);
+  const user = result.recordset[0];
+  if (!user) {
+    throw new AppError(404, 'EMAIL_NOT_REGISTERED', '가입되지 않은 이메일입니다.');
+  }
+  return { loginId: user.login_id, createDate: user.create_date.toISOString() };
+}
+
+// 비밀번호 재설정 (api.md POST /api/users/reset-password, D-115, D-116). 커밋 뒤 실시간 연결 끊기는 라우트에서
+export async function resetPassword({ loginId, email, verificationId, password }) {
+  const pool = await getPool();
+  const found = await pool.request().input('loginId', sql.NVarChar(15), loginId).input('email', sql.NVarChar(100), email)
+    .query('SELECT id FROM users WHERE login_id = @loginId AND email = @email');
+  if (!found.recordset[0]) {
+    throw new AppError(404, 'ACCOUNT_NOT_FOUND', '아이디와 이메일이 일치하는 회원이 없습니다.');
+  }
+  const userId = Number(found.recordset[0].id);
+  await checkPurposeVerified(pool, { email, verificationId, purpose: 'find_password' });
+  const passwordHash = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
+  await withTransaction(async (transaction) => {
+    await new sql.Request(transaction)
+      .input('id', sql.BigInt, userId).input('passwordHash', sql.NVarChar(60), passwordHash).input('email', sql.NVarChar(100), email)
+      .query(`UPDATE users SET password_hash = @passwordHash, login_fail_count = 0, lock_expire_date = NULL WHERE id = @id;
+              DELETE FROM login_tokens WHERE user_id = @id;
+              DELETE FROM email_verifications WHERE email = @email AND purpose = 'find_password';`);
+  });
+  return userId;
+}

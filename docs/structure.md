@@ -64,11 +64,11 @@
 |프로젝트/frontend/src/api/|client.js: API 호출 공통 처리 (서버 오류 토스트, 401 로그인 만료 D-118)|
 |프로젝트/frontend/src/utils/|validation.js: 화면 입력 검사 (서버와 같은 규칙), 남은 시간 표시. format.js: 날짜·시각 표시. period.js: 기간 표시·기한 지남·수정 내역 문구·기간 입력 검사|
 |프로젝트/frontend/src/realtime/|socket.js: socket.io-client 연결과 이벤트 받기, 다시 연결 알림 (api.md 6.8)|
-|프로젝트/frontend/src/components/|여러 화면이 쓰는 조각: AuthBrandPanel(인증 화면 브랜드 영역), AppToast(토스트), LoadingLabel(로딩 중 버튼 글자), NotificationPanel(알림 창), TeamCreateModal(팀 만들기 모달), KanbanBoard, TaskCard, TaskDetailPanel, TaskLogModal, TodoFormPanel, PeriodFields(제목·내용·기간 입력), ConfirmDialog(확인창), TaskInfoModal(캘린더·히스토리 작업 상세 모달)|
+|프로젝트/frontend/src/components/|여러 화면이 쓰는 조각: AuthBrandPanel(인증 화면 브랜드 영역), AppToast(토스트), LoadingLabel(로딩 중 버튼 글자), NotificationPanel(알림 창), TeamCreateModal(팀 만들기 모달), KanbanBoard, TaskCard, TaskDetailPanel, TaskLogModal, TodoFormPanel, PeriodFields(제목·내용·기간 입력), ConfirmDialog(확인창), TaskInfoModal(캘린더·히스토리 작업 상세 모달), EmailVerifyField(찾기·회원정보 수정의 이메일 인증)|
 |프로젝트/frontend/src/assets/styles/TaskView.css|작업 화면 스타일 (시안 task_view.html 과 같은 값). 캘린더·히스토리 상세도 같은 클래스를 쓴다|
 |프로젝트/frontend/src/assets/styles/CalendarView.css|캘린더 화면 스타일 (시안 calendar_view.html 값 + FullCalendar 를 시안 모양으로 맞추는 규칙)|
 |프로젝트/frontend/src/assets/styles/theme.css|공통 디자인 값 (overview.md 9)과 인증 화면 카드·입력·버튼·문구, 회원 화면 레이아웃·버튼·모달·카드·배지·표 공통 스타일 (시안 mockup_common.css 와 같은 값)|
-|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue, layouts/MainLayout.vue, TaskView.vue, TeamInfoView.vue, CalendarView.vue, HistoryView.vue, ComingSoonView.vue(아직 만들지 않은 메뉴 화면 자리, 모든 화면을 만들면 지운다)|
+|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue, layouts/MainLayout.vue, TaskView.vue, TeamInfoView.vue, CalendarView.vue, HistoryView.vue, FindIdView.vue, FindPasswordView.vue, ComingSoonView.vue(아직 만들지 않은 메뉴 화면 자리, 모든 화면을 만들면 지운다)|
 |프로젝트/frontend/tests/|프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
 |프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, Node 24 경로 지정)|
