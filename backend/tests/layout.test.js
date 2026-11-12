@@ -22,15 +22,16 @@ async function insertInvite(toUser, teamId, senderNickname = '보낸이') {
 }
 
 // 개인 작업을 바로 만든다
-async function insertPersonalTask(user, { endDate, endTime = null, status = 'waiting', title = 'vt작업' }) {
+// periodUpdateDate: 기간을 정한 시각 (기본은 사흘 전, 알림 구간에 들기 전에 정한 작업, D-166)
+async function insertPersonalTask(user, { endDate, endTime = null, status = 'waiting', title = 'vt작업', periodUpdateDate = new Date(Date.now() - 3 * 86400000) }) {
   const result = await runSql(
-    `INSERT INTO tasks (title, content, start_date, end_date, start_time, end_time, status, sort_order, user_id, done_date)
+    `INSERT INTO tasks (title, content, start_date, end_date, start_time, end_time, status, sort_order, user_id, done_date, period_update_date)
      OUTPUT inserted.id VALUES (@title, N'내용', @startDate, @endDate, @startTime, @endTime, @status, 0, @userId,
-       CASE WHEN @status = 'done' THEN SYSUTCDATETIME() ELSE NULL END)`,
+       CASE WHEN @status = 'done' THEN SYSUTCDATETIME() ELSE NULL END, @periodUpdateDate)`,
     {
       title: [sql.NVarChar(50), title], startDate: [sql.Date, endDate], endDate: [sql.Date, endDate],
       startTime: [sql.VarChar(8), endTime ? '00:00:00' : null], endTime: [sql.VarChar(8), endTime],
-      status: [sql.NVarChar(10), status], userId: [sql.BigInt, user.userId],
+      status: [sql.NVarChar(10), status], userId: [sql.BigInt, user.userId], periodUpdateDate: [sql.DateTime2, periodUpdateDate],
     },
   );
   return Number(result.recordset[0].id);
@@ -210,5 +211,36 @@ describe('마감 임박 알림 (D-128, D-138)', () => {
     if (laterId) {
       expect(list.find((n) => n.taskId === laterId).taskEndTime).toBe(later.slice(0, 5));
     }
+  });
+});
+
+describe('기간을 정할 때 이미 마감 임박이면 알리지 않는다 (D-166)', () => {
+  const TODO = { title: '할일', content: '내용', isPeriodUndecided: false, startTime: null, endTime: null };
+  test('경계: 기간을 정한 시각이 종료일 전날 0시(한국) 1초 전이면 알림, 0시 정각이면 만들지 않는다', async () => {
+    const user = await loginTestUser(app);
+    const today = koreaToday();
+    const windowStart = new Date(`${today}T00:00:00+09:00`);
+    const before = await insertPersonalTask(user, { endDate: addDays(today, 1), title: '전에정함', periodUpdateDate: new Date(windowStart.getTime() - 1000) });
+    await insertPersonalTask(user, { endDate: addDays(today, 1), title: '구간에정함', periodUpdateDate: windowStart });
+    await insertPersonalTask(user, { endDate: today, title: '오늘정함', periodUpdateDate: new Date() });
+    const list = (await get('/api/notifications', user)).body.data.notifications;
+    expect(list.map((n) => n.taskId)).toEqual([before]);
+  });
+  test('[작업 시작]으로 내일 마감 작업을 만들면 알림이 없고, 기간을 바꾸면 그때 시각으로 다시 정한다', async () => {
+    const user = await loginTestUser(app);
+    const today = koreaToday();
+    const tomorrow = addDays(today, 1);
+    const todo = (await post('/api/personal/todos', user, { ...TODO, startDate: today, endDate: tomorrow })).body.data;
+    const started = (await post(`/api/todos/${todo.todoId}/start`, user)).body.data;
+    const taskId = started.task?.taskId ?? started.taskId;
+    expect((await get('/api/notifications', user)).body.data.notifications).toEqual([]);
+    // 예전에 정한 것처럼 되돌린 뒤 기간 말고 제목만 바꾸면 그대로 알림이 생긴다
+    await runSql('UPDATE tasks SET period_update_date = DATEADD(DAY, -3, SYSUTCDATETIME()) WHERE id = @id', { id: [sql.BigInt, taskId] });
+    const body = { ...TODO, title: '제목만', startDate: today, endDate: tomorrow, status: 'waiting', assigneeUserIds: [] };
+    await post(`/api/tasks/${taskId}/update`, user, body);
+    expect((await get('/api/notifications', user)).body.data.notifications.map((n) => n.taskId)).toEqual([taskId]);
+    // 기간을 바꾸면 알림이 지워지고(D-128) 지금 정한 것이라 다시 만들지 않는다
+    await post(`/api/tasks/${taskId}/update`, user, { ...body, endDate: today });
+    expect((await get('/api/notifications', user)).body.data.notifications).toEqual([]);
   });
 });

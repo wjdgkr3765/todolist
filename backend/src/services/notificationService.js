@@ -39,7 +39,8 @@ export async function notifyUnreadChanged(userId) {
   }
 }
 
-// 마감 임박 알림 만들기 (D-128, D-138): 오늘(한국 시간)이 종료일 전날이거나 종료일이고, 아직 기한 지남이 아닌 대기·진행 작업
+// 마감 임박 알림 만들기 (D-128, D-138, D-166): 오늘(한국 시간)이 종료일 전날이거나 종료일이고, 아직 기한 지남이 아닌 대기·진행 작업.
+// 기간을 정한 시각이 이미 구간 안이면 빼고 시간이 흘러 구간에 들어온 작업만
 async function createDueSoonNotifications(pool, userId) {
   const today = koreaToday();
   const tomorrow = addDays(today, 1);
@@ -53,6 +54,8 @@ async function createDueSoonNotifications(pool, userId) {
             WHERE t.status IN ('waiting', 'progress') AND t.is_period_undecided = 0
               AND (t.end_date = @tomorrow
                    OR (t.end_date = @today AND (t.end_time IS NULL OR t.end_time > CAST(@nowTime AS TIME(0)))))
+              -- 기간을 정한 때 이미 알림 구간(종료일 전날 00시, 한국 시간 = UTC 전날 15시) 안이었으면 만들지 않는다 (D-166)
+              AND t.period_update_date < DATEADD(HOUR, -9, CAST(DATEADD(DAY, -1, t.end_date) AS DATETIME2))
               AND (t.user_id = @userId
                    OR EXISTS (SELECT 1 FROM task_assignees a WHERE a.task_id = t.id AND a.user_id = @userId))
               AND NOT EXISTS (SELECT 1 FROM notifications n

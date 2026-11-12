@@ -132,10 +132,13 @@ export async function updateTask(user, taskId, input, status, assigneeUserIds) {
       return { space, isChanged: false };
     }
     if (isContentChanged) {
+      // 기간을 바꾸면 기간을 정한 시각도 바꾼다 (마감 임박 알림, D-166)
       await bindPeriod(new sql.Request(transaction), input).input('id', sql.BigInt, taskId)
+        .input('isPeriodChanged', sql.Bit, isPeriodChanged)
         .query(`UPDATE tasks SET title = @title, content = @content, start_date = CAST(@startDate AS DATE), end_date = CAST(@endDate AS DATE),
                   start_time = CAST(@startTime AS TIME(0)), end_time = CAST(@endTime AS TIME(0)),
-                  is_period_undecided = @isUndecided, update_date = SYSUTCDATETIME()
+                  is_period_undecided = @isUndecided, update_date = SYSUTCDATETIME(),
+                  period_update_date = CASE WHEN @isPeriodChanged = 1 THEN SYSUTCDATETIME() ELSE period_update_date END
                 WHERE id = @id`);
     }
     if (isAssigneeChanged) {

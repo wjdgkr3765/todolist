@@ -132,7 +132,8 @@ CREATE TABLE tasks (
     team_id             BIGINT         NULL,                              -- 팀 공간 (개인 공간이면 NULL)
     is_period_undecided BIT            NOT NULL DEFAULT 0,                -- 기간 미정 여부
     done_date           DATETIME2      NULL,                              -- 완료 공간으로 옮긴 시각 (UTC, 완료가 아니면 NULL)
-    update_date         DATETIME2      NULL,                              -- 마지막 수정 시각 (UTC, 순서만 바꾼 경우는 기록하지 않음)
+    period_update_date  DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(), -- 기간을 정한 시각 (UTC, 작업 시작 또는 기간 변경, D-166)
+    update_date        DATETIME2      NULL,                              -- 마지막 수정 시각 (UTC, 순서만 바꾼 경우는 기록하지 않음)
     create_date         DATETIME2      NOT NULL DEFAULT SYSUTCDATETIME(), -- 작업 시작 시각 (UTC)
 
     FOREIGN KEY (user_id) REFERENCES users(id),
