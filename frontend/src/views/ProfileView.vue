@@ -246,7 +246,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
             <div class="control" :class="{ 'is-invalid': nicknameError }"><span class="control-icon"><i class="bi bi-emoji-smile"></i></span>
               <input id="nickname-input" v-model="nickname" type="text" maxlength="8" @input="nicknameError = ''" @keydown.enter.prevent="saveNickname" />
             </div>
-            <button type="button" class="btn-side" :disabled="!isNicknameChanged || isNicknameSaving" @click="saveNickname">
+            <button tabindex="-1" type="button" class="btn-side" :disabled="!isNicknameChanged || isNicknameSaving" @click="saveNickname">
               <LoadingLabel :is-loading="isNicknameSaving" loading-text="저장 중..." text="저장" />
             </button>
           </div>
@@ -268,7 +268,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
             <div class="control" :class="{ 'is-invalid': phoneError }"><span class="control-icon"><i class="bi bi-phone"></i></span>
               <input id="phone-input" v-model="phone" type="tel" inputmode="numeric" maxlength="11" @input="onPhoneInput" @keydown.enter.prevent="savePhone" />
             </div>
-            <button type="button" class="btn-side" :disabled="!isPhoneChanged || isPhoneSaving" @click="savePhone">
+            <button tabindex="-1" type="button" class="btn-side" :disabled="!isPhoneChanged || isPhoneSaving" @click="savePhone">
               <LoadingLabel :is-loading="isPhoneSaving" loading-text="저장 중..." text="저장" />
             </button>
           </div>
@@ -283,7 +283,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
           <div class="control" :class="{ 'is-invalid': passwordErrors.current }"><span class="control-icon"><i class="bi bi-lock"></i></span>
             <input id="current-password" v-model="passwords.current" :type="visible.current ? 'text' : 'password'" maxlength="15" placeholder="현재 비밀번호"
               autocomplete="current-password" @input="passwordErrors.current = ''" />
-            <span class="control-suffix"><button type="button" class="icon-button" :aria-label="visible.current ? '비밀번호 숨기기' : '비밀번호 보기'"
+            <span class="control-suffix"><button tabindex="-1" type="button" class="icon-button" :aria-label="visible.current ? '비밀번호 숨기기' : '비밀번호 보기'"
               @click="visible.current = !visible.current"><i class="bi" :class="visible.current ? 'bi-eye-slash' : 'bi-eye'"></i></button></span>
           </div>
           <div v-if="passwordErrors.current" class="message is-error"><i class="bi bi-exclamation-circle"></i>{{ passwordErrors.current }}</div>
@@ -293,7 +293,7 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
           <div class="control" :class="{ 'is-invalid': passwordErrors.next }"><span class="control-icon"><i class="bi bi-lock"></i></span>
             <input id="new-password" v-model="passwords.next" :type="visible.next ? 'text' : 'password'" maxlength="15" placeholder="영어, 숫자, 특수문자를 모두 포함 8~15자"
               autocomplete="new-password" @blur="checkPasswordField('next')" />
-            <span class="control-suffix"><button type="button" class="icon-button" :aria-label="visible.next ? '비밀번호 숨기기' : '비밀번호 보기'"
+            <span class="control-suffix"><button tabindex="-1" type="button" class="icon-button" :aria-label="visible.next ? '비밀번호 숨기기' : '비밀번호 보기'"
               @click="visible.next = !visible.next"><i class="bi" :class="visible.next ? 'bi-eye-slash' : 'bi-eye'"></i></button></span>
           </div>
           <div v-if="passwordErrors.next" class="message is-error"><i class="bi bi-exclamation-circle"></i>{{ passwordErrors.next }}</div>

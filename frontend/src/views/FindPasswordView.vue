@@ -143,7 +143,7 @@ async function submit() {
               <input id="new-password" ref="passwordInput" v-model="form.password" :type="isPasswordVisible ? 'text' : 'password'" maxlength="15"
                 placeholder="영어, 숫자, 특수문자를 모두 포함 8~15자" autocomplete="new-password" :disabled="isDone" @blur="checkPasswordField('password')" />
               <span class="control-suffix">
-                <button type="button" class="icon-button" :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'" :disabled="isDone"
+                <button tabindex="-1" type="button" class="icon-button" :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'" :disabled="isDone"
                   @click="isPasswordVisible = !isPasswordVisible"><i class="bi" :class="isPasswordVisible ? 'bi-eye-slash' : 'bi-eye'"></i></button>
               </span>
             </div>

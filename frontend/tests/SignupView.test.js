@@ -303,3 +303,12 @@ describe('가입하기', () => {
     expect(wrapper.find('.btn-submit').attributes('disabled')).toBeUndefined();
   });
 });
+
+describe('Tab 이동 (D-165)', () => {
+  test('Tab 은 입력칸과 [가입하기]만 거친다. 입력칸 옆 버튼·비밀번호 보기는 건너뛴다', async () => {
+    const { wrapper } = await mountView();
+    const tabbable = [...wrapper.element.querySelectorAll('input, button')].filter((el) => el.tabIndex >= 0 && !el.disabled);
+    expect(tabbable.map((el) => el.id || el.className)).toEqual(['login-id', 'password', 'password-confirm', 'nickname', 'email', 'phone', 'btn-submit']);
+    expect(wrapper.findAll('button[tabindex="-1"]').map((b) => b.text() || b.attributes('aria-label'))).toEqual(['중복 확인', '비밀번호 보기', '인증번호 발송']);
+  });
+});

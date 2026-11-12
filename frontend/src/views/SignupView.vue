@@ -307,7 +307,7 @@ async function handleSubmitError(error) {
                   placeholder="영어와 숫자를 모두 포함 6~15자" autocomplete="username" :disabled="isLocked" @input="onLoginIdInput" />
                 <span v-if="isIdChecked" class="control-suffix"><span class="valid-mark"><i class="bi bi-check-circle-fill"></i></span></span>
               </div>
-              <button type="button" class="btn-soft" :disabled="loading.checkId || isLocked" @click="checkLoginId">
+              <button tabindex="-1" type="button" class="btn-soft" :disabled="loading.checkId || isLocked" @click="checkLoginId">
                 <LoadingLabel :is-loading="loading.checkId" loading-text="확인 중" text="중복 확인" />
               </button>
             </div>
@@ -324,7 +324,7 @@ async function handleSubmitError(error) {
                 maxlength="15" placeholder="영어, 숫자, 특수문자를 모두 포함 8~15자" autocomplete="new-password" :disabled="isLocked"
                 @blur="checkField('password')" />
               <span class="control-suffix">
-                <button type="button" class="icon-button" :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
+                <button tabindex="-1" type="button" class="icon-button" :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
                   :disabled="isLocked" @click="isPasswordVisible = !isPasswordVisible">
                   <i class="bi" :class="isPasswordVisible ? 'bi-eye-slash' : 'bi-eye'"></i>
                 </button>
@@ -369,16 +369,16 @@ async function handleSubmitError(error) {
                   @input="onEmailInput" />
                 <span v-if="verification.isVerified" class="control-suffix"><span class="valid-mark"><i class="bi bi-patch-check-fill"></i></span></span>
               </div>
-              <button v-if="!verification.isCodeSent && !verification.isVerified" type="button" class="btn-soft"
+              <button tabindex="-1" v-if="!verification.isCodeSent && !verification.isVerified" type="button" class="btn-soft"
                 :disabled="loading.sendCode || isLocked" @click="sendCode">
                 <LoadingLabel :is-loading="loading.sendCode" loading-text="발송 중" text="인증번호 발송" />
               </button>
-              <button v-if="verification.isCodeSent && !verification.isVerified" type="button" class="btn-soft"
+              <button tabindex="-1" v-if="verification.isCodeSent && !verification.isVerified" type="button" class="btn-soft"
                 :disabled="isResendWaiting || loading.sendCode || isLocked" @click="sendCode">
                 <LoadingLabel :is-loading="loading.sendCode" loading-text="발송 중"
                   :text="isResendWaiting ? `재발송 ${formatSeconds(resendSeconds)}` : '재발송'" />
               </button>
-              <button v-if="verification.isVerified" type="button" class="btn-ghost" :disabled="isLocked" @click="changeEmail">변경</button>
+              <button tabindex="-1" v-if="verification.isVerified" type="button" class="btn-ghost" :disabled="isLocked" @click="changeEmail">변경</button>
             </div>
             <div v-if="verification.isCodeSent && !verification.isVerified && !errors.email && !errors.code" class="message is-info">
               <i class="bi bi-send"></i>인증번호를 보냈습니다. 메일을 확인해 주세요.
@@ -395,7 +395,7 @@ async function handleSubmitError(error) {
                   @input="onCodeInput" @keydown.enter.prevent="verifyCode" />
                 <span class="control-suffix"><span class="timer-pill">{{ formatSeconds(remainingSeconds) }}</span></span>
               </div>
-              <button type="button" class="btn-soft" :disabled="!isCodeComplete || loading.verifyCode || isLocked" @click="verifyCode">
+              <button tabindex="-1" type="button" class="btn-soft" :disabled="!isCodeComplete || loading.verifyCode || isLocked" @click="verifyCode">
                 <LoadingLabel :is-loading="loading.verifyCode" loading-text="확인 중" text="확인" />
               </button>
             </div>

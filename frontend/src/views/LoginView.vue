@@ -106,7 +106,7 @@ async function handleLoginError(error) {
               <input id="password" :ref="setInputRef('password')" v-model="form.password" :type="isPasswordVisible ? 'text' : 'password'"
                 maxlength="15" placeholder="비밀번호" autocomplete="current-password" @input="onInput('password')" />
               <span class="control-suffix">
-                <button type="button" class="icon-button" :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
+                <button tabindex="-1" type="button" class="icon-button" :aria-label="isPasswordVisible ? '비밀번호 숨기기' : '비밀번호 보기'"
                   @click="isPasswordVisible = !isPasswordVisible">
                   <i class="bi" :class="isPasswordVisible ? 'bi-eye-slash' : 'bi-eye'"></i>
                 </button>
