@@ -30,7 +30,7 @@
 ### 일정관리 협업 시스템 (프로젝트 전체)
 - 목표: overview.md 핵심 기능 14개 전체를 loop.md 순서(설계 → 와이어프레임 → 구현 → 보안 체크)로 완성한다
 - 범위: 프로젝트 전체
-- 현재 단계: 3. 구현 (진행 중, 2026-11-12 시작). 승인 뒤 추가한 일일보고(D-150)도 설계·와이어프레임 승인 완료 (2026-11-11), 구현 범위에 포함 (우선순위 14)
+- 현재 단계: 3. 구현 (14개 기능 구현 완료, 사용자 승인 요청 중, 2026-11-12 시작). 승인 뒤 추가한 일일보고(D-150)도 설계·와이어프레임 승인 완료 (2026-11-11), 구현 범위에 포함 (우선순위 14)
 - 단계 승인: 설계(승인 완료, 2026-11-11), 와이어프레임(승인 완료, 2026-11-11), 구현(승인 전), 보안 체크(승인 전)
 - 진행 상황:
   - 끝낸 것: 이전 프로젝트 기획/설계(project_design.md)를 문서에 반영 (2026-11-11, D-082). 상세 설계가 끝난 기능은 회원가입, 로그인/로그아웃, 공통 레이아웃, 작업 페이지 - 할일 목록, 작업 페이지 - 칸반보드이고, 화면 문서 4개(LoginView, SignupView, MainLayout, TaskView)를 만들었다
@@ -57,7 +57,9 @@
   - 확인 못 한 것: pane 이 숨겨져 requestAnimationFrame 이 돌지 않아, 한 칸에 작업이 여러 개일 때 막대가 세로로 쌓이는지(위치 계산)는 확인하지 못함 (모두 top 0 으로 겹쳐 보임). 승인 요청 때 사용자에게 화면으로 확인을 부탁한다
   - 우선순위 12 아이디/비밀번호 찾기 완료 (2026-11-12): API find-id·reset-password(로그인 무효·실시간 끊기 D-116). 프론트엔드 FindIdView·FindPasswordView, 공통 EmailVerifyField (회원가입 화면은 이미 확인을 마쳐 그대로 둠). 화면 이동 상태는 router.options.history.state 로 읽도록 LoginView 도 고침. 테스트: 백엔드 269개, 프론트엔드 153개. 브라우저에서 화면·빈 값 검사 확인 (인증 메일은 보내지 않음)
   - 우선순위 13 회원정보 수정/탈퇴 완료 (2026-11-12): API 6.11 전부 (현재 비밀번호 확인은 로그인과 같은 실패 제한을 쓰도록 sessionService 의 checkPasswordWithLimit 으로 떼어냄, 탈퇴 7단계 한 트랜잭션, 막는 팀은 오류 응답 teams 로). 프론트엔드 ProfileView, EmailVerifyField 에 인증번호 줄 붙이기·발송 잠금 옵션, API 오류의 추가 필드 전달. 테스트: 백엔드 279개, 프론트엔드 161개
-  - 브라우저 pane 이 숨겨져 있으면 화면 크기가 0 으로 잡혀 높이 값이 줄어 보인다. 크기 확인은 resize_window 로 1280x800 을 지정한 뒤 한다
+  - 우선순위 14 일일보고 완료 (2026-11-12): API 6.12 전부 + POST /api/users/me/report-carry-over, 저장·양식 저장만 본문 512kb, team:reports-changed (submit/update). sanitize-html 2.18.1 설치(npm audit 0). 허용하지 않은 링크는 sanitize-html 이 태그 이름을 바꾸면 닫는 태그를 잘못 쓰는 문제가 있어 속성 없는 span 으로 바꿔 글자만 남긴다. 프론트엔드 DailyReportView + ReportEditor·ReportToolbar·ReportTemplateModal(vuedraggable), ComingSoonView 삭제. 테스트: 백엔드 323개(실제 DB), 프론트엔드 181개, 빌드. 브라우저(1280x800·800px)에서 도구 막대·표 셀 배경색/정렬·링크 검사·임시저장/제출/수정 제출·남의 보고 읽기·실시간 반영·나가기 확인창·다시 불러오기·새 양식 적용·이어받기·양식 설정 모달·좁은 화면·팀원 권한·없는 팀 확인. 브라우저에서 찾아 고친 버그: 양식 모달이 반응형 객체를 structuredClone 해 열리지 않음 (JSON 복사로 바꿈)
+  - 전체 체크리스트 (2026-11-12): 코드 검토(파일 700줄 이하, v-html·innerHTML 없음), 빌드, 백엔드 323·프론트엔드 181 통과, npm audit 0 (백엔드·프론트엔드), git status 에 dist·.env 없음
+  - 브라우저 pane 이 숨겨져 있으면 화면 크기가 0 으로 잡혀 높이 값이 줄어 보인다. 크기 확인은 resize_window 로 1280x800 을 지정한 뒤 한다. 숨겨진 동안은 클릭·포커스·크기 변경 이벤트도 오지 않아 페이지 안 스크립트(버튼 click(), Tiptap 명령, focus 이벤트 보내기)로 확인했다
   - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 사용자가 작성 (아직 없음)
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 로그인 테스트 "잠금 남은 시간" 1회 실패 (2026-11-12) — 잠금 시각은 DB 시계, 남은 시간은 Node 시계로 계산해 10분이 11분으로 나옴. 남은 초를 DB 에서 계산하도록 고친 뒤 3회 연속 통과
@@ -87,9 +89,9 @@
 
 ## 세션 인계
 
-- **마지막 갱신**: 2026-11-12 (사용자 요청으로 중단, 오후 1시 10분 이후 다시 시작)
-- **현재 상태**: 3. 구현 진행 중. 우선순위 1~13 완료·커밋·푸시 (마지막 커밋 6cc3370). 우선순위 14 일일보고는 api.md 6.12 를 읽기 시작한 단계로 코드는 아직 없음. 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
-- **다음에 할 일**: 우선순위 14 일일보고 — ① DailyReportView_screen.md, docs/mockups/daily_report_view.html·.js, decision.md D-150~D-163 읽기 ② 백엔드: sanitize-html 2.18.1 설치, 보고 현황·보고 읽기·오늘 보고·새 양식 초안·구역 다시 불러오기·저장(본문 512kb)·양식 읽기/저장·이어받기 설정 (api.md 6.12), team:reports-changed ③ 프론트엔드: Tiptap 3.32.0 으로 DailyReportView, 라우터 reports 연결, ComingSoonView 지우기 ④ 기능 체크리스트 → 전체 체크리스트 → 승인 요청. 승인 요청 때 캘린더 막대가 세로로 쌓이는지 사용자 화면 확인을 부탁한다
+- **마지막 갱신**: 2026-11-12
+- **현재 상태**: 3. 구현 — 핵심 기능 14개 모두 구현, 전체 체크리스트 통과, 커밋·푸시. 사용자에게 구현 단계 승인 요청함 (14개 한 번에)
+- **다음에 할 일**: 사용자 승인 결과 반영. 승인되면 todo.md "단계 승인"에 구현 승인 날짜를 적고 4. 보안 체크(security.md 11)를 시작한다. 사용자에게 부탁한 화면 확인: 캘린더 한 칸에 작업이 여러 개일 때 막대가 세로로 쌓이는지, 일일보고 도구 막대가 실제 마우스 클릭으로 뜨는지 (pane 이 숨겨져 직접 클릭으로는 확인 못 함)
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)

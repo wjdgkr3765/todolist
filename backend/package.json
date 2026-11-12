@@ -17,6 +17,7 @@
     "express": "5.3.0",
     "mssql": "12.7.14",
     "nodemailer": "10.3.1",
+    "sanitize-html": "2.18.1",
     "socket.io": "4.8.4"
   },
   "devDependencies": {

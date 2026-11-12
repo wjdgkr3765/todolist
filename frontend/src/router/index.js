@@ -9,14 +9,13 @@ import { disconnectRealtime } from '../realtime/socket.js';
 export const HOME_PATH = '/personal/tasks';
 export const LOGIN_PATH = '/login';
 
-const ComingSoonView = () => import('../views/ComingSoonView.vue');
-// 공통 레이아웃 안 화면. 아직 만들지 않은 화면은 ComingSoonView 로 둔다
+// 공통 레이아웃 안 화면
 const VIEWS = {
   tasks: () => import('../views/TaskView.vue'),
   calendar: () => import('../views/CalendarView.vue'),
   history: () => import('../views/HistoryView.vue'),
   info: () => import('../views/TeamInfoView.vue'),
-  reports: ComingSoonView,
+  reports: () => import('../views/DailyReportView.vue'),
   profile: () => import('../views/ProfileView.vue'),
 };
 

@@ -56,6 +56,27 @@ describe('실시간 연결', () => {
     emitToTeam(team.teamId, 'team:todos-changed', { teamId: team.teamId });
     expect(await teamEvent).toEqual({ teamId: team.teamId });
   });
+  test('일일보고: 제출 submit, 수정 제출 update 를 팀 방에 보낸다. 임시저장은 보내지 않는다 (D-159)', async () => {
+    const user = await loginTestUser(app);
+    const team = (await request(app).post('/api/teams').set('Cookie', user.cookie).send({ name: 'vt보고실시간' })).body.data;
+    const socket = connect(user.cookie);
+    await once(socket, 'connect');
+    const events = [];
+    socket.on('team:reports-changed', (data) => events.push(data));
+    const base = `/api/teams/${team.teamId}/reports`;
+    const { report } = (await request(app).get(`${base}/today`).set('Cookie', user.cookie)).body.data;
+    const body = (action) => ({ reportDate: report.reportDate, action, header: report.header, sections: report.sections });
+    await request(app).post(`${base}/today/save`).set('Cookie', user.cookie).send(body('draft'));
+    const submitted = once(socket, 'team:reports-changed');
+    const saved = (await request(app).post(`${base}/today/save`).set('Cookie', user.cookie).send(body('submit'))).body.data;
+    expect(await submitted).toEqual({
+      teamId: team.teamId, reportDate: report.reportDate, reportId: saved.reportId, userId: user.userId, action: 'submit', actorUserId: user.userId,
+    });
+    const updated = once(socket, 'team:reports-changed');
+    await request(app).post(`${base}/today/save`).set('Cookie', user.cookie).send(body('submit'));
+    expect((await updated).action).toBe('update');
+    expect(events.map((event) => event.action)).toEqual(['submit', 'update']);
+  });
   test('읽음 처리 → notifications:changed', async () => {
     const user = await loginTestUser(app);
     const socket = connect(user.cookie);

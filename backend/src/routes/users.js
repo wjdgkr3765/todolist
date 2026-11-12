@@ -12,6 +12,7 @@ import { SESSION_COOKIE_NAME } from '../services/sessionService.js';
 import {
   changeEmail, changeNickname, changePassword, changePhone, getMe, withdraw, withdrawalCheck,
 } from '../services/profileService.js';
+import { setReportCarryOver } from '../services/reportService.js';
 
 export const usersRouter = Router();
 
@@ -97,6 +98,15 @@ usersRouter.post('/me/password', requireLogin, async (req, res) => {
 
 usersRouter.get('/me/withdrawal-check', requireLogin, async (req, res) => {
   res.json({ data: await withdrawalCheck(req.user.userId) });
+});
+
+// api.md 6.12 일일보고 지난 보고 이어받기 (D-156)
+usersRouter.post('/me/report-carry-over', requireLogin, async (req, res) => {
+  const { isOn } = requireBodyObject(req.body);
+  if (typeof isOn !== 'boolean') {
+    throw invalidInput();
+  }
+  res.json({ data: await setReportCarryOver(req.user.userId, isOn) });
 });
 
 usersRouter.post('/me/withdraw', requireLogin, async (req, res) => {

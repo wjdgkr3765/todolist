@@ -9,7 +9,10 @@ import { teamsRouter } from './routes/teams.js';
 import { notificationsRouter } from './routes/notifications.js';
 import { workRouter } from './routes/work.js';
 import { calendarRouter } from './routes/calendar.js';
+import { reportsRouter } from './routes/reports.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+
+const LARGE_BODY_PATH = /^\/api\/teams\/[^/]+\/(reports\/today\/save|report-template\/update)$/;
 
 export function createApp() {
   const app = express();
@@ -22,7 +25,10 @@ export function createApp() {
     next();
   });
 
-  app.use(express.json({ limit: '100kb' }));
+  // 요청 본문 100kb. 일일보고 저장·양식 저장만 512kb (api.md 6.12, D-161)
+  const smallJson = express.json({ limit: '100kb' });
+  const largeJson = express.json({ limit: '512kb' });
+  app.use((req, res, next) => (LARGE_BODY_PATH.test(req.path) ? largeJson : smallJson)(req, res, next));
   app.use(cookieParser());
 
   app.use('/api/health', healthRouter);
@@ -34,6 +40,7 @@ export function createApp() {
   // 할일·작업: /api/personal/..., /api/teams/{id}/todos·tasks, /api/todos/..., /api/tasks/...
   app.use('/api', workRouter);
   app.use('/api', calendarRouter);
+  app.use('/api', reportsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
