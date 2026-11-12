@@ -87,9 +87,9 @@
 
 ## 세션 인계
 
-- **마지막 갱신**: 2026-11-12
-- **현재 상태**: 3. 구현 진행 중. 우선순위 1~13 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
-- **다음에 할 일**: 우선순위 14 일일보고 (DailyReportView, api.md 6.12, sanitize-html 백엔드, Tiptap 프론트엔드, team:reports-changed) → ComingSoonView 지우기 → 전체 체크리스트 → 승인 요청 (캘린더 막대 쌓임은 사용자 화면 확인 부탁)
+- **마지막 갱신**: 2026-11-12 (사용자 요청으로 중단, 오후 1시 10분 이후 다시 시작)
+- **현재 상태**: 3. 구현 진행 중. 우선순위 1~13 완료·커밋·푸시 (마지막 커밋 6cc3370). 우선순위 14 일일보고는 api.md 6.12 를 읽기 시작한 단계로 코드는 아직 없음. 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
+- **다음에 할 일**: 우선순위 14 일일보고 — ① DailyReportView_screen.md, docs/mockups/daily_report_view.html·.js, decision.md D-150~D-163 읽기 ② 백엔드: sanitize-html 2.18.1 설치, 보고 현황·보고 읽기·오늘 보고·새 양식 초안·구역 다시 불러오기·저장(본문 512kb)·양식 읽기/저장·이어받기 설정 (api.md 6.12), team:reports-changed ③ 프론트엔드: Tiptap 3.32.0 으로 DailyReportView, 라우터 reports 연결, ComingSoonView 지우기 ④ 기능 체크리스트 → 전체 체크리스트 → 승인 요청. 승인 요청 때 캘린더 막대가 세로로 쌓이는지 사용자 화면 확인을 부탁한다
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)
