@@ -3,6 +3,8 @@ import { Router } from 'express';
 import { invalidInput } from '../utils/appError.js';
 import { isEmail, isVerificationCode, parsePathId, requireBodyObject } from '../utils/validation.js';
 import { isSupportedPurpose, sendVerification, verifyCode } from '../services/emailVerificationService.js';
+import { SESSION_COOKIE_NAME, findSessionUser } from '../services/sessionService.js';
+import { unauthorized } from '../middlewares/requireLogin.js';
 
 export const emailVerificationsRouter = Router();
 
@@ -18,6 +20,10 @@ emailVerificationsRouter.post('/', async (req, res) => {
     }
   } else if (loginId !== undefined) {
     throw invalidInput();
+  }
+  // 이메일 변경은 로그인한 회원만 (requireLogin 과 같은 확인)
+  if (purpose === 'change_email' && !(await findSessionUser(req.cookies?.[SESSION_COOKIE_NAME]))) {
+    throw unauthorized();
   }
   const data = await sendVerification({ email, purpose, loginId });
   res.json({ data });

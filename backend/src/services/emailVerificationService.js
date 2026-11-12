@@ -9,11 +9,12 @@ import { buildVerificationMail } from '../utils/mailTemplate.js';
 const CODE_HASH_ROUNDS = 10;
 const MAX_FAIL_COUNT = 5;
 
-// 용도별 메일 문구. change_email 은 로그인(requireLogin)이 필요해 로그인 기능을 만들 때 넣는다
+// 용도별 메일 문구. change_email 은 로그인한 회원만 (routes/emailVerifications.js 에서 확인)
 const PURPOSE_LABELS = {
   signup: '회원가입',
   find_id: '아이디 찾기',
   find_password: '비밀번호 찾기',
+  change_email: '이메일 변경',
 };
 
 export function isSupportedPurpose(purpose) {
@@ -34,7 +35,8 @@ async function checkPurpose(pool, { email, purpose, loginId }) {
   }
   const result = await request.query('SELECT TOP 1 id FROM users WHERE email = @email');
   const isRegistered = result.recordset.length > 0;
-  if (purpose === 'signup' && isRegistered) {
+  // 이메일 변경은 내 이메일도 이미 가입된 이메일로 본다 (D-129)
+  if ((purpose === 'signup' || purpose === 'change_email') && isRegistered) {
     throw new AppError(409, 'EMAIL_DUPLICATED', '이미 가입된 이메일입니다.');
   }
   if (purpose === 'find_id' && !isRegistered) {

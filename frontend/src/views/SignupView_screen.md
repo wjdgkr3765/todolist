@@ -62,8 +62,8 @@
 | 닉네임 | 입력칸 | placeholder "한글, 영어, 숫자 1~8자" | 사용자 입력 → users.nickname | maxlength 8 |
 | 이메일 | 입력칸(email) | placeholder "example@email.com" | 사용자 입력 → users.email | maxlength 100 |
 | 인증번호 발송 | 버튼 | 인증번호 발송 → (발송 후) 재발송 | POST /api/email-verifications | 이메일 옆. 재발송은 1분 뒤 활성, 그 전에는 "재발송 0:59" (회색 비활성) |
-| 인증번호 | 입력칸 | placeholder "인증번호 6자리" | 사용자 입력 | 발송 후에만 표시, maxlength 6, inputmode numeric |
-| 인증 확인 | 버튼 | 확인 | POST /api/email-verifications/{id}/verify | 인증번호 옆 |
+| 인증번호 | 입력칸 | placeholder "인증번호 6자리" | 사용자 입력 | 발송 후에만 표시, maxlength 6, inputmode numeric, 숫자 외 입력 무시 (D-164) |
+| 인증 확인 | 버튼 | 확인 | POST /api/email-verifications/{id}/verify | 인증번호 옆. 6자리를 모두 넣어야 눌린다 (D-164) |
 | 남은 시간 | 알약 배지 | 4:59 형식 카운트다운 | 발송 응답 expireDate | 인증번호 칸 안 오른쪽, 빨강 글자 + 연한 빨강 배경 |
 | 전화번호 | 입력칸(tel) | placeholder "숫자만 11자리 (예: 01012345678)" | 사용자 입력 → users.phone | maxlength 11, 숫자 외 입력 무시 |
 | 가입하기 | 버튼 | 가입하기 | POST /api/users | 기본색 그라데이션 + 녹색 그림자, 가로 꽉 차게 |

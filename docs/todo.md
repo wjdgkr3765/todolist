@@ -47,11 +47,12 @@
   - 승인 뒤 기능 추가: 일일보고 (14번째 핵심 기능, D-150~D-161). grilling 으로 결정 → 설계 문서 작성 완료 (overview.md 8.15, database.md report_templates·daily_reports·users.is_report_carry_over, api.md 6.12·6.6·6.8·6.11, spec.md Tiptap·sanitize-html, structure.md, MainLayout_screen.md 탭, DailyReportView_screen.md 새로 작성). 설계 승인 완료 (2026-11-11). 시안 daily_report_view.html + .js 완성 (Tiptap 묶음 D-162, 상태 32개, Chrome headless 로 동작·콘솔 오류 확인, 다른 시안 팀 탭에 일일보고 추가). 사용자 요청으로 표 셀 배경색·정렬 추가 (D-163). 와이어프레임 승인 완료 (2026-11-11)
   - 구현: 사용자가 구현 시작을 지시함 (2026-11-12). DB 확인 결과 todolist DB 있음, todolist_app 은 SQL 로그인이고 todolist DB 의 db_owner, 테이블 0개 (Windows 인증 sqlcmd 로 확인). backend/.env.example 작성 완료. 사용자가 DB·로그인을 다시 만들고 backend/.env 작성 완료 (키 10개 확인, todolist_app 접속 확인)
   - 우선순위 1 회원가입 (완료, 2026-11-12): 백엔드(기본 구조, health, 아이디 중복 확인, 인증번호 발송·확인, 회원가입 API)와 sql/schema.sql(트랜잭션 안에서 실행 후 되돌려 14개 생성 확인), 프론트엔드(기본 구조, theme.css, 토스트, AuthBrandPanel, SignupView) 작성. 사용자가 SSMS 에서 schema.sql 실행 (2026-11-12, 테이블 14개·인덱스 18개 확인). test.md 체크리스트: 코드 검토 1~10, 빌드, 테스트(백엔드 117개 실제 DB, 프론트엔드 55개), 화면 확인(브라우저 pane 에서 요소·크기·동작·375px, 콘솔 오류 0 — 경고 1건은 아직 없는 /login 경로), git 확인 통과. 사용자가 자기 메일로 인증 메일을 받아 끝까지 가입 성공 (users 1행, bcrypt 해시, 인증 기록 삭제 확인). 다음: 우선순위 2 로그인/로그아웃. 스크린샷은 pane 이 숨겨져 있어 찍지 못함
-  - 회원가입에서 미룬 것: 인증번호 발송 purpose=change_email (로그인 필요, 로그인/회원정보 기능 때), 로그인한 회원이 /signup 에 오면 보내기(D-051, 로그인 기능 때), /login 화면(우선순위 2)
-  - 설계에 없던 작은 화면 동작 (사용자 확인 필요): 인증번호 칸은 숫자만 받고, 6자리를 모두 넣어야 [확인] 버튼이 눌린다 (6자리가 아닐 때 보여줄 문구가 설계에 없어서)
+  - 인증번호 [확인] 버튼 동작 사용자 승인 (D-164, 2026-11-12). SignupView_screen.md 에 반영
+  - 우선순위 2 로그인/로그아웃 (완료, 2026-11-12): 백엔드 POST /api/sessions·logout, GET /api/sessions/me, requireLogin, 인증번호 change_email(로그인 필요). 프론트엔드 auth 스토어, 라우터 화면 이동 제한(D-051), 401 만료 처리(D-118), LoginView. 테스트: 백엔드 147개(실제 DB, 3회 연속), 프론트엔드 72개, 빌드 성공, 브라우저 확인(실패 상자, 로그인 → /personal/tasks, 로그인 상태에서 /signup → /personal/tasks, 로그아웃 뒤 401, httpOnly 쿠키), 콘솔은 계획된 401 만. 로그아웃 버튼은 공통 레이아웃(우선순위 3)에서 붙인다
+  - 아직 없는 화면으로 가는 링크(/personal/tasks, /find-id, /find-password)는 그 화면을 만들 때까지 vue-router 경고가 난다. 없는 주소 처리(D-119)는 /personal/tasks 를 만들 때 넣는다
   - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 사용자가 작성 (아직 없음)
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
-- 재시도 기록: 없음
+- 재시도 기록: 로그인 테스트 "잠금 남은 시간" 1회 실패 (2026-11-12) — 잠금 시각은 DB 시계, 남은 시간은 Node 시계로 계산해 10분이 11분으로 나옴. 남은 초를 DB 에서 계산하도록 고친 뒤 3회 연속 통과
 - 메모:
   - docs/mockups/ 의 시안 4개는 이전 프로젝트 시안이다. 와이어프레임 단계에서 설계와 다시 맞춰 보고 승인받는다 (D-085). 시안 안의 결정 번호는 이전 번호다 (새 번호는 decision.md D-083 표)
   - 이전 프로젝트에서 미결로 남은 것: 없음 (D-087, D-088, D-102 로 모두 결정)
@@ -79,8 +80,8 @@
 ## 세션 인계
 
 - **마지막 갱신**: 2026-11-12
-- **현재 상태**: 3. 구현 진행 중. 우선순위 1 회원가입 완료 (test.md 체크리스트 통과, 실제 메일로 가입 성공, 2026-11-12). DB 테이블 14개 생성됨 (사용자가 schema.sql 실행)
-- **다음에 할 일**: 우선순위 2 로그인/로그아웃 (LoginView, POST /api/sessions·logout·me, requireLogin, 라우터 로그인 이동 D-051, 401 처리 D-118). 그때 인증번호 change_email 용도와 /signup 로그인 회원 보내기도 넣는다. 사용자에게 인증번호 [확인] 버튼 동작(6자리 다 넣어야 눌림) 승인 여부를 받아 SignupView_screen.md 에 적는다
+- **현재 상태**: 3. 구현 진행 중. 우선순위 1 회원가입, 2 로그인/로그아웃 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). DB 테이블 14개 생성됨
+- **다음에 할 일**: 우선순위 3 공통 레이아웃 (MainLayout: 좌측 네비, 알림 종, 팀 목록, 회원 메뉴·로그아웃, 메뉴 탭). /personal/tasks 경로와 없는 주소 처리(D-119)도 이때
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)

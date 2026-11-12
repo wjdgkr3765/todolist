@@ -47,9 +47,9 @@
 |프로젝트/backend/src/server.js|HTTP 서버 시작 (포트 3000). Socket.IO 는 실시간 반영 기능 때 붙인다|
 |프로젝트/backend/src/app.js|Express 앱과 공통 처리 (본문 100kb 제한(일일보고 저장·양식 저장은 512kb), 보안 응답 헤더, 공통 오류 응답, api.md 1)|
 |프로젝트/backend/src/config/|env.js(환경 변수 읽기), db.js(mssql 연결·트랜잭션), mail.js(nodemailer 메일 발송)|
-|프로젝트/backend/src/middlewares/|errorHandler.js(없는 경로·공통 오류 응답). 로그인 확인(requireLogin)은 로그인 기능 때 만든다|
-|프로젝트/backend/src/routes/|API 경로. api.md 6.x 구역마다 나눈다 (health.js, users.js, emailVerifications.js, 이후 teams.js 등)|
-|프로젝트/backend/src/services/|업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다 (userService.js, emailVerificationService.js)|
+|프로젝트/backend/src/middlewares/|errorHandler.js(없는 경로·공통 오류 응답), requireLogin.js(로그인 확인, 401 UNAUTHORIZED)|
+|프로젝트/backend/src/routes/|API 경로. api.md 6.x 구역마다 나눈다 (health.js, users.js, emailVerifications.js, sessions.js, 이후 teams.js 등)|
+|프로젝트/backend/src/services/|업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다 (userService.js, emailVerificationService.js, sessionService.js)|
 |프로젝트/backend/src/realtime/|(구현 단계) Socket.IO 연결 인증, 방, 이벤트 보내기 (api.md 6.8)|
 |프로젝트/backend/src/utils/|appError.js(실패 응답 오류), validation.js(입력 검사), mailTemplate.js(인증 메일 본문). 이후 날짜(한국 시간 오늘), 공휴일 API 호출, 일일보고 HTML 정화(sanitize-html, D-155)|
 |프로젝트/backend/tests/|백엔드 테스트 (Vitest + supertest, test.md). setup.js(.env 읽기), helpers.js(메일 가로채기, 테스트 행 정리), 기능별 *.test.js|
@@ -59,14 +59,14 @@
 |프로젝트/frontend/vite.config.js, index.html|Vite 설정(5173, /api·/socket.io 프록시, 테스트 jsdom), 시작 HTML|
 |프로젝트/frontend/dist/|빌드 결과물 (git 제외)|
 |프로젝트/frontend/src/main.js, App.vue|Vue 앱 시작과 최상위 컴포넌트|
-|프로젝트/frontend/src/router/|index.js: vue-router 경로. 로그인 여부에 따른 이동 (D-051), 없는 주소 처리 (D-119)는 로그인 기능 때 넣는다|
-|프로젝트/frontend/src/stores/|pinia 상태: toast.js(알림 토스트). 이후 로그인 회원, 팀 목록, 알림 개수|
-|프로젝트/frontend/src/api/|client.js: API 호출 공통 처리 (서버 오류 토스트. 401 로그인 만료 D-118 은 로그인 기능 때)|
+|프로젝트/frontend/src/router/|index.js: vue-router 경로, 로그인 여부에 따른 이동 (D-051, 화면을 옮길 때마다 GET /api/sessions/me), 로그인 만료 때 로그인 화면으로 (D-118). 없는 주소 처리 (D-119)는 /personal/tasks 를 만들 때 넣는다|
+|프로젝트/frontend/src/stores/|pinia 상태: toast.js(알림 토스트), auth.js(로그인 회원). 이후 팀 목록, 알림 개수|
+|프로젝트/frontend/src/api/|client.js: API 호출 공통 처리 (서버 오류 토스트, 401 로그인 만료 D-118)|
 |프로젝트/frontend/src/utils/|validation.js: 화면 입력 검사 (서버와 같은 규칙), 남은 시간 표시|
 |프로젝트/frontend/src/realtime/|(구현 단계) socket.io-client 연결과 이벤트 받기 (api.md 6.8)|
 |프로젝트/frontend/src/components/|여러 화면이 쓰는 조각: AuthBrandPanel(인증 화면 브랜드 영역), AppToast(토스트), LoadingLabel(로딩 중 버튼 글자). 이후 KanbanBoard, TaskDetailPanel, TaskLogModal, 확인창 등|
 |프로젝트/frontend/src/assets/styles/theme.css|공통 디자인 값 (overview.md 9)과 인증 화면 카드·입력·버튼·문구 공통 스타일|
-|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue|
+|프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue|
 |프로젝트/frontend/tests/|프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
 |프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, Node 24 경로 지정)|

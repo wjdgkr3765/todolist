@@ -1,5 +1,6 @@
-// API 호출 공통 처리 (api.md 3 공통 응답 형식). 서버 오류(5xx)·연결 실패는 공통 오류 토스트를 띄운다 (overview.md 9)
-// 사용 중 로그인 만료(401) 처리(D-118)는 로그인 기능을 만들 때 넣는다
+// API 호출 공통 처리 (api.md 3 공통 응답 형식)
+// - 서버 오류(5xx)·연결 실패: 공통 오류 토스트 (overview.md 9)
+// - 401: 로그인 만료 토스트 후 로그인 화면 (D-118). 로그인 API 와 로그인 확인(GET /api/sessions/me)은 화면이 직접 처리한다
 import { useToastStore } from '../stores/toast.js';
 
 export class ApiError extends Error {
@@ -8,6 +9,14 @@ export class ApiError extends Error {
     this.status = status;
     this.code = code;
   }
+}
+
+const PATHS_WITHOUT_EXPIRE_HANDLING = ['/api/sessions', '/api/sessions/me'];
+let onSessionExpired = null;
+
+// 로그인 만료 때 할 일 (router/index.js 에서 정한다)
+export function setSessionExpiredHandler(handler) {
+  onSessionExpired = handler;
 }
 
 // method: 'GET' | 'POST', path: '/api/...', options: { query, body }
@@ -33,6 +42,9 @@ export async function apiRequest(method, path, { query, body } = {}) {
   const error = payload?.error;
   if (response.status >= 500 || !error) {
     useToastStore().showServerError();
+  } else if (response.status === 401 && !PATHS_WITHOUT_EXPIRE_HANDLING.includes(path)) {
+    useToastStore().show('error', '로그인이 만료되었습니다. 다시 로그인해 주세요.');
+    await onSessionExpired?.();
   }
   throw new ApiError(response.status, error?.code ?? 'INTERNAL_ERROR', error?.message ?? '');
 }

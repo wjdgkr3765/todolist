@@ -4,6 +4,7 @@ import cookieParser from 'cookie-parser';
 import { healthRouter } from './routes/health.js';
 import { usersRouter } from './routes/users.js';
 import { emailVerificationsRouter } from './routes/emailVerifications.js';
+import { sessionsRouter } from './routes/sessions.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 export function createApp() {
@@ -23,6 +24,7 @@ export function createApp() {
   app.use('/api/health', healthRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/email-verifications', emailVerificationsRouter);
+  app.use('/api/sessions', sessionsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);
