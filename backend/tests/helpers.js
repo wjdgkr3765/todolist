@@ -28,7 +28,20 @@ export async function runSql(query, params = {}) {
   return request.query(query);
 }
 
+// 테스트 팀: 이름이 vt 로 시작하고 테스트 회원(vt…@example.com)만 속한 팀
+const TEST_TEAMS = `(SELECT t.id FROM teams t WHERE t.name LIKE 'vt%' AND NOT EXISTS (SELECT 1 FROM team_members m JOIN users u ON u.id = m.user_id WHERE m.team_id = t.id AND u.email NOT LIKE 'vt%@example.com'))`;
+
 export async function cleanupTestRows() {
+  await runSql(`DELETE FROM notifications WHERE task_id IN (SELECT id FROM tasks WHERE team_id IN ${TEST_TEAMS}
+                 OR user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com'))`);
+  await runSql(`DELETE FROM teams WHERE id IN ${TEST_TEAMS}`);
+  await runSql("DELETE FROM notifications WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com') OR sender_user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
+  await runSql("DELETE FROM tasks WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
+  await runSql("DELETE FROM todos WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
+  await runSql("DELETE FROM team_invite_declines WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
+  await runSql("DELETE FROM task_assignees WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
+  await runSql("DELETE FROM team_members WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
+  await runSql("UPDATE daily_reports SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
   await runSql("DELETE FROM email_verifications WHERE email LIKE 'vt%@example.com'");
   await runSql("DELETE FROM login_tokens WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
   await runSql("DELETE FROM users WHERE email LIKE 'vt%@example.com'");
@@ -69,3 +82,11 @@ export function sessionCookie(res) {
 }
 
 export { sql };
+
+// 로그인한 테스트 회원: { ...user, cookie }
+export async function loginTestUser(app, password = 'abcd123!') {
+  const request = (await import('supertest')).default;
+  const user = await createTestUser(password);
+  const res = await request(app).post('/api/sessions').send({ loginId: user.loginId, password });
+  return { ...user, cookie: sessionCookie(res) };
+}

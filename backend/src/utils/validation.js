@@ -56,6 +56,18 @@ export function parsePathId(text) {
   return id;
 }
 
+// 팀 이름: 앞뒤 공백을 지우고 1~20자 (D-071). 틀리면 400
+export function readTeamName(value) {
+  if (typeof value !== 'string') {
+    throw invalidInput();
+  }
+  const name = value.trim();
+  if (name.length < 1 || name.length > 20) {
+    throw invalidInput();
+  }
+  return name;
+}
+
 // 요청 본문이 JSON 객체인지 확인한다
 export function requireBodyObject(body) {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {

@@ -8,6 +8,9 @@ import { createAppRouter } from '../src/router/index.js';
 import { apiRequest } from '../src/api/client.js';
 import { useAuthStore } from '../src/stores/auth.js';
 
+// 실시간 연결은 이 테스트에서 쓰지 않는다
+vi.mock('../src/realtime/socket.js', () => ({ connectRealtime: vi.fn(), disconnectRealtime: vi.fn(), onRealtime: vi.fn(() => () => {}) }));
+
 const ME = { userId: 1, loginId: 'todo2026', nickname: '홍길동', email: 'user@example.com' };
 const ok = (data) => ({ ok: true, status: 200, json: async () => ({ data }) });
 const fail = (status, code, message = '') => ({ ok: false, status, json: async () => ({ error: { code, message } }) });
@@ -16,7 +19,11 @@ let fetchMock;
 let handlers;
 
 beforeEach(() => {
-  handlers = { 'GET /api/sessions/me': () => fail(401, 'UNAUTHORIZED') };
+  handlers = {
+    'GET /api/sessions/me': () => fail(401, 'UNAUTHORIZED'),
+    'GET /api/teams': () => ok({ teams: [] }),
+    'GET /api/notifications': () => ok({ notifications: [], unreadCount: 0 }),
+  };
   fetchMock = vi.fn(async (url, options = {}) => {
     const key = `${options.method} ${url.split('?')[0]}`;
     if (!handlers[key]) {
@@ -25,8 +32,6 @@ beforeEach(() => {
     return handlers[key](url, options);
   });
   vi.stubGlobal('fetch', fetchMock);
-  // 로그인 후 화면(/personal/tasks)은 아직 없으므로 경고를 숨긴다
-  vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -76,7 +81,9 @@ describe('로그인 화면', () => {
   });
   test('성공 → 로딩 표시 후 로그인 후 화면(/personal/tasks)으로', async () => {
     let resolveLogin;
-    handlers['POST /api/sessions'] = () => new Promise((resolve) => { resolveLogin = resolve; });
+    handlers['POST /api/sessions'] = () => new Promise((resolve) => {
+      resolveLogin = (value) => { handlers['GET /api/sessions/me'] = () => ok(ME); resolve(value); };
+    });
     const { wrapper, router } = await mountAt('/login');
     await wrapper.find('#login-id').setValue('todo2026');
     await wrapper.find('#password').setValue('abcd123!');
@@ -85,8 +92,8 @@ describe('로그인 화면', () => {
     expect(wrapper.find('.btn-submit').text()).toBe('로그인 중...');
     expect(wrapper.find('.btn-submit').attributes('disabled')).toBeDefined();
     resolveLogin(ok(ME));
-    await flushPromises();
-    expect(router.currentRoute.value.path).toBe('/personal/tasks');
+    // 레이아웃 화면 파일을 처음 불러오는 시간이 걸린다
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/personal/tasks'), { timeout: 5000 });
     expect(useAuthStore().user).toEqual(ME);
   });
   test('LOGIN_FAILED → 오류 상자, 비밀번호 비우고 포커스. 입력하면 오류 상자 지움', async () => {

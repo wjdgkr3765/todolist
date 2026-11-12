@@ -49,7 +49,9 @@
   - 우선순위 1 회원가입 (완료, 2026-11-12): 백엔드(기본 구조, health, 아이디 중복 확인, 인증번호 발송·확인, 회원가입 API)와 sql/schema.sql(트랜잭션 안에서 실행 후 되돌려 14개 생성 확인), 프론트엔드(기본 구조, theme.css, 토스트, AuthBrandPanel, SignupView) 작성. 사용자가 SSMS 에서 schema.sql 실행 (2026-11-12, 테이블 14개·인덱스 18개 확인). test.md 체크리스트: 코드 검토 1~10, 빌드, 테스트(백엔드 117개 실제 DB, 프론트엔드 55개), 화면 확인(브라우저 pane 에서 요소·크기·동작·375px, 콘솔 오류 0 — 경고 1건은 아직 없는 /login 경로), git 확인 통과. 사용자가 자기 메일로 인증 메일을 받아 끝까지 가입 성공 (users 1행, bcrypt 해시, 인증 기록 삭제 확인). 다음: 우선순위 2 로그인/로그아웃. 스크린샷은 pane 이 숨겨져 있어 찍지 못함
   - 인증번호 [확인] 버튼 동작 사용자 승인 (D-164, 2026-11-12). SignupView_screen.md 에 반영
   - 우선순위 2 로그인/로그아웃 (완료, 2026-11-12): 백엔드 POST /api/sessions·logout, GET /api/sessions/me, requireLogin, 인증번호 change_email(로그인 필요). 프론트엔드 auth 스토어, 라우터 화면 이동 제한(D-051), 401 만료 처리(D-118), LoginView. 테스트: 백엔드 147개(실제 DB, 3회 연속), 프론트엔드 72개, 빌드 성공, 브라우저 확인(실패 상자, 로그인 → /personal/tasks, 로그인 상태에서 /signup → /personal/tasks, 로그아웃 뒤 401, httpOnly 쿠키), 콘솔은 계획된 401 만. 로그아웃 버튼은 공통 레이아웃(우선순위 3)에서 붙인다
-  - 아직 없는 화면으로 가는 링크(/personal/tasks, /find-id, /find-password)는 그 화면을 만들 때까지 vue-router 경고가 난다. 없는 주소 처리(D-119)는 /personal/tasks 를 만들 때 넣는다
+  - 우선순위 3 공통 레이아웃 (완료, 2026-11-12): 레이아웃이 쓰는 API 를 함께 만듦 — GET/POST /api/teams, POST /api/teams/{id}/move(기본 일일보고 양식 포함), 알림 GET·read·delete·accept·decline(마감 임박 알림 만들기 포함), Socket.IO 연결(쿠키 인증, user·team 방, 로그아웃·새 로그인 때 끊기). 프론트엔드 MainLayout(네비·알림 창·팀 목록 드래그·팀 만들기 모달·회원 메뉴·로그아웃·메뉴 탭), 라우터 회원 화면 경로·없는 주소(D-119)·`/` 이동, 아직 없는 메뉴 화면은 ComingSoonView(제목만). 테스트: 백엔드 182개, 프론트엔드 94개, 빌드, 브라우저(1280x800 에서 크기 값, 팀 만들기 → 팀 정보 탭, 알림 창, 회원 메뉴, 실시간 연결 인증) 확인
+  - 아직 없는 화면으로 가는 링크(/find-id, /find-password)는 그 화면을 만들 때까지 vue-router 경고가 난다
+  - 브라우저 pane 이 숨겨져 있으면 화면 크기가 0 으로 잡혀 높이 값이 줄어 보인다. 크기 확인은 resize_window 로 1280x800 을 지정한 뒤 한다
   - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 사용자가 작성 (아직 없음)
 - 관련 파일: docs/overview.md, docs/spec.md, docs/database.md, docs/api.md, docs/decision.md, docs/reference.md, docs/structure.md, frontend/src/views/LoginView_screen.md, frontend/src/views/SignupView_screen.md, frontend/src/views/TaskView_screen.md, frontend/src/layouts/MainLayout_screen.md
 - 재시도 기록: 로그인 테스트 "잠금 남은 시간" 1회 실패 (2026-11-12) — 잠금 시각은 DB 시계, 남은 시간은 Node 시계로 계산해 10분이 11분으로 나옴. 남은 초를 DB 에서 계산하도록 고친 뒤 3회 연속 통과
@@ -80,8 +82,8 @@
 ## 세션 인계
 
 - **마지막 갱신**: 2026-11-12
-- **현재 상태**: 3. 구현 진행 중. 우선순위 1 회원가입, 2 로그인/로그아웃 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). DB 테이블 14개 생성됨
-- **다음에 할 일**: 우선순위 3 공통 레이아웃 (MainLayout: 좌측 네비, 알림 종, 팀 목록, 회원 메뉴·로그아웃, 메뉴 탭). /personal/tasks 경로와 없는 주소 처리(D-119)도 이때
+- **현재 상태**: 3. 구현 진행 중. 우선순위 1~3(회원가입, 로그인/로그아웃, 공통 레이아웃) 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
+- **다음에 할 일**: 우선순위 4 작업 페이지 - 할일 목록 (TaskView, api.md 6.4). ComingSoonView 자리를 실제 화면으로 바꿔 나간다
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)

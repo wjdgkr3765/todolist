@@ -5,6 +5,8 @@ import { healthRouter } from './routes/health.js';
 import { usersRouter } from './routes/users.js';
 import { emailVerificationsRouter } from './routes/emailVerifications.js';
 import { sessionsRouter } from './routes/sessions.js';
+import { teamsRouter } from './routes/teams.js';
+import { notificationsRouter } from './routes/notifications.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 export function createApp() {
@@ -25,6 +27,8 @@ export function createApp() {
   app.use('/api/users', usersRouter);
   app.use('/api/email-verifications', emailVerificationsRouter);
   app.use('/api/sessions', sessionsRouter);
+  app.use('/api/teams', teamsRouter);
+  app.use('/api/notifications', notificationsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

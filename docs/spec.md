@@ -27,7 +27,7 @@
 |bcrypt|6.0.0|비밀번호·인증번호 해시|
 |nodemailer|10.3.1|Gmail SMTP 메일 발송|
 |cookie-parser|1.4.7|로그인 쿠키 읽기|
-|socket.io / socket.io-client|4.8.4|실시간 반영|
+|socket.io / socket.io-client|4.8.4|실시간 반영 (socket.io-client 는 백엔드 테스트에도 개발 의존성으로 쓴다)|
 |vue|3.5.45|프론트엔드 프레임워크|
 |vite / @vitejs/plugin-vue|8.3.6 / 6.0.10|빌드·개발 서버, Vue SFC|
 |vue-router|5.4.0|화면 이동|
