@@ -18,3 +18,20 @@ export function buildVerificationMail(purposeLabel, code) {
   const text = `[TODO] ${title}\n\n아래 인증번호를 입력해 주세요.\n\n${code}\n\n${NOTICE}`;
   return { subject: `[TODO] ${title}`, html, text };
 }
+
+const escapeHtml = (text) => String(text).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+// 팀 초대 안내 메일 (api.md 6.7, D-009, D-102): 인증 메일과 같은 모양. 닉네임·팀 이름은 HTML 이스케이프한다
+export function buildTeamInviteMail(senderNickname, teamName) {
+  const text = `${senderNickname}님이 ${teamName} 팀에 초대했습니다. TODO 에 로그인한 뒤 왼쪽 위 알림(종 아이콘)에서 수락하거나 거절해 주세요.`;
+  const html = `<!doctype html>
+<html lang="ko">
+<body style="margin:0;padding:24px;background:#f3f4f6;font-family:'Malgun Gothic',sans-serif;color:#111827;">
+  <div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:16px;padding:32px;">
+    <h1 style="margin:0 0 20px;font-size:22px;color:#1FAA59;">[TODO] 팀 초대 안내</h1>
+    <p style="margin:0;font-size:15px;line-height:1.6;">${escapeHtml(senderNickname)}님이 ${escapeHtml(teamName)} 팀에 초대했습니다. TODO 에 로그인한 뒤 왼쪽 위 알림(종 아이콘)에서 수락하거나 거절해 주세요.</p>
+  </div>
+</body>
+</html>`;
+  return { subject: '[TODO] 팀 초대 안내', html, text: `[TODO] 팀 초대 안내\n\n${text}` };
+}

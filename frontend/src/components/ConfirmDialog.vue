@@ -4,12 +4,15 @@ import LoadingLabel from './LoadingLabel.vue';
 
 defineProps({
   title: { type: String, required: true },
+  text: { type: String, default: '' },
   target: { type: String, default: '' },
   sub: { type: String, default: '' },
   confirmText: { type: String, default: '삭제' },
   loadingText: { type: String, default: '삭제 중...' },
   isLoading: { type: Boolean, default: false },
   isDanger: { type: Boolean, default: true },
+  isConfirmDisabled: { type: Boolean, default: false },
+  cancelText: { type: String, default: '취소' },
 });
 const emit = defineEmits(['confirm', 'cancel']);
 </script>
@@ -18,12 +21,13 @@ const emit = defineEmits(['confirm', 'cancel']);
   <div class="modal-backdrop-x" @click.self="emit('cancel')" @keydown.esc="emit('cancel')">
     <div class="modal-x" role="dialog" :aria-label="title">
       <div class="modal-title-x">{{ title }}</div>
+      <div v-if="text" class="modal-text">{{ text }}</div>
       <div v-if="target" class="confirm-target">{{ target }}</div>
       <div v-if="sub" class="modal-sub">{{ sub }}</div>
       <slot></slot>
       <div class="modal-actions">
-        <button type="button" class="btn-x btn-outline-x" @click="emit('cancel')">취소</button>
-        <button type="button" class="btn-x" :class="isDanger ? 'btn-danger-x' : 'btn-primary-x'" :disabled="isLoading" @click="emit('confirm')">
+        <button type="button" class="btn-x btn-outline-x" @click="emit('cancel')">{{ cancelText }}</button>
+        <button type="button" class="btn-x" :class="isDanger ? 'btn-danger-x' : 'btn-primary-x'" :disabled="isLoading || isConfirmDisabled" @click="emit('confirm')">
           <LoadingLabel :is-loading="isLoading" :loading-text="loadingText" :text="confirmText" />
         </button>
       </div>

@@ -15,7 +15,7 @@ const VIEWS = {
   tasks: () => import('../views/TaskView.vue'),
   calendar: ComingSoonView,
   history: ComingSoonView,
-  info: ComingSoonView,
+  info: () => import('../views/TeamInfoView.vue'),
   reports: ComingSoonView,
   profile: ComingSoonView,
 };
