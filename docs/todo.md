@@ -53,6 +53,8 @@
   - 우선순위 4·5 작업 페이지(할일 목록·칸반) 완료, 우선순위 8 팀 작업 페이지(작업자 지정·내 작업만)도 같은 화면이라 함께 완료 (2026-11-12): API 6.4 할일 전부, 6.5 작업 전부(드래그·상세 수정·삭제·수정 내역, 작업자 지정 알림, 마감 임박 알림 지우기), GET /api/teams/{id}/members. 실시간 team:todos-changed·team:tasks-changed 보내기·받기(D-103~D-105)와 끊김 띠(D-123)도 넣음. 프론트엔드 TaskView + KanbanBoard·TaskCard·TaskDetailPanel·TaskLogModal·TodoFormPanel·PeriodFields·ConfirmDialog. 테스트: 백엔드 223개, 프론트엔드 127개, 빌드. 브라우저(1440x900)에서 크기 값·기한 지남·상세·수정 검사·칸반 드래그·팀 목록 드래그 확인
   - 브라우저 확인에서 찾아 고친 버그: 칸반 카드를 놓을 때 옮긴 카드를 찾지 못해 드래그 API 를 부르지 않음 (vuedraggable end 이벤트 대신 change 이벤트로 바꿈, 팀 목록 드래그도 같게). 단위 테스트가 emit 을 직접 불러서 놓쳤던 것이라 KanbanBoard.test.js 를 더함
   - 우선순위 6·7 팀 생성/관리·팀 초대 완료, 9 실시간 반영도 팀 일일보고 이벤트를 빼고 완료 (2026-11-12): API 6.6 나머지(팀 정보·이름 수정·내보내기·역할·관리자 넘기기·탈퇴·해체, 작업자 정리 D-100·D-148), 6.7 초대·초대 목록·초대 취소(안내 메일, 24시간 재초대 금지). teams:changed removed/left/dissolved 보내기. 프론트엔드 TeamInfoView (확인창에 버튼 잠금·문구 옵션 추가). 테스트: 백엔드 239개, 프론트엔드 140개, 빌드, 브라우저(팀 정보 화면 크기 값, 팀 해체 2단계). 브라우저에서는 실제 초대 메일이 외부로 나가지 않도록 초대 발송은 하지 않음 (자동 테스트에서 메일을 가로채 확인)
+  - 우선순위 10 캘린더·11 히스토리 완료 (2026-11-12): API 6.9 캘린더·공휴일(실제 키로 호출 확인, 24시간 캐시), 6.10 히스토리. FullCalendar v7 구성을 공식 문서로 확인해 spec.md 를 고침 (@fullcalendar/vue3 + temporal-polyfill, 하위 경로 daygrid·locales/ko, @fullcalendar/core 없음). v7 내부 클래스는 무작위 이름이라 role 속성으로 스타일을 맞추고, skeleton.css 의 !important 를 같은 방식으로 덮음. 테스트: 백엔드 258개, 프론트엔드 146개. 브라우저(1440x1000)에서 칸 높이·선·막대 크기·색·+N·오늘 원 확인
+  - 확인 못 한 것: pane 이 숨겨져 requestAnimationFrame 이 돌지 않아, 한 칸에 작업이 여러 개일 때 막대가 세로로 쌓이는지(위치 계산)는 확인하지 못함 (모두 top 0 으로 겹쳐 보임). 승인 요청 때 사용자에게 화면으로 확인을 부탁한다
   - 아직 없는 화면으로 가는 링크(/find-id, /find-password)는 그 화면을 만들 때까지 vue-router 경고가 난다
   - 브라우저 pane 이 숨겨져 있으면 화면 크기가 0 으로 잡혀 높이 값이 줄어 보인다. 크기 확인은 resize_window 로 1280x800 을 지정한 뒤 한다
   - 사용자 준비 (2026-11-11 사용자 답변): SQL Server 로그인 계정 만듦, Gmail 앱 비밀번호 발급함, 공휴일 API 키 발급함. backend/.env 는 사용자가 작성 (아직 없음)
@@ -85,8 +87,8 @@
 ## 세션 인계
 
 - **마지막 갱신**: 2026-11-12
-- **현재 상태**: 3. 구현 진행 중. 우선순위 1~9 완료 (9 의 team:reports-changed 는 14 에서). 2026-11-12, 기능마다 test.md 체크리스트 통과. 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
-- **다음에 할 일**: 우선순위 10 캘린더 (CalendarView, api.md 6.9, FullCalendar v7 구성은 공식 문서로 확인 D-088, 공휴일 API 호출 주소·응답 형식 확인) → 11 히스토리 → 12 찾기 → 13 회원정보 → 14 일일보고
+- **현재 상태**: 3. 구현 진행 중. 우선순위 1~11 완료 (2026-11-12, 기능마다 test.md 체크리스트 통과). 사용자 지시: 14개 기능을 모두 구현한 뒤 결과로 한 번에 승인받는다
+- **다음에 할 일**: 우선순위 12 아이디/비밀번호 찾기 (FindIdView, FindPasswordView, api.md 6.2 find-id·reset-password) → 13 회원정보 수정/탈퇴 (ProfileView, 6.11) → 14 일일보고 (DailyReportView, 6.12) → 전체 체크리스트 → 승인 요청
 - **주의 사항**:
   - DB: localhost\SQLEXPRESS, SQL Server 인증 계정 `todolist_app` (D-034). SSMS 접속 시 "서버 인증서 신뢰" 체크 필요
   - backend/.env 는 사용자가 직접 작성한다 (AI는 키 이름만 확인). 공휴일 API 키(HOLIDAY_API_KEY)·Gmail 앱 비밀번호는 사용자가 발급받았다 (2026-11-11)

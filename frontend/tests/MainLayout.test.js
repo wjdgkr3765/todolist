@@ -222,13 +222,18 @@ describe('팀 만들기', () => {
   });
   test('만들기 → 팀 목록 맨 위, 팀 정보 탭으로 이동', async () => {
     handlers['POST /api/teams'] = () => ok({ teamId: 9, name: '마케팅팀', myRole: 'owner' });
+    // 이동한 팀 정보 탭이 부르는 API
+    handlers['GET /api/teams/9'] = () => ok({ teamId: 9, name: '마케팅팀', myRole: 'owner', ownerNickname: '홍길동', memberCount: 1, createDate: '2026-11-12T00:00:00Z' });
+    handlers['GET /api/teams/9/members'] = () => ok({ members: [] });
+    handlers['GET /api/teams/9/invitations'] = () => ok({ invitations: [] });
     const { wrapper, router } = await mountAt('/personal/tasks');
     await openModal(wrapper);
     await wrapper.find('#team-name-input').setValue('  마케팅팀 ');
     await wrapper.find('#team-name-input').trigger('keydown', { key: 'Enter' });
     await flushPromises();
     expect(calls.find((c) => c.key === 'POST /api/teams').body).toEqual({ name: '마케팅팀' });
-    expect(router.currentRoute.value.path).toBe('/teams/9/info');
+    // 팀 정보 화면 파일을 처음 불러오는 시간이 걸린다
+    await vi.waitFor(() => expect(router.currentRoute.value.path).toBe('/teams/9/info'), { timeout: 5000 });
     expect(texts(wrapper, '.nav-team-list .nav-item')[0]).toBe('마케팅팀');
     expect(wrapper.find('.modal-x').exists()).toBe(false);
   });

@@ -38,7 +38,8 @@
 |vuedraggable|4.1.0 (next 태그, Vue 3용, sortablejs 1.14.0 포함)|칸반 드래그|
 |@tiptap/vue-3, @tiptap/core, @tiptap/pm, @tiptap/starter-kit, @tiptap/extension-table, @tiptap/extension-text-style|3.32.0 (2026-10-13, 같은 버전으로 맞춤)|일일보고 리치 에디터 (D-155). starter-kit(굵게·기울임·취소선·목록·구분선·링크), table(표), text-style(글자 색). 읽기 전용 보기도 같은 편집기로 그린다 (v-html 쓰지 않음)|
 |sanitize-html|2.18.1|백엔드. 일일보고 HTML 을 허용한 태그·속성만 남기고 정화 (D-155, api.md 6.12)|
-|@fullcalendar/vue3, @fullcalendar/core|7.1.4|월간 캘린더 (D-002). v7은 temporal-polyfill 피어 의존성 필요, @fullcalendar/daygrid는 6.1.22까지만 있어 v7 구성은 캘린더 작업 때 공식 문서로 확인|
+|@fullcalendar/vue3|7.1.4|월간 캘린더 (D-002). 2026-11-12 공식 문서로 v7 구성 확인 (D-088): Vue 는 @fullcalendar/vue3 하나만 설치하고 월간 보기는 @fullcalendar/vue3/daygrid, 한국어는 @fullcalendar/vue3/locales/ko 하위 경로로 불러온다. @fullcalendar/core 는 Vue 에서 따로 설치하지 않는다. CSS 는 @fullcalendar/vue3/skeleton.css 만 쓰고 테마 대신 CalendarView.css 로 시안 모양을 입힌다|
+|temporal-polyfill|1.0.8|@fullcalendar/vue3 v7 의 피어 의존성 (직접 import 하지 않는다)|
 |vitest, supertest, @vue/test-utils, jsdom|1. 스택 표|테스트|
 
 - 참고: 이전 프로젝트에서 @vue/test-utils → js-beautify 하위 의존성의 moderate 취약점 때문에 frontend/package.json overrides 로 glob 14.0.4, minimatch 11.0.5 를 고정했다
@@ -49,7 +50,7 @@
 |이름|용도|설정|
 |---|---|---|
 |Gmail SMTP|인증번호·팀 초대 메일 (D-004)|환경 변수 MAIL_USER 등 (backend/.env)|
-|공공데이터포털 한국천문연구원 특일 정보 API|캘린더 공휴일 (D-107)|환경 변수 HOLIDAY_API_KEY (backend/.env, 사용자가 발급). 호출 주소·응답 형식은 구현 때 공식 문서로 확인. 별도 npm 패키지 없이 Node.js 기본 fetch 사용|
+|공공데이터포털 한국천문연구원 특일 정보 API|캘린더 공휴일 (D-107)|환경 변수 HOLIDAY_API_KEY (backend/.env, 사용자가 발급). 호출 주소 https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo (serviceKey, solYear, numOfRows, _type=json), 응답 response.body.items.item[] 의 locdate(YYYYMMDD)·dateName·isHoliday (2026-11-12 실제 호출로 확인). 별도 npm 패키지 없이 Node.js 기본 fetch 사용|
 
 ---
 
