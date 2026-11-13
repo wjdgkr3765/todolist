@@ -277,7 +277,7 @@
 - 결정: DB 이름은 `todolist`. DB와 로그인 계정은 사용자가 SSMS에서 만들고, 접속 정보는 사용자가 직접 backend/.env 에 넣는다
 - 이유: 이전 프로젝트 결정 (이유 기록 없음)
 - 관련 문서/파일: database.md 1
-- 상태: 유효
+- 상태: 변경됨 → D-169
 
 ### D-032 시각 저장 방식
 - 날짜: 이전 프로젝트 (2026-11-06 ~ 2026-11-10, 정확한 날짜 기록 없음)
@@ -285,7 +285,7 @@
 - 결정: 시각은 `DATETIME2`, UTC 저장, 기본값 `SYSUTCDATETIME()`. 할일·작업의 기간은 달력 날짜라 `DATE`
 - 이유: 이전 프로젝트 결정 (이유 기록 없음)
 - 관련 문서/파일: database.md 1
-- 상태: 유효
+- 상태: 변경됨 → D-170
 
 ### D-033 프론트엔드 테스트 패키지
 - 날짜: 이전 프로젝트 (2026-11-06 ~ 2026-11-10, 정확한 날짜 기록 없음)
@@ -301,7 +301,7 @@
 - 결정: DB 서버는 localhost\SQLEXPRESS (이름 있는 인스턴스), SQL Server 인증 계정 `todolist_app`. 환경 변수 DB_INSTANCE, DB_PORT 를 적으면 포트 우선
 - 이유: 이전 프로젝트 결정 (이유 기록 없음)
 - 관련 문서/파일: database.md 1
-- 상태: 유효
+- 상태: 변경됨 → D-169
 
 ### D-035 이메일 인증번호 규칙
 - 날짜: 이전 프로젝트 (2026-11-06 ~ 2026-11-10, 정확한 날짜 기록 없음)
@@ -1106,7 +1106,7 @@
 - 결정: 이번 프로젝트는 로컬 실행까지. 실제 서버 배포(서버, 도메인, HTTPS, 운영 메일 계정)는 나중에 따로 진행한다
 - 이유: 사용자 승인 (추천대로)
 - 관련 문서/파일: overview.md 4
-- 상태: 유효
+- 상태: 변경됨 → D-167
 
 ### D-125 기한 지난 작업 표시
 - 날짜: 2026-11-11
@@ -1442,4 +1442,53 @@
 - 결정: 1번. 작업의 기간을 정한 시각(작업 시작으로 작업이 생긴 시각, 또는 기간(시작·종료일, 시간, 미정)을 바꾼 마지막 시각)이 이미 알림 구간(종료일 전날 00시 00분, 한국 시간) 안이면 그 작업에는 마감 임박 알림을 만들지 않는다. 시간이 흘러 구간에 들어온 작업만 알린다. 이 시각은 tasks.period_update_date 에 저장한다. 팀 작업의 다른 작업자에게도 같다 (작업마다 같은 규칙). 이미 만들어진 알림은 그대로 둔다. 알림 시점(D-138)과 문구는 그대로다
 - 이유: 사용자 답변 (1번). 저장 컬럼, [작업 시작]을 "기간을 정한 때"로 보는 것(할일의 기간은 보지 않음), 기존 작업의 값은 작업 시작 시각(create_date)으로 채우는 것은 AI 가 정함
 - 관련 문서/파일: database.md tasks, api.md 6.7 GET /api/notifications, overview.md 8.8, backend/sql/schema.sql, backend/src/services/notificationService.js·todoService.js·taskService.js
+- 상태: 유효
+
+### D-167 인터넷 배포
+- 날짜: 2026-11-13
+- 질문/상황: 프로젝트 완료 뒤 사용자 요청 ("다른 사람들도 사용할 수 있게 배포하고 싶어"). D-124(로컬 실행까지)를 바꿈
+- 결정: 인터넷에서 누구나 쓸 수 있게 배포한다. DB 는 SQL Server 를 그대로 쓴다. 비용은 무료만 (사용자 답: "한달 동안 무료로"). 배포 서비스는 아직 정하지 않음
+- 이유: 사용자 답변
+- 관련 문서/파일: overview.md 4
+- 상태: 변경됨 → D-169
+
+### D-168 배포 서비스는 Azure
+- 날짜: 2026-11-13
+- 질문/상황: 무료로 인터넷 배포할 서비스 선택 (Socket.io 로 항상 켜진 Node 서버, SQL Server, Gmail SMTP 필요). AI 가 Azure 하나로 / Render + Azure SQL 을 제시. "한달 동안 무료"의 뜻을 물음
+- 결정: Azure 하나로 (App Service + Azure SQL Database). 계속 무료로 쓸 수 있으면 영구 무료 범위로 구성하고, 불가능하면 무료로 쓰다가 한 달 뒤 내린다
+- 이유: 사용자 답변 (추천대로)
+- 관련 문서/파일: spec.md
+- 상태: 유효
+
+### D-169 DB 를 Supabase(PostgreSQL)로 바꾼다
+- 날짜: 2026-11-13
+- 질문/상황: 사용자는 7명. Azure SQL 무료(월 10만 vCore초, 깨어 있는 시간 약 55시간)는 7명이 매일 쓰면 한 달 중 1주 정도에 다 써서 DB 가 멈출 것으로 추정됨 (AI 추정, 실측 아님). AI 가 1) 서버 Azure + DB Supabase(계속 무료, DB 전환 필요) 2) Azure 만 쓰고 한 달 뒤 내림 을 제시
+- 결정: 1번. 인터넷에 누구나 접속하도록 배포하고 계속 무료로 운영한다. 앱 서버(백엔드+프론트엔드)는 Azure App Service 무료(F1), DB 는 Supabase 무료(PostgreSQL)로 옮긴다. D-167 의 "SQL Server 유지"를 바꾼다. 사용자 7명 기준
+- 이유: 사용자 답변 ("1번으로 진행해")
+- 관련 문서/파일: overview.md 4, spec.md, database.md, backend/sql, backend/src
+- 상태: 유효
+
+### D-170 배포 구성 세부 (AI 결정)
+- 날짜: 2026-11-13
+- 질문/상황: D-167~D-169 로 Azure App Service 무료 + Supabase 무료로 정한 뒤, 설계 단계에서 세부 구성을 정해야 함
+- 결정: AI 가 정함
+  1. 주소는 Azure 기본 주소(https://{앱 이름}.azurewebsites.net) 하나. 백엔드가 API·실시간·빌드한 화면을 같은 주소로 보내 로그인 쿠키(SameSite=Strict)와 "CORS 열지 않음"을 그대로 둔다 (GitHub Pages·Firebase 로 화면만 따로 올리면 쿠키가 막혀서 쓰지 않음)
+  2. 실시간은 WebSocket 을 먼저 쓰고 실패하면 HTTP 폴링으로 바꾼다 (F1 은 WebSocket 동시 5개, 사용자 7명)
+  3. DB 접속은 환경 변수 DATABASE_URL 하나 (Supabase Session pooler, SSL). DB_SERVER·DB_INSTANCE·DB_PORT·DB_NAME·DB_USER·DB_PASSWORD 는 없앤다
+  4. 아이디·이메일의 "대소문자 구분 없음"은 PostgreSQL 대소문자 무시 정렬 규칙(ICU, nondeterministic) `ci` 로 지킨다 (SQL Server 기본 정렬과 같은 동작, 코드 비교문은 그대로)
+  5. Supabase Data API 는 끄고 모든 테이블에 RLS 를 켠다 (백엔드 외의 접근 차단)
+  6. 개발·테스트용 Supabase 프로젝트를 따로 만든다 (무료 2개). 회사 PC 에서 접속이 막히면 그때 PC 에 PostgreSQL 설치를 묻는다
+  7. 배포는 GitHub Actions (main 푸시 → 프론트엔드 테스트·빌드 → backend/public 에 복사 → Azure). 백엔드 테스트는 DB 가 필요해 로컬에서만 돌린다
+  8. 운영 DB 는 빈 테이블로 시작하고 로컬 SQL Server 데이터는 옮기지 않는다 (2026-11-13 설계 승인으로 사용자 확인)
+  9. 타입은 PostgreSQL 에 맞게 바꾼다: 시각 `TIMESTAMPTZ`·기본값 `now()` (UTC 기준은 D-032 그대로), 문자열 `VARCHAR(n)`(JSON 은 `TEXT`), 여부 `BOOLEAN`, 기본 키 `GENERATED ALWAYS AS IDENTITY`. 길이·제약은 그대로 (database.md 2·4)
+- 이유: 무료 조건을 지키면서 코드 변경을 줄이고, 기존 보안 설계(쿠키, CORS)를 그대로 둔다
+- 관련 문서/파일: spec.md 4·5, database.md 1, api.md 1·6.8, structure.md
+- 상태: 유효
+
+### D-171 배포 작업의 와이어프레임 단계는 해당 없음
+- 날짜: 2026-11-13
+- 질문/상황: 배포(D-167~D-170)는 화면이 바뀌지 않는다. AI 가 설계 승인 요청 때 와이어프레임 단계를 "해당 없음"으로 넘기겠다고 알림
+- 결정: 와이어프레임 단계는 시안 없이 넘어가고 구현을 시작한다
+- 이유: 사용자 승인 ("승인")
+- 관련 문서/파일: todo.md
 - 상태: 유효

@@ -36,17 +36,19 @@
 |프로젝트/frontend/src/views/DailyReportView_screen.md|일일보고 화면 설계 문서 (D-150)|
 |프로젝트/frontend/src/layouts/|공통 레이아웃 Vue 파일과 화면 설계 문서|
 |프로젝트/frontend/src/layouts/MainLayout_screen.md|공통 레이아웃 화면 설계 문서|
-|프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
+|프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, backend/public/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
 |프로젝트/backend/|백엔드 폴더 (Node.js 24 + Express 5)|
-|프로젝트/backend/package.json, package-lock.json|백엔드 의존성과 실행·테스트 명령 (spec.md). dev/start 는 node --env-file=.env 로 .env 를 읽는다|
+|프로젝트/backend/package.json, package-lock.json|백엔드 의존성과 실행·테스트 명령 (spec.md). dev/start 는 node --env-file-if-exists=.env 로 .env 가 있으면 읽는다 (운영 Azure 에는 .env 가 없고 앱 설정을 쓴다, spec.md 5)|
 |프로젝트/backend/node_modules/|npm 설치 폴더 (git 제외)|
 |프로젝트/backend/vitest.config.js|백엔드 테스트 설정 (개발 DB 를 같이 써서 테스트 파일을 하나씩 실행)|
-|프로젝트/backend/.env|(사용자가 직접 작성, git 제외) DB 접속 정보, 메일 계정, 공휴일 API 키|
-|프로젝트/backend/.env.example|환경 변수 이름만 적고 값은 비운다: NODE_ENV, DB_SERVER, DB_INSTANCE, DB_PORT, DB_NAME, DB_USER, DB_PASSWORD, MAIL_USER, MAIL_PASSWORD, HOLIDAY_API_KEY (security.md 1번)|
-|프로젝트/backend/sql/schema.sql|database.md 4번의 테이블 생성 SQL. 사용자가 SSMS 에서 실행한다|
-|프로젝트/backend/src/server.js|HTTP 서버와 Socket.IO 시작 (포트 3000)|
-|프로젝트/backend/src/app.js|Express 앱과 공통 처리 (본문 100kb 제한(일일보고 저장·양식 저장은 512kb), 보안 응답 헤더, 공통 오류 응답, api.md 1)|
-|프로젝트/backend/src/config/|env.js(환경 변수 읽기), db.js(mssql 연결·트랜잭션), mail.js(nodemailer 메일 발송)|
+|프로젝트/backend/.env|(사용자가 직접 작성, git 제외) DB 접속 문자열(Supabase 개발 프로젝트), 메일 계정, 공휴일 API 키|
+|프로젝트/backend/.env.example|환경 변수 이름만 적고 값은 비운다: NODE_ENV, DATABASE_URL, MAIL_USER, MAIL_PASSWORD, HOLIDAY_API_KEY (security.md 1번, D-169)|
+|프로젝트/backend/sql/schema.sql|database.md 4번의 테이블 생성 SQL (PostgreSQL, 정렬 규칙 ci, RLS 켜기 포함). 사용자가 Supabase SQL Editor 에서 실행한다|
+|프로젝트/backend/src/server.js|HTTP 서버와 Socket.IO 시작 (포트: 환경 변수 PORT, 없으면 3000)|
+|프로젝트/backend/src/app.js|Express 앱과 공통 처리 (본문 100kb 제한(일일보고 저장·양식 저장은 512kb), 보안 응답 헤더, 공통 오류 응답, 운영에서 화면 파일 보내기, api.md 1)|
+|프로젝트/backend/src/config/|env.js(환경 변수 읽기), db.js(pg 연결·트랜잭션, D-169), mail.js(nodemailer 메일 발송)|
+|프로젝트/backend/public/|(배포 때 GitHub Actions 가 만듦, git 제외) 빌드한 프론트엔드. 운영에서 백엔드가 보낸다 (api.md 1)|
+|프로젝트/.github/workflows/deploy.yml|GitHub Actions 배포: main 푸시 → 프론트엔드 테스트·빌드 → 백엔드 묶기 → Azure App Service 로 올림 (spec.md 5)|
 |프로젝트/backend/src/middlewares/|errorHandler.js(없는 경로·공통 오류 응답), requireLogin.js(로그인 확인, 401 UNAUTHORIZED)|
 |프로젝트/backend/src/routes/|API 경로. api.md 6.x 구역마다 나눈다 (health.js, users.js, emailVerifications.js, sessions.js, teams.js, notifications.js, work.js(할일·작업), calendar.js(캘린더·공휴일·히스토리), reports.js(일일보고). work.js·calendar.js·reports.js 는 /api 아래에서 경로마다 로그인 확인)|
 |프로젝트/backend/src/services/|업무 처리와 SQL(파라미터 바인딩, 트랜잭션). routes 와 같은 단위로 나눈다 (userService.js, emailVerificationService.js, sessionService.js, teamService.js, notificationService.js, spaceService.js(공간 권한·기간 값), todoService.js, taskCore.js(작업 조회·잠금·순서·수정 내역), taskService.js, calendarService.js(캘린더·히스토리), profileService.js(회원정보 수정·탈퇴), teamManageService.js(팀 정보·이름·내보내기·역할·관리자 넘기기·탈퇴·해체), invitationService.js(팀 초대), reportService.js(일일보고 현황·읽기·초안·저장·양식·이어받기), reportContent.js(일일보고 자동 채우기·완료 범위))|
@@ -63,7 +65,7 @@
 |프로젝트/frontend/src/stores/|pinia 상태: toast.js(알림 토스트), auth.js(로그인 회원), teams.js(내 팀 목록), notifications.js(알림 목록·안 본 개수)|
 |프로젝트/frontend/src/api/|client.js: API 호출 공통 처리 (서버 오류 토스트, 401 로그인 만료 D-118)|
 |프로젝트/frontend/src/utils/|validation.js: 화면 입력 검사 (서버와 같은 규칙), 남은 시간 표시. format.js: 날짜·시각 표시, 한국 시간 오늘. reportEditor.js: 일일보고 Tiptap 설정(표 셀 배경색·정렬)·색 목록. period.js: 기간 표시·기한 지남·수정 내역 문구·기간 입력 검사|
-|프로젝트/frontend/src/realtime/|socket.js: socket.io-client 연결과 이벤트 받기, 다시 연결 알림 (api.md 6.8)|
+|프로젝트/frontend/src/realtime/|socket.js: socket.io-client 연결(WebSocket, 실패하면 폴링)과 이벤트 받기, 다시 연결 알림 (api.md 6.8)|
 |프로젝트/frontend/src/components/|여러 화면이 쓰는 조각: AuthBrandPanel(인증 화면 브랜드 영역), AppToast(토스트), LoadingLabel(로딩 중 버튼 글자), NotificationPanel(알림 창), TeamCreateModal(팀 만들기 모달), KanbanBoard, TaskCard, TaskDetailPanel, TaskLogModal, TodoFormPanel, PeriodFields(제목·내용·기간 입력), ConfirmDialog(확인창), TaskInfoModal(캘린더·히스토리 작업 상세 모달), EmailVerifyField(찾기·회원정보 수정의 이메일 인증), ReportEditor(일일보고 구역 편집기, Tiptap), ReportToolbar(편집기 도구 막대), ReportTemplateModal(일일보고 양식 설정 모달)|
 |프로젝트/frontend/src/assets/styles/TaskView.css|작업 화면 스타일 (시안 task_view.html 과 같은 값). 캘린더·히스토리 상세도 같은 클래스를 쓴다|
 |프로젝트/frontend/src/assets/styles/CalendarView.css|캘린더 화면 스타일 (시안 calendar_view.html 값 + FullCalendar 를 시안 모양으로 맞추는 규칙)|
