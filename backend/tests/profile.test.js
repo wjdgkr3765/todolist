@@ -3,7 +3,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { closePool } from '../src/config/db.js';
-import { captureMails, cleanupTestRows, lastSentCode, loginTestUser, runSql, sessionCookieLine, sql } from './helpers.js';
+import {
+  captureMails, captureSms, cleanupTestRows, lastSentCode, lastSentSmsCode, loginTestUser, runSql, sessionCookieLine, sql, testPhone,
+} from './helpers.js';
 
 const app = createApp();
 const get = (path, user) => request(app).get(path).set('Cookie', user?.cookie ?? '');
@@ -11,7 +13,10 @@ const post = (path, user, body = {}) => request(app).post(path).set('Cookie', us
 const TODO = { title: '작업', content: '내용', isPeriodUndecided: true, startDate: null, endDate: null, startTime: null, endTime: null };
 
 beforeAll(cleanupTestRows);
-beforeEach(captureMails);
+beforeEach(() => {
+  captureMails();
+  captureSms();
+});
 afterAll(async () => {
   await cleanupTestRows();
   await closePool();
@@ -33,13 +38,31 @@ describe('내 정보·닉네임·전화번호', () => {
     expect((await post('/api/users/me/nickname', user, { nickname: '홍_1' })).status).toBe(400);
     expect((await get('/api/sessions/me', user)).body.data.nickname).toBe('가나다라abcd');
   });
-  test('전화번호: 다른 회원 번호 409, 지금 번호와 같으면 그대로 성공, 형식 400', async () => {
+  test('전화번호 변경: change_phone 문자 인증 → 변경, 인증 기록 한 번만 (D-168)', async () => {
+    const user = await loginTestUser(app);
+    const phone = testPhone();
+    const sent = await post('/api/phone-verifications', user, { phone, purpose: 'change_phone' });
+    expect(sent.status).toBe(200);
+    const verificationId = sent.body.data.verificationId;
+    // 인증 전에는 PHONE_NOT_VERIFIED
+    expect((await post('/api/users/me/phone', user, { phone, verificationId })).body.error.code).toBe('PHONE_NOT_VERIFIED');
+    await post(`/api/phone-verifications/${verificationId}/verify`, null, { code: lastSentSmsCode() });
+    expect((await post('/api/users/me/phone', user, { phone, verificationId })).body.data.phone).toBe(phone);
+    expect((await post('/api/users/me/phone', user, { phone, verificationId })).body.error.code).toBe('PHONE_NOT_VERIFIED');
+  });
+  test('전화번호: 내 번호·다른 회원 번호로 발송 409, 회원가입 인증으로는 변경 안 됨, 형식·인증 id 400', async () => {
     const user = await loginTestUser(app);
     const other = await loginTestUser(app);
-    expect((await post('/api/users/me/phone', user, { phone: other.phone })).body.error.code).toBe('PHONE_DUPLICATED');
-    expect((await post('/api/users/me/phone', user, { phone: user.phone })).status).toBe(200);
-    expect((await post('/api/users/me/phone', user, { phone: '0101234567' })).status).toBe(400);
-    expect((await post('/api/users/me/phone', user, { phone: '09700000001' })).body.data.phone).toBe('09700000001');
+    expect((await post('/api/phone-verifications', user, { phone: user.phone, purpose: 'change_phone' })).body.error.code).toBe('PHONE_DUPLICATED');
+    expect((await post('/api/phone-verifications', user, { phone: other.phone, purpose: 'change_phone' })).body.error.code).toBe('PHONE_DUPLICATED');
+    expect((await post('/api/users/me/phone', user, { phone: other.phone, verificationId: 1 })).body.error.code).toBe('PHONE_DUPLICATED');
+    const phone = testPhone();
+    const signupId = (await post('/api/phone-verifications', null, { phone, purpose: 'signup' })).body.data.verificationId;
+    await post(`/api/phone-verifications/${signupId}/verify`, null, { code: lastSentSmsCode() });
+    expect((await post('/api/users/me/phone', user, { phone, verificationId: signupId })).body.error.code).toBe('PHONE_NOT_VERIFIED');
+    expect((await post('/api/users/me/phone', user, { phone: '01112345678', verificationId: 1 })).status).toBe(400);
+    expect((await post('/api/users/me/phone', user, { phone })).status).toBe(400);
+    expect((await post('/api/users/me/phone', null, { phone, verificationId: 1 })).status).toBe(401);
   });
 });
 

@@ -73,14 +73,51 @@ describe('내 정보', () => {
     expect(wrapper.find('.toast-box').text()).toContain('닉네임을 바꿨습니다.');
     expect(wrapper.find('.profile-nickname').text()).toBe('길동이');
   });
-  test('전화번호: 숫자 외 무시, 중복 → 칸 아래 문구', async () => {
-    handlers['POST /api/users/me/phone'] = () => fail(409, 'PHONE_DUPLICATED');
+  // 전화번호 [인증번호 발송]은 두 번째 (첫 번째는 이메일)
+  const phoneSend = (wrapper) => wrapper.findAll('button').filter((b) => b.text().trim() === '인증번호 발송')[1];
+  test('전화번호: 숫자 외 무시, 지금 번호면 발송 잠김, 형식 오류·중복 → 칸 아래 문구 (D-167, D-168)', async () => {
+    handlers['POST /api/phone-verifications'] = () => fail(409, 'PHONE_DUPLICATED');
     const { wrapper } = await mountProfile();
-    await wrapper.find('#phone-input').setValue('010-9999-0000');
-    expect(wrapper.find('#phone-input').element.value).toBe('01099990000');
-    await saveButtons(wrapper)[1].trigger('click');
+    expect(phoneSend(wrapper).attributes('disabled')).toBeDefined();
+    await wrapper.find('#phone-input').setValue('020-1234-5678');
+    expect(wrapper.find('#phone-input').element.value).toBe('02012345678');
+    await phoneSend(wrapper).trigger('click');
+    expect(wrapper.find('.message.is-error').text()).toBe('010으로 시작하는 숫자 11자리로 입력해 주세요.');
+    await wrapper.find('#phone-input').setValue('01099990000');
+    await phoneSend(wrapper).trigger('click');
     await flushPromises();
+    expect(calls.find((c) => c.key === 'POST /api/phone-verifications').body).toEqual({ phone: '01099990000', purpose: 'change_phone' });
     expect(wrapper.find('.message.is-error').text()).toBe('이미 가입된 전화번호입니다.');
+  });
+  test('전화번호: 발송 → 문자 안내 → 확인 → [전화번호 변경] → 토스트, 30분 지나면 다시 인증 문구', async () => {
+    const base = Date.now();
+    handlers['POST /api/phone-verifications'] = () => ok({ verificationId: 9, expireDate: new Date(base + 300000).toISOString(), resendAvailableDate: new Date(base + 60000).toISOString() });
+    handlers['POST /api/phone-verifications/9/verify'] = () => ok({ isVerified: true });
+    handlers['POST /api/users/me/phone'] = () => ok({ ...ME, phone: '01099990000' });
+    const { wrapper } = await mountProfile();
+    await wrapper.find('#phone-input').setValue('01099990000');
+    await phoneSend(wrapper).trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('인증번호를 보냈습니다. 문자를 확인해 주세요.');
+    await wrapper.find('#phone-input-code').setValue('123456');
+    await button(wrapper, '확인').trigger('click');
+    await flushPromises();
+    await button(wrapper, '전화번호 변경').trigger('click');
+    await flushPromises();
+    expect(calls.find((c) => c.key === 'POST /api/users/me/phone').body).toEqual({ phone: '01099990000', verificationId: 9 });
+    expect(wrapper.find('.toast-box').text()).toContain('전화번호를 바꿨습니다.');
+    expect(button(wrapper, '전화번호 변경')).toBeUndefined();
+    // 인증 시간이 지난 경우
+    handlers['POST /api/users/me/phone'] = () => fail(400, 'PHONE_NOT_VERIFIED');
+    await wrapper.find('#phone-input').setValue('01099990001');
+    await phoneSend(wrapper).trigger('click');
+    await flushPromises();
+    await wrapper.find('#phone-input-code').setValue('123456');
+    await button(wrapper, '확인').trigger('click');
+    await flushPromises();
+    await button(wrapper, '전화번호 변경').trigger('click');
+    await flushPromises();
+    expect(wrapper.text()).toContain('인증 시간이 지났습니다. 다시 인증해 주세요.');
   });
   test('이메일: 새 이메일 발송 → 인증번호 줄(이메일 바로 아래) → 확인 → [이메일 변경] → 토스트 + 좌측 하단', async () => {
     const base = Date.now();

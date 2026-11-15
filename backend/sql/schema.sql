@@ -55,6 +55,25 @@ CREATE TABLE email_verifications (
 
 CREATE INDEX idx_email_verifications_email ON email_verifications (email, purpose, create_date);
 
+-- phone_verifications (전화번호 인증번호, D-168)
+CREATE TABLE phone_verifications (
+    id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
+    phone       NVARCHAR(11)  NOT NULL,                          -- 인증할 전화번호 (010 으로 시작하는 숫자 11자리)
+    code_hash   NVARCHAR(60)  NOT NULL,                          -- 인증번호 bcrypt 해시
+    purpose     NVARCHAR(20)  NOT NULL,                          -- 용도
+    fail_count  INT           NOT NULL DEFAULT 0,                -- 틀린 횟수 (5가 되면 무효)
+    is_verified BIT           NOT NULL DEFAULT 0,                -- 인증 완료 여부
+    expire_date DATETIME2     NOT NULL,                          -- 인증번호 만료 시각 (발송 + 5분, 재발송하면 그때로, UTC)
+    verify_date DATETIME2     NULL,                              -- 인증 완료 시각 (UTC)
+    create_date DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- 발송 시각 (UTC)
+
+    CHECK (LEN(phone) = 11 AND phone NOT LIKE '%[^0-9]%'),
+    CHECK (purpose IN ('signup', 'change_phone')),
+    CHECK (fail_count BETWEEN 0 AND 5)
+);
+
+CREATE INDEX idx_phone_verifications_phone ON phone_verifications (phone, create_date);
+
 -- teams (팀)
 CREATE TABLE teams (
     id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키

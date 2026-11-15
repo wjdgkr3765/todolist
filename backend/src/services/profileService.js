@@ -4,6 +4,7 @@ import { AppError } from '../utils/appError.js';
 import { closeTeamRoom, emitToTeam, emitToUser } from '../realtime/index.js';
 import { checkPasswordWithLimit } from './sessionService.js';
 import { removeFromAssignees } from './teamManageService.js';
+import { checkPhoneVerified } from './phoneVerificationService.js';
 
 const PASSWORD_HASH_ROUNDS = 10;
 const currentPasswordMismatch = () => new AppError(400, 'CURRENT_PASSWORD_MISMATCH', '현재 비밀번호가 맞지 않습니다.');
@@ -26,7 +27,8 @@ export async function changeNickname(userId, nickname) {
   return getMe(userId);
 }
 
-export async function changePhone(userId, phone) {
+// 전화번호 변경: 문자 인증을 마친 번호로만 (D-168). 성공하면 그 번호의 change_phone 인증 기록을 지운다
+export async function changePhone(userId, phone, verificationId) {
   const pool = await getPool();
   const used = await pool.request().input('id', sql.BigInt, userId).input('phone', sql.NVarChar(11), phone)
     .query('SELECT TOP 1 id FROM users WHERE phone = @phone AND id <> @id');
@@ -34,9 +36,14 @@ export async function changePhone(userId, phone) {
   if (used.recordset.length > 0) {
     throw duplicated();
   }
+  await checkPhoneVerified(pool, { phone, verificationId, purpose: 'change_phone' });
   try {
-    await pool.request().input('id', sql.BigInt, userId).input('phone', sql.NVarChar(11), phone)
-      .query('UPDATE users SET phone = @phone WHERE id = @id AND phone <> @phone');
+    await withTransaction(async (transaction) => {
+      await new sql.Request(transaction).input('id', sql.BigInt, userId).input('phone', sql.NVarChar(11), phone)
+        .query('UPDATE users SET phone = @phone WHERE id = @id AND phone <> @phone');
+      await new sql.Request(transaction).input('phone', sql.NVarChar(11), phone)
+        .query("DELETE FROM phone_verifications WHERE phone = @phone AND purpose = 'change_phone'");
+    });
   } catch (error) {
     throw isUniqueViolation(error) ? duplicated() : error;
   }

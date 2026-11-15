@@ -24,6 +24,10 @@ function readEnv() {
     mailUser: process.env.MAIL_USER,
     mailPassword: process.env.MAIL_PASSWORD,
     holidayApiKey: process.env.HOLIDAY_API_KEY || '',
+    // SOLAPI 문자 발송 (D-168). 없으면 서버는 뜨고 문자 발송만 실패한다 (500 SMS_SEND_FAILED)
+    solapiApiKey: process.env.SOLAPI_API_KEY || '',
+    solapiApiSecret: process.env.SOLAPI_API_SECRET || '',
+    solapiSender: process.env.SOLAPI_SENDER || '',
   };
 }
 

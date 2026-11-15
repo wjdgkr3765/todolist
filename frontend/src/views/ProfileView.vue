@@ -1,4 +1,4 @@
-<!-- 회원정보 수정·탈퇴 (ProfileView_screen.md, 시안 docs/mockups/profile_view.html, D-021, D-129~D-131) -->
+<!-- 회원정보 수정·탈퇴 (ProfileView_screen.md, 시안 docs/mockups/profile_view.html, D-021, D-129~D-131, D-168) -->
 <script setup>
 import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -11,7 +11,7 @@ import { useTeamsStore } from '../stores/teams.js';
 import { useNotificationsStore } from '../stores/notifications.js';
 import { useToastStore } from '../stores/toast.js';
 import { disconnectRealtime } from '../realtime/socket.js';
-import { isNickname, isPassword, isPhone } from '../utils/validation.js';
+import { isNickname, isPassword } from '../utils/validation.js';
 
 const router = useRouter();
 const auth = useAuthStore();
@@ -27,8 +27,9 @@ const emailVerificationId = ref(null);
 const isEmailSaving = ref(false);
 const verifyField = ref(null);
 const phone = ref('');
-const phoneError = ref('');
+const phoneVerificationId = ref(null);
 const isPhoneSaving = ref(false);
+const phoneVerifyField = ref(null);
 const passwords = reactive({ current: '', next: '', check: '' });
 const passwordErrors = reactive({ current: '', next: '', check: '' });
 const visible = reactive({ current: false, next: false });
@@ -41,7 +42,6 @@ const isWithdrawing = ref(false);
 const isWithdrawChecking = ref(false);
 
 const isNicknameChanged = computed(() => me.value && nickname.value !== me.value.nickname);
-const isPhoneChanged = computed(() => me.value && phone.value !== me.value.phone);
 
 const pad = (value) => String(value).padStart(2, '0');
 function formatDate(iso) {
@@ -102,22 +102,19 @@ async function saveEmail() {
   }
 }
 
-function onPhoneInput() {
-  phone.value = phone.value.replace(/\D/g, '');
-  phoneError.value = '';
-}
+// 전화번호 변경: 문자 인증을 마친 번호로만 (D-168). 이메일 변경과 같은 흐름
 async function savePhone() {
-  phoneError.value = isPhone(phone.value) ? '' : '숫자만 11자리로 입력해 주세요.';
-  if (phoneError.value) {
-    return;
-  }
   isPhoneSaving.value = true;
   try {
-    applyMe(await apiRequest('POST', '/api/users/me/phone', { body: { phone: phone.value } }));
+    applyMe(await apiRequest('POST', '/api/users/me/phone', { body: { phone: phone.value, verificationId: phoneVerificationId.value } }));
+    phoneVerificationId.value = null;
+    phoneVerifyField.value?.reset();
     toastStore.show('success', '전화번호를 바꿨습니다.');
   } catch (error) {
-    if (error.code === 'PHONE_DUPLICATED') {
-      phoneError.value = '이미 가입된 전화번호입니다.';
+    if (error.code === 'PHONE_NOT_VERIFIED' || error.code === 'PHONE_DUPLICATED') {
+      phoneVerificationId.value = null;
+      phoneVerifyField.value?.reset();
+      phoneVerifyField.value?.setEmailError(error.code === 'PHONE_DUPLICATED' ? '이미 가입된 전화번호입니다.' : '인증 시간이 지났습니다. 다시 인증해 주세요.');
     }
   } finally {
     isPhoneSaving.value = false;
@@ -262,18 +259,16 @@ onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
             </button>
           </template>
         </EmailVerifyField>
-        <div class="field" style="margin-bottom: 0">
-          <label class="field-label" for="phone-input">전화번호</label>
-          <div class="field-row">
-            <div class="control" :class="{ 'is-invalid': phoneError }"><span class="control-icon"><i class="bi bi-phone"></i></span>
-              <input id="phone-input" v-model="phone" type="tel" inputmode="numeric" maxlength="11" @input="onPhoneInput" @keydown.enter.prevent="savePhone" />
-            </div>
-            <button tabindex="-1" type="button" class="btn-side" :disabled="!isPhoneChanged || isPhoneSaving" @click="savePhone">
-              <LoadingLabel :is-loading="isPhoneSaving" loading-text="저장 중..." text="저장" />
+        <EmailVerifyField ref="phoneVerifyField" v-model="phone" kind="phone" purpose="change_phone" label="전화번호" input-id="phone-input"
+          :is-code-inline="true" :is-send-disabled="phone === me.phone"
+          :error-messages="{ PHONE_DUPLICATED: '이미 가입된 전화번호입니다.', PHONE_DAILY_LIMIT: '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.' }"
+          @verified="phoneVerificationId = $event" @reset="phoneVerificationId = null">
+          <template #after>
+            <button v-if="phoneVerificationId" type="button" class="btn-x btn-primary-x btn-email-change" :disabled="isPhoneSaving" @click="savePhone">
+              <LoadingLabel :is-loading="isPhoneSaving" loading-text="변경 중..." text="전화번호 변경" />
             </button>
-          </div>
-          <div v-if="phoneError" class="message is-error"><i class="bi bi-exclamation-circle"></i>{{ phoneError }}</div>
-        </div>
+          </template>
+        </EmailVerifyField>
       </section>
 
       <section class="card-x">

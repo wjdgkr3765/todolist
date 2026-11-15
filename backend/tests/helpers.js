@@ -1,14 +1,33 @@
 // 테스트 공통: 실제 메일 대신 보낸 인증번호를 모으고, 테스트가 만든 행을 지운다
 import { getPool, sql } from '../src/config/db.js';
 import { setSendMailOverride } from '../src/config/mail.js';
+import { setSendSmsOverride } from '../src/config/sms.js';
 
 export const sentMails = [];
+export const sentSms = [];
 
 export function captureMails() {
   sentMails.length = 0;
   setSendMailOverride(async (mail) => {
     sentMails.push(mail);
   });
+}
+
+// 실제 문자 대신 보낸 인증번호를 모은다 (D-168)
+export function captureSms() {
+  sentSms.length = 0;
+  setSendSmsOverride(async (sms) => {
+    sentSms.push(sms);
+  });
+}
+
+export function lastSentSmsCode() {
+  return sentSms.at(-1).text.match(/\[(\d{6})\]/)[1];
+}
+
+// 테스트 전화번호: 01098 로 시작 (정리할 때 찾는다)
+export function testPhone() {
+  return `01098${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
 }
 
 export function lastSentCode() {
@@ -43,6 +62,7 @@ export async function cleanupTestRows() {
   await runSql("DELETE FROM team_members WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
   await runSql("UPDATE daily_reports SET user_id = NULL WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
   await runSql("DELETE FROM email_verifications WHERE email LIKE 'vt%@example.com'");
+  await runSql("DELETE FROM phone_verifications WHERE phone LIKE '01098%'");
   await runSql("DELETE FROM login_tokens WHERE user_id IN (SELECT id FROM users WHERE email LIKE 'vt%@example.com')");
   await runSql("DELETE FROM users WHERE email LIKE 'vt%@example.com'");
 }
@@ -56,7 +76,7 @@ export async function createTestUser(password = 'abcd123!') {
     password,
     nickname: '테스트',
     email: `vt${suffix}@example.com`,
-    phone: `098${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`,
+    phone: testPhone(),
   };
   const result = await runSql(
     `INSERT INTO users (login_id, password_hash, nickname, email, phone)

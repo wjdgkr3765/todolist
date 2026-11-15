@@ -55,15 +55,32 @@ async function fillValid(wrapper) {
   await wrapper.find('#phone').setValue('01012345678');
 }
 
+const sendButtons = (wrapper) => wrapper.findAll('button').filter((b) => b.text() === '인증번호 발송');
+
+// 이메일 인증을 마친 뒤 전화번호 인증 (D-168). 이메일 인증이 끝나면 [인증번호 발송]은 전화번호 것만 남는다
 async function checkIdAndVerify(wrapper) {
   await wrapper.findAll('button').find((b) => b.text() === '중복 확인').trigger('click');
   await flushPromises();
-  await wrapper.findAll('button').find((b) => b.text() === '인증번호 발송').trigger('click');
+  await sendButtons(wrapper)[0].trigger('click');
   await flushPromises();
   await wrapper.find('#code').setValue('123456');
   await wrapper.findAll('button').find((b) => b.text() === '확인').trigger('click');
   await flushPromises();
+  await sendButtons(wrapper)[0].trigger('click');
+  await flushPromises();
+  await wrapper.find('#phone-code').setValue('123456');
+  await wrapper.findAll('button').find((b) => b.text() === '확인').trigger('click');
+  await flushPromises();
 }
+
+// 이메일(id 7)·전화번호(id 8) 인증까지 성공하는 응답
+const VERIFY_HANDLERS = {
+  'GET /api/users/login-id-availability': () => ok({ isAvailable: true }),
+  'POST /api/email-verifications': () => ok(sentData()),
+  'POST /api/email-verifications/7/verify': () => ok({ isVerified: true }),
+  'POST /api/phone-verifications': () => ok({ ...sentData(), verificationId: 8 }),
+  'POST /api/phone-verifications/8/verify': () => ok({ isVerified: true }),
+};
 
 const messages = (wrapper) => wrapper.findAll('.message').map((m) => m.text());
 
@@ -114,7 +131,8 @@ describe('칸을 떠날 때 형식 검사', () => {
   test.each([
     ['#password', 'abcd', '영어, 숫자, 특수문자를 모두 포함해 8~15자로 입력해 주세요.'],
     ['#nickname', '홍길동_1', '한글, 영어, 숫자로 1~8자 입력해 주세요.'],
-    ['#phone', '0101234', '숫자만 11자리로 입력해 주세요.'],
+    ['#phone', '0101234', '010으로 시작하는 숫자 11자리로 입력해 주세요.'],
+    ['#phone', '02012345678', '010으로 시작하는 숫자 11자리로 입력해 주세요.'],
   ])('%s = %s → 오류', async (selector, value, message) => {
     const { wrapper } = await mountView();
     await wrapper.find(selector).setValue(value);
@@ -223,6 +241,66 @@ describe('이메일 인증', () => {
   });
 });
 
+describe('전화번호 인증 (D-168)', () => {
+  const phoneSend = (wrapper) => wrapper.findAll('button').filter((b) => b.text() === '인증번호 발송').at(-1);
+  test('형식 오류면 발송하지 않음, 발송 → 안내·인증번호 칸 → 확인 → 완료·잠금 → [변경]이면 다시 입력', async () => {
+    routeFetch({
+      'POST /api/phone-verifications': () => ok({ ...sentData(), verificationId: 8 }),
+      'POST /api/phone-verifications/8/verify': () => ok({ isVerified: true }),
+    });
+    const { wrapper } = await mountView();
+    await wrapper.find('#phone').setValue('0111234567a8');
+    expect(wrapper.find('#phone').element.value).toBe('01112345678');
+    await phoneSend(wrapper).trigger('click');
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(messages(wrapper)).toContain('010으로 시작하는 숫자 11자리로 입력해 주세요.');
+    await wrapper.find('#phone').setValue('01012345678');
+    await phoneSend(wrapper).trigger('click');
+    await flushPromises();
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ phone: '01012345678', purpose: 'signup' });
+    expect(messages(wrapper)).toContain('인증번호를 보냈습니다. 문자를 확인해 주세요.');
+    expect(wrapper.find('#phone-code').exists()).toBe(true);
+    await wrapper.find('#phone-code').setValue('12a3456');
+    expect(wrapper.find('#phone-code').element.value).toBe('123456');
+    await wrapper.findAll('button').find((b) => b.text() === '확인').trigger('click');
+    await flushPromises();
+    expect(messages(wrapper)).toContain('전화번호 인증이 완료되었습니다.');
+    expect(wrapper.find('#phone').attributes('readonly')).toBeDefined();
+    await wrapper.findAll('button').find((b) => b.text() === '변경').trigger('click');
+    expect(wrapper.find('#phone').attributes('readonly')).toBeUndefined();
+    expect(phoneSend(wrapper).exists()).toBe(true);
+  });
+  test.each([
+    ['PHONE_DUPLICATED', '이미 가입된 전화번호입니다.', '이미 가입된 전화번호입니다.'],
+    ['PHONE_DAILY_LIMIT', '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.', '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.'],
+    ['SMS_SEND_FAILED', '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.', '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.'],
+  ])('발송 오류 %s → 전화번호 칸 아래 문구', async (code, message, shown) => {
+    routeFetch({ 'POST /api/phone-verifications': () => fail(code === 'SMS_SEND_FAILED' ? 500 : 409, code, message) });
+    const { wrapper } = await mountView();
+    await wrapper.find('#phone').setValue('01012345678');
+    await phoneSend(wrapper).trigger('click');
+    await flushPromises();
+    expect(messages(wrapper)).toContain(shown);
+    expect(wrapper.find('#phone-code').exists()).toBe(false);
+  });
+  test('틀린 인증번호 → 남은 횟수 문구, 발송 후 번호를 고치면 인증번호 칸을 닫는다', async () => {
+    routeFetch({
+      'POST /api/phone-verifications': () => ok({ ...sentData(), verificationId: 8 }),
+      'POST /api/phone-verifications/8/verify': () => fail(400, 'VERIFICATION_CODE_MISMATCH', '인증번호가 틀렸습니다. (남은 횟수 4회)'),
+    });
+    const { wrapper } = await mountView();
+    await wrapper.find('#phone').setValue('01012345678');
+    await phoneSend(wrapper).trigger('click');
+    await flushPromises();
+    await wrapper.find('#phone-code').setValue('111111');
+    await wrapper.findAll('button').find((b) => b.text() === '확인').trigger('click');
+    await flushPromises();
+    expect(messages(wrapper)).toContain('인증번호가 틀렸습니다. (남은 횟수 4회)');
+    await wrapper.find('#phone').setValue('01012345679');
+    expect(wrapper.find('#phone-code').exists()).toBe(false);
+  });
+});
+
 describe('가입하기', () => {
   test('빈 폼 → 모든 칸 오류, 첫 오류 칸(아이디)에 포커스, API 없음', async () => {
     const { wrapper } = await mountView();
@@ -231,7 +309,7 @@ describe('가입하기', () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(messages(wrapper)).toEqual(expect.arrayContaining([
       '영어와 숫자를 모두 포함해 6~15자로 입력해 주세요.', '비밀번호가 일치하지 않습니다.',
-      '이메일 인증을 완료해 주세요.', '숫자만 11자리로 입력해 주세요.',
+      '이메일 인증을 완료해 주세요.', '전화번호 인증을 완료해 주세요.',
     ]));
     expect(document.activeElement.id).toBe('login-id');
   });
@@ -244,9 +322,7 @@ describe('가입하기', () => {
   test('성공 → 로딩, 모든 칸 잠금, 완료 토스트, 1.5초 뒤 /login', async () => {
     let resolveSignup;
     routeFetch({
-      'GET /api/users/login-id-availability': () => ok({ isAvailable: true }),
-      'POST /api/email-verifications': () => ok(sentData()),
-      'POST /api/email-verifications/7/verify': () => ok({ isVerified: true }),
+      ...VERIFY_HANDLERS,
       'POST /api/users': () => new Promise((resolve) => { resolveSignup = resolve; }),
     });
     const { wrapper, router } = await mountView();
@@ -259,7 +335,7 @@ describe('가입하기', () => {
     expect(submitButton.text()).toBe('가입 중...');
     expect(submitButton.find('.spinner-border').exists()).toBe(true);
     const body = JSON.parse(fetchMock.mock.calls.at(-1)[1].body);
-    expect(body).toEqual({ loginId: 'todo2026', password: 'abcd123!', nickname: '홍길동', email: 'user@example.com', phone: '01012345678', verificationId: 7 });
+    expect(body).toEqual({ loginId: 'todo2026', password: 'abcd123!', nickname: '홍길동', email: 'user@example.com', phone: '01012345678', verificationId: 7, phoneVerificationId: 8 });
     resolveSignup(ok({ userId: 1 }));
     await flushPromises();
     expect(wrapper.find('.toast-box').text()).toContain('가입이 완료되었습니다.');
@@ -274,9 +350,7 @@ describe('가입하기', () => {
   });
   test('전화번호 중복 → 전화번호 칸 오류 + 포커스', async () => {
     routeFetch({
-      'GET /api/users/login-id-availability': () => ok({ isAvailable: true }),
-      'POST /api/email-verifications': () => ok(sentData()),
-      'POST /api/email-verifications/7/verify': () => ok({ isVerified: true }),
+      ...VERIFY_HANDLERS,
       'POST /api/users': () => fail(409, 'PHONE_DUPLICATED', '이미 가입된 전화번호입니다.'),
     });
     const { wrapper } = await mountView();
@@ -289,9 +363,7 @@ describe('가입하기', () => {
   });
   test('서버 오류 → 공통 오류 토스트', async () => {
     routeFetch({
-      'GET /api/users/login-id-availability': () => ok({ isAvailable: true }),
-      'POST /api/email-verifications': () => ok(sentData()),
-      'POST /api/email-verifications/7/verify': () => ok({ isVerified: true }),
+      ...VERIFY_HANDLERS,
       'POST /api/users': () => fail(500, 'INTERNAL_ERROR'),
     });
     const { wrapper } = await mountView();
@@ -309,6 +381,6 @@ describe('Tab 이동 (D-165)', () => {
     const { wrapper } = await mountView();
     const tabbable = [...wrapper.element.querySelectorAll('input, button')].filter((el) => el.tabIndex >= 0 && !el.disabled);
     expect(tabbable.map((el) => el.id || el.className)).toEqual(['login-id', 'password', 'password-confirm', 'nickname', 'email', 'phone', 'btn-submit']);
-    expect(wrapper.findAll('button[tabindex="-1"]').map((b) => b.text() || b.attributes('aria-label'))).toEqual(['중복 확인', '비밀번호 보기', '인증번호 발송']);
+    expect(wrapper.findAll('button[tabindex="-1"]').map((b) => b.text() || b.attributes('aria-label'))).toEqual(['중복 확인', '비밀번호 보기', '인증번호 발송', '인증번호 발송']);
   });
 });

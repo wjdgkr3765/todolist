@@ -1,10 +1,25 @@
-<!-- 이메일 인증번호 발송·확인 (아이디·비밀번호 찾기, 회원정보 수정의 이메일 변경). 규칙은 회원가입과 같다 (D-035, D-039, D-164) -->
+<!-- 이메일 인증번호 발송·확인 (아이디·비밀번호 찾기, 회원정보 수정의 이메일 변경). 규칙은 회원가입과 같다 (D-035, D-039, D-164).
+     kind="phone" 이면 전화번호 문자 인증 (회원정보 수정의 전화번호 변경, D-168) -->
 <script setup>
 import { computed, nextTick, onBeforeUnmount, reactive, ref } from 'vue';
 import LoadingLabel from './LoadingLabel.vue';
 import { apiRequest } from '../api/client.js';
 import { useToastStore } from '../stores/toast.js';
-import { formatSeconds, isEmail, isVerificationCode } from '../utils/validation.js';
+import { PHONE_MESSAGE, formatSeconds, isEmail, isPhone, isVerificationCode } from '../utils/validation.js';
+
+// 인증 종류별 값: 발송 API, 형식 검사, 입력칸 모양, 안내 문구
+const KINDS = {
+  email: {
+    path: '/api/email-verifications', field: 'email', isValid: isEmail, formatMessage: '이메일 형식이 올바르지 않습니다.',
+    icon: 'bi-envelope', type: 'email', maxlength: 100, placeholder: 'example@email.com', autocomplete: 'email',
+    sentText: '인증번호를 보냈습니다. 메일을 확인해 주세요.', sendFailedCode: 'MAIL_SEND_FAILED', sendFailedText: '메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  },
+  phone: {
+    path: '/api/phone-verifications', field: 'phone', isValid: isPhone, formatMessage: PHONE_MESSAGE,
+    icon: 'bi-phone', type: 'tel', maxlength: 11, placeholder: '', autocomplete: 'tel',
+    sentText: '인증번호를 보냈습니다. 문자를 확인해 주세요.', sendFailedCode: 'SMS_SEND_FAILED', sendFailedText: '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.',
+  },
+};
 
 const props = defineProps({
   modelValue: { type: String, required: true },
@@ -25,11 +40,14 @@ const props = defineProps({
   isCodeInline: { type: Boolean, default: false },
   // 회원정보 수정: 지금 이메일과 같으면 발송 버튼을 잠근다
   isSendDisabled: { type: Boolean, default: false },
+  // email: 이메일 인증, phone: 전화번호 문자 인증 (D-168)
+  kind: { type: String, default: 'email' },
 });
 const emit = defineEmits(['update:modelValue', 'verified', 'reset']);
 defineExpose({ reset, focusEmail, setEmailError, isVerified: () => state.isVerified, verificationId: () => state.id });
 
 const toastStore = useToastStore();
+const config = computed(() => KINDS[props.kind]);
 const state = reactive({ id: null, isCodeSent: false, isVerified: false, expireAt: 0, resendAt: 0 });
 const code = ref('');
 const emailError = ref('');
@@ -66,6 +84,10 @@ function setEmailError(message) {
 }
 
 function onEmailInput(event) {
+  // 전화번호는 숫자 외 입력을 버린다
+  if (props.kind === 'phone') {
+    event.target.value = event.target.value.replace(/\D/g, '');
+  }
   emit('update:modelValue', event.target.value);
   emailError.value = '';
   // 발송 뒤 이메일을 고치면 처음부터 다시 발송한다
@@ -79,16 +101,16 @@ async function send() {
   const email = props.modelValue.trim();
   emit('update:modelValue', email);
   emailError.value = '';
-  const isEmailOk = isEmail(email);
+  const isEmailOk = config.value.isValid(email);
   if (!props.beforeSend() || !isEmailOk) {
     if (!isEmailOk) {
-      emailError.value = '이메일 형식이 올바르지 않습니다.';
+      emailError.value = config.value.formatMessage;
     }
     return;
   }
   isSending.value = true;
   try {
-    const data = await apiRequest('POST', '/api/email-verifications', { body: { email, purpose: props.purpose, ...props.extraBody() } });
+    const data = await apiRequest('POST', config.value.path, { body: { [config.value.field]: email, purpose: props.purpose, ...props.extraBody() } });
     const sentAt = Date.now();
     const issuedMs = Date.parse(data.resendAvailableDate) - 60 * 1000;
     Object.assign(state, {
@@ -103,13 +125,13 @@ async function send() {
     await nextTick();
     codeInput.value?.focus();
   } catch (error) {
-    if (error.code === 'MAIL_SEND_FAILED') {
-      toastStore.show('error', '메일을 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    if (error.code === config.value.sendFailedCode) {
+      toastStore.show('error', config.value.sendFailedText);
     } else if (props.errorMessages[error.code]) {
       emailError.value = props.errorMessages[error.code];
     } else if (error.code === 'INVALID_INPUT') {
-      emailError.value = '이메일 형식이 올바르지 않습니다.';
-    } else if (error.code === 'VERIFICATION_RESEND_TOO_SOON') {
+      emailError.value = config.value.formatMessage;
+    } else if (error.code === 'VERIFICATION_RESEND_TOO_SOON' || error.code === 'PHONE_DAILY_LIMIT') {
       emailError.value = error.message;
     }
   } finally {
@@ -124,7 +146,7 @@ async function verify() {
   codeError.value = '';
   isVerifying.value = true;
   try {
-    await apiRequest('POST', `/api/email-verifications/${state.id}/verify`, { body: { code: code.value } });
+    await apiRequest('POST', `${config.value.path}/${state.id}/verify`, { body: { code: code.value } });
     stopClock();
     state.isVerified = true;
     emit('verified', state.id);
@@ -155,8 +177,9 @@ async function change() {
     <label class="field-label" :for="inputId">{{ label }}</label>
     <div class="field-row">
       <div class="control" :class="{ 'is-invalid': emailError, 'is-locked': state.isVerified || isLocked }">
-        <span class="control-icon"><i class="bi bi-envelope"></i></span>
-        <input :id="inputId" ref="emailInput" :value="modelValue" type="email" maxlength="100" placeholder="example@email.com" autocomplete="email"
+        <span class="control-icon"><i class="bi" :class="config.icon"></i></span>
+        <input :id="inputId" ref="emailInput" :value="modelValue" :type="config.type" :inputmode="kind === 'phone' ? 'numeric' : undefined"
+          :maxlength="config.maxlength" :placeholder="config.placeholder" :autocomplete="config.autocomplete"
           :readonly="state.isVerified" :disabled="isLocked" @input="onEmailInput" />
         <span v-if="state.isVerified" class="control-suffix"><span class="verified-pill"><i class="bi bi-check-circle-fill"></i>인증</span></span>
       </div>
@@ -168,7 +191,7 @@ async function change() {
     </div>
     <div v-if="emailError" class="message is-error"><i class="bi bi-exclamation-circle"></i><span>{{ emailError }}</span></div>
     <div v-else-if="state.isVerified" class="message is-success"><i class="bi bi-check-circle"></i><span>{{ verifiedText }}</span></div>
-    <div v-else-if="state.isCodeSent && !codeError" class="message is-info"><i class="bi bi-info-circle"></i><span>인증번호를 보냈습니다. 메일을 확인해 주세요.</span></div>
+    <div v-else-if="state.isCodeSent && !codeError" class="message is-info"><i class="bi bi-info-circle"></i><span>{{ config.sentText }}</span></div>
     <template v-if="isCodeInline && state.isCodeSent && !state.isVerified">
     <div class="field-row" style="margin-top: 10px">
       <div class="control" :class="{ 'is-invalid': codeError }">

@@ -4,8 +4,9 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { closePool } from '../src/config/db.js';
 import {
-  captureMails, cleanupTestRows, lastSentCode, runSql, sentMails, sql, uniqueSuffix,
+  captureMails, captureSms, cleanupTestRows, lastSentCode, lastSentSmsCode, runSql, sentMails, sentSms, sql, testPhone, uniqueSuffix,
 } from './helpers.js';
+import { setSendSmsOverride } from '../src/config/sms.js';
 
 const app = createApp();
 
@@ -16,12 +17,24 @@ function newMember() {
     password: 'abcd123!',
     nickname: '테스트',
     email: `vt${suffix}@example.com`,
-    phone: `099${String(Math.floor(Math.random() * 1e8)).padStart(8, '0')}`,
+    phone: testPhone(),
   };
 }
 
 async function sendCode(email, purpose = 'signup') {
   return request(app).post('/api/email-verifications').send({ email, purpose });
+}
+
+async function sendPhoneCode(phone, purpose = 'signup') {
+  return request(app).post('/api/phone-verifications').send({ phone, purpose });
+}
+
+// 전화번호 인증까지 마친 인증 요청 id (D-168)
+async function verifyPhone(phone) {
+  const sent = await sendPhoneCode(phone);
+  const phoneVerificationId = sent.body.data.verificationId;
+  await request(app).post(`/api/phone-verifications/${phoneVerificationId}/verify`).send({ code: lastSentSmsCode() });
+  return phoneVerificationId;
 }
 
 // 인증까지 마친 회원가입 요청 본문
@@ -30,11 +43,14 @@ async function verifiedMember() {
   const sent = await sendCode(member.email);
   const verificationId = sent.body.data.verificationId;
   await request(app).post(`/api/email-verifications/${verificationId}/verify`).send({ code: lastSentCode() });
-  return { ...member, verificationId };
+  return { ...member, verificationId, phoneVerificationId: await verifyPhone(member.phone) };
 }
 
 beforeAll(cleanupTestRows);
-beforeEach(captureMails);
+beforeEach(() => {
+  captureMails();
+  captureSms();
+});
 afterAll(async () => {
   await cleanupTestRows();
   await closePool();
@@ -211,6 +227,104 @@ describe('POST /api/email-verifications/{id}/verify', () => {
   });
 });
 
+describe('POST /api/phone-verifications (D-168)', () => {
+  test('발송 성공 → 응답 형식, 문자 내용, 인증번호 해시 저장', async () => {
+    const phone = testPhone();
+    const res = await sendPhoneCode(phone);
+    expect(res.status).toBe(200);
+    const { verificationId, expireDate, resendAvailableDate } = res.body.data;
+    expect(verificationId).toBeGreaterThan(0);
+    expect(new Date(expireDate) - new Date(resendAvailableDate)).toBe(4 * 60 * 1000);
+    expect(sentSms.at(-1)).toEqual({ to: phone, text: expect.stringMatching(/^\[TODO\] 회원가입 인증번호 \[\d{6}\]\. 5분 안에 입력해 주세요\.$/) });
+    const row = await runSql('SELECT code_hash FROM phone_verifications WHERE id = @id', { id: [sql.BigInt, verificationId] });
+    expect(row.recordset[0].code_hash).toMatch(/^\$2b\$10\$/);
+  });
+  test.each([['01012345'], ['010123456789'], ['01112345678'], ['02012345678'], ['010-1234-5678'], [1012345678]])('전화번호 형식 오류 %j → 400', async (phone) => {
+    expect((await sendPhoneCode(phone)).status).toBe(400);
+  });
+  test.each([['find_id'], [''], [undefined]])('용도 오류 %j → 400', async (purpose) => {
+    expect((await request(app).post('/api/phone-verifications').send({ phone: testPhone(), purpose })).status).toBe(400);
+  });
+  test('change_phone 은 로그인 필요 → 401', async () => {
+    expect((await sendPhoneCode(testPhone(), 'change_phone')).status).toBe(401);
+  });
+  test('이미 가입된 번호 → 409 PHONE_DUPLICATED, 문자를 보내지 않음', async () => {
+    const member = await verifiedMember();
+    await request(app).post('/api/users').send(member);
+    sentSms.length = 0;
+    const res = await sendPhoneCode(member.phone);
+    expect(res.body.error.code).toBe('PHONE_DUPLICATED');
+    expect(sentSms).toHaveLength(0);
+  });
+  test('경계: 1분 안 재발송 429, 59초 전 429, 61초 전이면 발송되고 이전 번호는 무효', async () => {
+    const phone = testPhone();
+    const first = (await sendPhoneCode(phone)).body.data.verificationId;
+    const firstCode = lastSentSmsCode();
+    expect((await sendPhoneCode(phone)).body.error.code).toBe('VERIFICATION_RESEND_TOO_SOON');
+    const back = (seconds) => runSql('UPDATE phone_verifications SET create_date = DATEADD(SECOND, -@s, create_date) WHERE phone = @phone',
+      { s: [sql.Int, seconds], phone: [sql.NVarChar(11), phone] });
+    await back(59);
+    expect((await sendPhoneCode(phone)).status).toBe(429);
+    await back(2);
+    expect((await sendPhoneCode(phone)).status).toBe(200);
+    const old = await request(app).post(`/api/phone-verifications/${first}/verify`).send({ code: firstCode });
+    expect(old.body.error.code).toBe('VERIFICATION_EXPIRED');
+  });
+  test('경계: 같은 번호로 24시간 안에 5번까지, 6번째는 429 PHONE_DAILY_LIMIT, 하루 지난 기록은 세지 않음', async () => {
+    const phone = testPhone();
+    const backAll = () => runSql('UPDATE phone_verifications SET create_date = DATEADD(SECOND, -61, create_date) WHERE phone = @phone',
+      { phone: [sql.NVarChar(11), phone] });
+    for (let i = 0; i < 5; i += 1) {
+      expect((await sendPhoneCode(phone)).status).toBe(200);
+      await backAll();
+    }
+    const sixth = await sendPhoneCode(phone);
+    expect(sixth.status).toBe(429);
+    expect(sixth.body.error.code).toBe('PHONE_DAILY_LIMIT');
+    // 가장 오래된 기록을 하루 넘게 되돌리면 다시 보낼 수 있다
+    await runSql(`UPDATE phone_verifications SET create_date = DATEADD(HOUR, -25, create_date)
+                  WHERE id = (SELECT MIN(id) FROM phone_verifications WHERE phone = @phone)`, { phone: [sql.NVarChar(11), phone] });
+    expect((await sendPhoneCode(phone)).status).toBe(200);
+  });
+  test('문자 발송 실패 → 500 SMS_SEND_FAILED, 기록을 지워 횟수에 세지 않음', async () => {
+    const phone = testPhone();
+    setSendSmsOverride(async () => { throw new Error('fail'); });
+    const res = await sendPhoneCode(phone);
+    expect(res.status).toBe(500);
+    expect(res.body.error.code).toBe('SMS_SEND_FAILED');
+    const left = await runSql('SELECT COUNT(*) AS n FROM phone_verifications WHERE phone = @phone', { phone: [sql.NVarChar(11), phone] });
+    expect(left.recordset[0].n).toBe(0);
+  });
+});
+
+describe('POST /api/phone-verifications/{id}/verify (D-168)', () => {
+  const verify = (id, code) => request(app).post(`/api/phone-verifications/${id}/verify`).send({ code });
+  test('맞으면 인증, 틀리면 남은 횟수, 5번째 틀리면 무효', async () => {
+    const id = (await sendPhoneCode(testPhone())).body.data.verificationId;
+    const code = lastSentSmsCode();
+    const wrong = code === '000000' ? '111111' : '000000';
+    for (let left = 4; left >= 1; left -= 1) {
+      const res = await verify(id, wrong);
+      expect(res.body.error).toEqual({ code: 'VERIFICATION_CODE_MISMATCH', message: `인증번호가 틀렸습니다. (남은 횟수 ${left}회)` });
+    }
+    expect((await verify(id, wrong)).body.error.code).toBe('VERIFICATION_LOCKED');
+    expect((await verify(id, code)).body.error.code).toBe('VERIFICATION_LOCKED');
+  });
+  test('맞는 번호 → 인증, 다시 확인해도 성공, 만료되면 VERIFICATION_EXPIRED', async () => {
+    const id = (await sendPhoneCode(testPhone())).body.data.verificationId;
+    const code = lastSentSmsCode();
+    expect((await verify(id, code)).body.data).toEqual({ isVerified: true });
+    expect((await verify(id, code)).body.data).toEqual({ isVerified: true });
+    const other = (await sendPhoneCode(testPhone())).body.data.verificationId;
+    await runSql('UPDATE phone_verifications SET expire_date = DATEADD(SECOND, -1, SYSUTCDATETIME()) WHERE id = @id', { id: [sql.BigInt, other] });
+    expect((await verify(other, lastSentSmsCode())).body.error.code).toBe('VERIFICATION_EXPIRED');
+  });
+  test('형식 오류 400, 없는 id 404', async () => {
+    expect((await verify(1, '12345')).status).toBe(400);
+    expect((await verify(9007199254740991, '123456')).status).toBe(404);
+  });
+});
+
 describe('POST /api/users', () => {
   test('가입 성공 → userId, 비밀번호는 bcrypt 해시, 인증 기록 삭제', async () => {
     const member = await verifiedMember();
@@ -221,18 +335,21 @@ describe('POST /api/users', () => {
     expect(user.recordset[0].password_hash).toMatch(/^\$2b\$10\$/);
     const left = await runSql('SELECT COUNT(*) AS n FROM email_verifications WHERE email = @email', { email: [sql.NVarChar(100), member.email] });
     expect(left.recordset[0].n).toBe(0);
+    const phoneLeft = await runSql('SELECT COUNT(*) AS n FROM phone_verifications WHERE phone = @phone', { phone: [sql.NVarChar(11), member.phone] });
+    expect(phoneLeft.recordset[0].n).toBe(0);
   });
   test.each([
     ['loginId', 'abc12'], ['password', 'abcd1234'], ['nickname', '홍길동abc123'],
-    ['email', 'vtbad@example'], ['phone', '0101234567'], ['verificationId', 0], ['verificationId', '1'],
+    ['email', 'vtbad@example'], ['phone', '0101234567'], ['phone', '01112345678'], ['phone', '02012345678'],
+    ['verificationId', 0], ['verificationId', '1'], ['phoneVerificationId', 0], ['phoneVerificationId', undefined],
   ])('%s 형식 오류 → 400', async (field, value) => {
-    const member = { ...newMember(), verificationId: 1, [field]: value };
+    const member = { ...newMember(), verificationId: 1, phoneVerificationId: 1, [field]: value };
     expect((await request(app).post('/api/users').send(member)).status).toBe(400);
   });
   test('인증하지 않음 → 400 EMAIL_NOT_VERIFIED', async () => {
     const member = newMember();
     const sent = await sendCode(member.email);
-    const res = await request(app).post('/api/users').send({ ...member, verificationId: sent.body.data.verificationId });
+    const res = await request(app).post('/api/users').send({ ...member, verificationId: sent.body.data.verificationId, phoneVerificationId: 1 });
     expect(res.body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
   test('다른 이메일의 인증 id → 400 EMAIL_NOT_VERIFIED', async () => {
@@ -249,6 +366,22 @@ describe('POST /api/users', () => {
     await runSql('UPDATE email_verifications SET verify_date = DATEADD(SECOND, -1801, verify_date) WHERE email = @email',
       { email: [sql.NVarChar(100), late.email] });
     expect((await request(app).post('/api/users').send(late)).body.error.code).toBe('EMAIL_NOT_VERIFIED');
+  });
+  test('전화번호 인증 안 함·다른 번호의 인증 → 400 PHONE_NOT_VERIFIED (D-168)', async () => {
+    const member = await verifiedMember();
+    const unverified = (await sendPhoneCode(testPhone())).body.data.verificationId;
+    expect((await request(app).post('/api/users').send({ ...member, phoneVerificationId: unverified })).body.error.code).toBe('PHONE_NOT_VERIFIED');
+    expect((await request(app).post('/api/users').send({ ...member, phone: testPhone() })).body.error.code).toBe('PHONE_NOT_VERIFIED');
+  });
+  test('경계: 전화번호 인증 29분 59초 뒤 가입 성공, 30분 지나면 PHONE_NOT_VERIFIED', async () => {
+    const ok = await verifiedMember();
+    await runSql('UPDATE phone_verifications SET verify_date = DATEADD(SECOND, -1799, verify_date) WHERE phone = @phone',
+      { phone: [sql.NVarChar(11), ok.phone] });
+    expect((await request(app).post('/api/users').send(ok)).status).toBe(200);
+    const late = await verifiedMember();
+    await runSql('UPDATE phone_verifications SET verify_date = DATEADD(SECOND, -1801, verify_date) WHERE phone = @phone',
+      { phone: [sql.NVarChar(11), late.phone] });
+    expect((await request(app).post('/api/users').send(late)).body.error.code).toBe('PHONE_NOT_VERIFIED');
   });
   test('중복은 아이디 → 이메일 → 전화번호 순서로 첫 번째만', async () => {
     const first = await verifiedMember();

@@ -10,8 +10,8 @@ export const NICKNAME_PATTERN = /^[가-힣A-Za-z0-9]{1,8}$/;
 // 이메일: D-026 정규식, 최대 100자 (D-036)
 export const EMAIL_PATTERN = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 export const EMAIL_MAX_LENGTH = 100;
-// 전화번호: 숫자만 11자리 (D-037)
-export const PHONE_PATTERN = /^\d{11}$/;
+// 전화번호: 010 으로 시작하는 숫자 11자리 (D-037, D-167)
+export const PHONE_PATTERN = /^010\d{8}$/;
 // 인증번호: 숫자 6자리 (D-035)
 export const VERIFICATION_CODE_PATTERN = /^\d{6}$/;
 

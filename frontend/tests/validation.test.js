@@ -17,7 +17,10 @@ describe('입력 규칙', () => {
   test.each([['user@example.com', true], ['user@example', false], [`${'a'.repeat(88)}@example.com`, true], [`${'a'.repeat(89)}@example.com`, false]])(
     '이메일 %s → %s', (value, expected) => expect(isEmail(value)).toBe(expected),
   );
-  test.each([['0101234567', false], ['01012345678', true], ['010123456789', false], ['0101234567a', false]])(
+  test.each([
+    ['0101234567', false], ['01012345678', true], ['010123456789', false], ['0101234567a', false],
+    ['01000000000', true], ['01112345678', false], ['02012345678', false],
+  ])(
     '전화번호 %s → %s', (value, expected) => expect(isPhone(value)).toBe(expected),
   );
   test.each([['12345', false], ['123456', true], ['1234567', false]])(

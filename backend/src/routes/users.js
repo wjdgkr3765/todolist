@@ -26,12 +26,12 @@ usersRouter.get('/login-id-availability', async (req, res) => {
 
 usersRouter.post('/', async (req, res) => {
   const body = requireBodyObject(req.body);
-  const { loginId, password, nickname, email, phone, verificationId } = body;
+  const { loginId, password, nickname, email, phone, verificationId, phoneVerificationId } = body;
   if (!isLoginId(loginId) || !isPassword(password) || !isNickname(nickname)
-    || !isEmail(email) || !isPhone(phone) || !isPositiveId(verificationId)) {
+    || !isEmail(email) || !isPhone(phone) || !isPositiveId(verificationId) || !isPositiveId(phoneVerificationId)) {
     throw invalidInput();
   }
-  const data = await createUser({ loginId, password, nickname, email, phone, verificationId });
+  const data = await createUser({ loginId, password, nickname, email, phone, verificationId, phoneVerificationId });
   res.json({ data });
 });
 
@@ -73,11 +73,11 @@ usersRouter.post('/me/nickname', requireLogin, async (req, res) => {
 });
 
 usersRouter.post('/me/phone', requireLogin, async (req, res) => {
-  const { phone } = requireBodyObject(req.body);
-  if (!isPhone(phone)) {
+  const { phone, verificationId } = requireBodyObject(req.body);
+  if (!isPhone(phone) || !isPositiveId(verificationId)) {
     throw invalidInput();
   }
-  res.json({ data: await changePhone(req.user.userId, phone) });
+  res.json({ data: await changePhone(req.user.userId, phone, verificationId) });
 });
 
 usersRouter.post('/me/email', requireLogin, async (req, res) => {

@@ -2,6 +2,7 @@
 import bcrypt from 'bcrypt';
 import { getPool, withTransaction, isUniqueViolation, sql } from '../config/db.js';
 import { AppError } from '../utils/appError.js';
+import { checkPhoneVerified } from './phoneVerificationService.js';
 
 const PASSWORD_HASH_ROUNDS = 10;
 
@@ -47,10 +48,11 @@ async function checkEmailVerified(pool, { email, verificationId }) {
   }
 }
 
-export async function createUser({ loginId, password, nickname, email, phone, verificationId }) {
+export async function createUser({ loginId, password, nickname, email, phone, verificationId, phoneVerificationId }) {
   const pool = await getPool();
   await checkDuplicates(pool, { loginId, email, phone });
   await checkEmailVerified(pool, { email, verificationId });
+  await checkPhoneVerified(pool, { phone, verificationId: phoneVerificationId, purpose: 'signup' });
 
   const passwordHash = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
   try {
@@ -64,9 +66,11 @@ export async function createUser({ loginId, password, nickname, email, phone, ve
         .query(`INSERT INTO users (login_id, password_hash, nickname, email, phone)
                 OUTPUT inserted.id
                 VALUES (@loginId, @passwordHash, @nickname, @email, @phone)`);
-      // 가입에 성공하면 그 이메일의 인증 기록을 지운다
+      // 가입에 성공하면 그 이메일의 인증 기록과 그 번호의 회원가입 인증 기록을 지운다
       await new sql.Request(transaction).input('email', sql.NVarChar(100), email)
         .query('DELETE FROM email_verifications WHERE email = @email');
+      await new sql.Request(transaction).input('phone', sql.NVarChar(11), phone)
+        .query("DELETE FROM phone_verifications WHERE phone = @phone AND purpose = 'signup'");
       return { userId: Number(inserted.recordset[0].id) };
     });
   } catch (error) {

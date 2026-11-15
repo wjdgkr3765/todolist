@@ -4,7 +4,9 @@ export const PASSWORD_PATTERN = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!-/:-@[-`{-~])[!-~
 export const NICKNAME_PATTERN = /^[가-힣A-Za-z0-9]{1,8}$/;
 export const EMAIL_PATTERN = /^[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?)+$/;
 export const EMAIL_MAX_LENGTH = 100;
-export const PHONE_PATTERN = /^\d{11}$/;
+// 전화번호: 010 으로 시작하는 숫자 11자리 (D-167)
+export const PHONE_PATTERN = /^010\d{8}$/;
+export const PHONE_MESSAGE = '010으로 시작하는 숫자 11자리로 입력해 주세요.';
 export const VERIFICATION_CODE_PATTERN = /^\d{6}$/;
 
 export const isLoginId = (value) => LOGIN_ID_PATTERN.test(value);
