@@ -87,8 +87,8 @@ CREATE TABLE users (
 ## 4. 실제 사용할 테이블 생성 코드
 <!-- 실제 테이블 생성 코드를 이 아래에 작성 -->
 
-- 생성 순서 (FK 때문에): users → login_tokens → email_verifications → teams → team_members → todos → tasks → task_assignees → task_logs → task_log_assignees → notifications → team_invite_declines → report_templates → daily_reports
-- 만료 데이터 정리 (D-122): 로그인할 때 만료된 login_tokens(모든 회원), 인증번호를 보낼 때 하루 지난 email_verifications, 초대·거절할 때 24시간 지난 team_invite_declines 를 함께 지운다
+- 생성 순서 (FK 때문에): users → login_tokens → email_verifications → phone_verifications → teams → team_members → todos → tasks → task_assignees → task_logs → task_log_assignees → notifications → team_invite_declines → report_templates → daily_reports
+- 만료 데이터 정리 (D-122): 로그인할 때 만료된 login_tokens(모든 회원), 인증번호를 보낼 때 하루 지난 email_verifications·phone_verifications, 초대·거절할 때 24시간 지난 team_invite_declines 를 함께 지운다
 - 회원 탈퇴 처리 순서는 api.md 6.11 POST /api/users/me/withdraw 에 있다
 
 ### users (회원)
@@ -156,6 +156,33 @@ CREATE TABLE email_verifications (
 );
 
 CREATE INDEX idx_email_verifications_email ON email_verifications (email, purpose, create_date);
+```
+
+### phone_verifications (전화번호 인증번호)
+- 문자(SMS) 인증번호는 bcrypt 해시로 저장한다. 6자리 숫자, 유효시간 5분, 재발송은 1분 뒤, 5번 틀리면 무효 (D-168, 이메일과 같음)
+- purpose: signup(회원가입), change_phone(전화번호 변경)
+- 같은 번호로 24시간 동안 5번까지만 보낸다. 그래서 재발송해도 이전 행을 지우지 않고 expire_date 를 지금으로 바꿔 무효로 한다 (보낸 횟수를 세려고 남긴다). 발송에 실패한 행은 지운다
+- 회원가입 전에도 쓰므로 users 와 FK 로 연결하지 않는다
+- 인증번호를 보낼 때 하루 지난 행(모든 번호)을 함께 지운다 (D-122 와 같음)
+
+```sql
+CREATE TABLE phone_verifications (
+    id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
+    phone       NVARCHAR(11)  NOT NULL,                          -- 인증할 전화번호 (010 으로 시작하는 숫자 11자리)
+    code_hash   NVARCHAR(60)  NOT NULL,                          -- 인증번호 bcrypt 해시
+    purpose     NVARCHAR(20)  NOT NULL,                          -- 용도
+    fail_count  INT           NOT NULL DEFAULT 0,                -- 틀린 횟수 (5가 되면 무효)
+    is_verified BIT           NOT NULL DEFAULT 0,                -- 인증 완료 여부
+    expire_date DATETIME2     NOT NULL,                          -- 인증번호 만료 시각 (발송 + 5분, 재발송하면 그때로, UTC)
+    verify_date DATETIME2     NULL,                              -- 인증 완료 시각 (UTC)
+    create_date DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- 발송 시각 (UTC)
+
+    CHECK (LEN(phone) = 11 AND phone NOT LIKE '%[^0-9]%'),
+    CHECK (purpose IN ('signup', 'change_phone')),
+    CHECK (fail_count BETWEEN 0 AND 5)
+);
+
+CREATE INDEX idx_phone_verifications_phone ON phone_verifications (phone, create_date);
 ```
 
 ### todos (할일)

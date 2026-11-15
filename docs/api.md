@@ -81,6 +81,9 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 | 400 | VERIFICATION_LOCKED | 5번 틀려 인증번호가 무효가 됨 |
 | 400 | EMAIL_NOT_VERIFIED | 이메일 인증을 하지 않았거나 인증이 유효하지 않음 |
 | 500 | MAIL_SEND_FAILED | 메일 발송 실패 |
+| 429 | PHONE_DAILY_LIMIT | 같은 전화번호로 24시간 안에 인증 문자를 5번 보냄 (D-168) |
+| 400 | PHONE_NOT_VERIFIED | 전화번호 인증을 하지 않았거나 인증 후 30분이 지남 (D-168) |
+| 500 | SMS_SEND_FAILED | 문자 발송 실패 (D-168) |
 | 401 | LOGIN_FAILED | 아이디 또는 비밀번호가 틀림 (어느 쪽인지 알려주지 않음) |
 | 423 | LOGIN_LOCKED | 비밀번호를 연속 5번 틀려 10분 동안 로그인 잠김 (메시지에 남은 분 표시) |
 | 409 | TEAM_LIMIT_EXCEEDED | 가입된 팀이 이미 20개라 팀을 만들거나 가입할 수 없음 (D-078) |
@@ -168,6 +171,29 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **사용 테이블**: email_verifications
 - **처리 순서**: 비교 전에 fail_count 를 먼저 1 올리는 원자적 UPDATE(만료 전, 5 미만일 때만) → 맞으면 1 되돌리고 인증 완료. 5번째로 틀리면 VERIFICATION_LOCKED. 이미 5번 틀렸으면 VERIFICATION_LOCKED, 만료되었으면 VERIFICATION_EXPIRED (틀린 횟수는 올리지 않음)
 
+#### POST /api/phone-verifications
+- **설명**: 전화번호 인증번호 문자 발송 (D-168). purpose 에 따라 먼저 확인한 뒤 6자리 인증번호를 SOLAPI 단문으로 보낸다
+  - signup: 이미 가입된 번호면 409 PHONE_DUPLICATED. 문자 "[TODO] 회원가입 인증번호 [123456]. 5분 안에 입력해 주세요."
+  - change_phone: 로그인한 회원만 (requireLogin, 아니면 401). 이미 가입된 번호(내 번호 포함)면 409 PHONE_DUPLICATED. 문자 "[TODO] 전화번호 변경 인증번호 [123456]. 5분 안에 입력해 주세요."
+- **권한**: 비회원 (purpose 가 change_phone 이면 회원)
+- **요청**:
+  | 필드 | 타입 | 필수 | 설명 |
+  |---|---|---|---|
+  | phone | string | O | 010 으로 시작하는 숫자 11자리 (D-167) |
+  | purpose | string | O | signup / change_phone |
+- **응답 data**: POST /api/email-verifications 와 같음 (`verificationId`, `expireDate` 발송 + 5분, `resendAvailableDate` 발송 + 1분)
+- **오류**: 400 INVALID_INPUT, 401 UNAUTHORIZED (change_phone), 409 PHONE_DUPLICATED, 429 VERIFICATION_RESEND_TOO_SOON, 429 PHONE_DAILY_LIMIT, 500 SMS_SEND_FAILED
+- **사용 테이블**: users, phone_verifications
+- **처리 순서**: 입력 검사 → 중복 확인 → (트랜잭션, 같은 번호 잠금) 하루 지난 행 삭제 → 같은 번호·용도로 1분 안에 보낸 행이 있으면 429 VERIFICATION_RESEND_TOO_SOON → 같은 번호(모든 용도)로 24시간 안에 보낸 행이 5개면 429 PHONE_DAILY_LIMIT → 같은 번호·용도의 이전 행을 무효(expire_date = 지금) → 새 행 저장 → 커밋 뒤 문자 발송. 발송에 실패하면 새 행을 지우고 500 SMS_SEND_FAILED (횟수에 세지 않음)
+
+#### POST /api/phone-verifications/{id}/verify
+- **설명**: 전화번호 인증번호 확인. POST /api/email-verifications/{id}/verify 와 같은 규칙·처리 순서·오류 (D-168)
+- **권한**: 비회원
+- **요청**: `code` string 필수 — 숫자 6자리
+- **응답 data**: `isVerified` boolean
+- **오류**: 400 INVALID_INPUT, 400 VERIFICATION_CODE_MISMATCH, 400 VERIFICATION_EXPIRED, 400 VERIFICATION_LOCKED, 404 NOT_FOUND
+- **사용 테이블**: phone_verifications
+
 #### POST /api/users
 - **설명**: 회원가입. 입력 규칙, 아이디·이메일·전화번호 중복, 이메일 인증 여부를 확인한 뒤 비밀번호를 bcrypt 로 해시해 저장 (D-006, D-042)
 - **권한**: 비회원
@@ -178,13 +204,14 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | password | string | O | 영어+숫자+특수문자 모두 포함 8~15자 |
   | nickname | string | O | 한글·영어·숫자 1~8자 |
   | email | string | O | 인증을 마친 이메일 |
-  | phone | string | O | 숫자 11자리 |
+  | phone | string | O | 010 으로 시작하는 숫자 11자리 (D-167) |
   | verificationId | number | O | 인증을 마친 인증 요청 id (email, purpose=signup 과 일치해야 함) |
+  | phoneVerificationId | number | O | 인증을 마친 전화번호 인증 요청 id (phone, purpose=signup 과 일치해야 함, D-168) |
 - **응답 data**: `userId` number — 가입한 회원 id
-- **오류**: 400 INVALID_INPUT, 400 EMAIL_NOT_VERIFIED, 409 LOGIN_ID_DUPLICATED, 409 EMAIL_DUPLICATED, 409 PHONE_DUPLICATED
-- **사용 테이블**: users, email_verifications
-- **인증 유효 시간**: 인증 완료 후 30분 안에 가입 (D-044). 가입에 성공하면 그 이메일의 인증 기록을 지운다
-- **처리 순서**: 입력 검사 → 중복 확인(아이디 → 이메일 → 전화번호 순서로 첫 번째 중복만 응답) → 이메일 인증 확인 → 저장(회원 저장 + 인증 기록 삭제를 트랜잭션). 저장 순간 동시 가입으로 UNIQUE 위반이 나면 다시 확인해 해당 중복 오류로 응답
+- **오류**: 400 INVALID_INPUT, 400 EMAIL_NOT_VERIFIED, 400 PHONE_NOT_VERIFIED, 409 LOGIN_ID_DUPLICATED, 409 EMAIL_DUPLICATED, 409 PHONE_DUPLICATED
+- **사용 테이블**: users, email_verifications, phone_verifications
+- **인증 유효 시간**: 이메일·전화번호 모두 인증 완료 후 30분 안에 가입 (D-044, D-168). 가입에 성공하면 그 이메일의 인증 기록과 그 번호의 signup 인증 기록을 지운다
+- **처리 순서**: 입력 검사 → 중복 확인(아이디 → 이메일 → 전화번호 순서로 첫 번째 중복만 응답) → 이메일 인증 확인 → 전화번호 인증 확인 → 저장(회원 저장 + 인증 기록 삭제를 트랜잭션). 저장 순간 동시 가입으로 UNIQUE 위반이 나면 다시 확인해 해당 중복 오류로 응답
 
 #### POST /api/users/find-id
 - **설명**: 아이디 찾기 결과 (D-020, D-114). 인증을 마친 인증 요청으로 그 이메일 회원의 아이디와 가입일을 돌려준다
@@ -689,11 +716,12 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **사용 테이블**: users
 
 #### POST /api/users/me/phone
-- **설명**: 전화번호 변경. 인증 없음 (D-021)
-- **요청**: `phone` string 필수 — 숫자 11자리
+- **설명**: 전화번호 변경. 문자 인증을 마친 번호로만 바꾼다 (D-021, D-168)
+- **요청**: `phone` string 필수 — 010 으로 시작하는 숫자 11자리 (D-167), `verificationId` number 필수 — 인증을 마친 전화번호 인증 요청 id (phone, purpose=change_phone 과 일치, 인증 후 30분 안)
 - **응답 data**: Me
-- **오류**: 400, 401, 409 PHONE_DUPLICATED (다른 회원이 쓰는 번호. 지금 내 번호와 같으면 바꾸지 않고 성공)
-- **사용 테이블**: users
+- **오류**: 400 INVALID_INPUT, 400 PHONE_NOT_VERIFIED, 401, 409 PHONE_DUPLICATED (그사이 다른 회원이 쓰게 된 번호)
+- **사용 테이블**: users, phone_verifications
+- 성공하면 그 번호의 change_phone 인증 기록을 지운다 (한 번만 쓴다)
 
 #### POST /api/users/me/email
 - **설명**: 이메일 변경. change_email 인증을 마친 새 이메일로 바꾼다 (D-021)

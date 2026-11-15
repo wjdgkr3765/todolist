@@ -27,6 +27,16 @@
 - 메모: 
 -->
 
+### 전화번호 010 검사와 문자 인증
+- 목표: 전화번호를 010 으로 시작하는 숫자 11자리만 받고(D-167), 가입·번호 변경 때 SOLAPI 문자로 인증한다(D-168)
+- 범위: 추가 기능: overview.md 핵심 기능 중 회원가입, 회원정보 수정/탈퇴(전화번호 변경)
+- 현재 단계: 2. 와이어프레임
+- 단계 승인: 설계(승인 완료, 2026-11-16), 와이어프레임(승인 전), 구현( ), 보안 체크( )
+- 진행 상황: 시안 수정 중 (signup_view.html, profile_view.html·js)
+- 관련 파일: docs/decision.md D-167·D-168, overview.md, spec.md, database.md, api.md 6.2·6.11, SignupView_screen.md, ProfileView_screen.md
+- 재시도 기록:
+- 메모:
+
 ---
 
 ## 백로그

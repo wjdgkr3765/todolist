@@ -55,7 +55,9 @@
 | 이메일 | 입력칸 (bi-envelope) + [인증번호 발송] | 지금 이메일 | email | 바꾸려면 새 이메일을 입력. 지금 이메일과 같으면 [인증번호 발송] 비활성 |
 | 인증번호 / 남은 시간 / [확인] | 입력칸·배지·버튼 | 회원가입과 같음 | POST /api/email-verifications (purpose = change_email), .../verify | 발송 후에만 보임 |
 | [이메일 변경] | 버튼 | 이메일 변경 | POST /api/users/me/email | 인증을 마치면 보임 |
-| 전화번호 | 입력칸(tel) (bi-phone) + [저장] | 지금 전화번호 | phone | 숫자 11자리, 숫자 외 입력 무시. 바뀐 게 없으면 [저장] 비활성 |
+| 전화번호 | 입력칸(tel) (bi-phone) + [인증번호 발송] | 지금 전화번호 | phone | 010 으로 시작하는 숫자 11자리(아니면 칸 아래 "010으로 시작하는 숫자 11자리로 입력해 주세요.", D-167), 숫자 외 입력 무시. 지금 번호와 같으면 [인증번호 발송] 비활성 (D-168) |
+| 전화번호 인증번호 / 남은 시간 / [확인] | 입력칸·배지·버튼 | 이메일과 같음 | POST /api/phone-verifications (purpose = change_phone), .../verify | 발송 후에만 보임 |
+| [전화번호 변경] | 버튼 | 전화번호 변경 | POST /api/users/me/phone | 인증을 마치면 보임 (D-168) |
 
 ### 비밀번호 변경 카드 (D-130)
 | 요소 | 종류 | 표시 내용 | 비고 |
@@ -86,7 +88,8 @@
 | 이메일 | 발송 후 수정 | 인증번호 칸을 숨기고 처음부터 다시 발송 |
 | 인증 [확인] | 클릭 | 맞으면 "인증되었습니다." + 이메일 칸 잠금 + [이메일 변경] 표시 + [변경] 버튼(인증 취소, D-039 와 같음) |
 | [이메일 변경] | 클릭 | POST /api/users/me/email → "이메일을 바꿨습니다." 안내 토스트 + 좌측 하단 이메일도 바꾼다 + 이메일 영역을 처음 상태로. 400 EMAIL_NOT_VERIFIED(30분 지남) 면 "인증 시간이 지났습니다. 다시 인증해 주세요." + 처음 상태. 409 면 "이미 가입된 이메일입니다." |
-| 전화번호 [저장] | 클릭 | 형식 검사 → POST /api/users/me/phone → "전화번호를 바꿨습니다." 안내 토스트. 409 PHONE_DUPLICATED 면 칸 아래 "이미 가입된 전화번호입니다." |
+| 전화번호 [인증번호 발송]·[확인] | 클릭 | 이메일 변경과 같다 (D-168). 문구는 회원가입 전화번호 인증과 같음 (중복, 하루 제한, 발송 실패) |
+| [전화번호 변경] | 클릭 | POST /api/users/me/phone (phone, verificationId) → "전화번호를 바꿨습니다." 안내 토스트 + 전화번호 영역을 처음 상태로. 400 PHONE_NOT_VERIFIED(30분 지남) 면 "인증 시간이 지났습니다. 다시 인증해 주세요." + 처음 상태. 409 면 칸 아래 "이미 가입된 전화번호입니다." |
 | [비밀번호 변경] | 클릭 | 화면 검사(현재 비밀번호 빈 값, 새 비밀번호 형식, 확인 불일치) → POST /api/users/me/password → 세 칸 비우고 "비밀번호를 바꿨습니다." 안내 토스트. 400 CURRENT_PASSWORD_MISMATCH 면 현재 비밀번호 칸 아래 "현재 비밀번호가 맞지 않습니다." 423 LOGIN_LOCKED 면 "비밀번호를 여러 번 틀려 N분 동안 확인할 수 없습니다." 오류 토스트 |
 | [회원 탈퇴] | 클릭 | GET /api/users/me/withdrawal-check → blockingTeams 가 있으면 막힘 창, 없으면 탈퇴 창 1단계 (soloTeams 가 있으면 함께 해체될 팀 표시) |
 | 막힘 창 팀 링크 | 클릭 | 창 닫고 그 팀 정보 탭(/teams/{팀 id}/info)으로 이동 |
@@ -107,6 +110,8 @@
 | POST | /api/email-verifications | 이메일 변경 인증번호 발송 (purpose = change_email) |
 | POST | /api/email-verifications/{id}/verify | 인증번호 확인 |
 | POST | /api/users/me/email | 이메일 변경 |
+| POST | /api/phone-verifications | 전화번호 변경 인증번호 문자 발송 (purpose = change_phone, D-168) |
+| POST | /api/phone-verifications/{id}/verify | 전화번호 인증번호 확인 |
 | POST | /api/users/me/phone | 전화번호 변경 |
 | POST | /api/users/me/password | 비밀번호 변경 |
 | GET | /api/users/me/withdrawal-check | 탈퇴 전 확인 |
@@ -125,6 +130,7 @@
 | 기본 | 지금 정보로 채운 칸, [저장]·[인증번호 발송] 비활성 (바뀐 것 없음) |
 | 입력 오류 | 칸 빨강 테두리 + 칸 아래 문구 |
 | 이메일 인증 중 / 인증 완료 | 회원가입과 같은 모양 + [이메일 변경] |
+| 전화번호 인증 중 / 인증 완료 | 회원가입과 같은 모양 + [전화번호 변경] (D-168) |
 | 처리 중 | 누른 버튼 안 스피너 + "저장 중..." / "변경 중..." / "탈퇴 중...", 비활성 |
 | 탈퇴 막힘 | 막힘 창 + 팀 목록 |
 | 탈퇴 1단계 | 안내 + (혼자인 팀 목록) + 비밀번호 칸 |

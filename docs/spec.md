@@ -26,6 +26,7 @@
 |mssql|12.7.14|SQL Server 접속 (기본 드라이버 tedious)|
 |bcrypt|6.0.0|비밀번호·인증번호 해시|
 |nodemailer|10.3.1|Gmail SMTP 메일 발송|
+|solapi|6.0.1|SOLAPI 문자(SMS) 발송 SDK (D-168). 6.1.0 은 2026-11-05 에 나와 2주가 안 되어 6.0.1 을 쓴다|
 |cookie-parser|1.4.7|로그인 쿠키 읽기|
 |socket.io / socket.io-client|4.8.4|실시간 반영 (socket.io-client 는 백엔드 테스트에도 개발 의존성으로 쓴다)|
 |vue|3.5.45|프론트엔드 프레임워크|
@@ -50,6 +51,7 @@
 |이름|용도|설정|
 |---|---|---|
 |Gmail SMTP|인증번호·팀 초대 메일 (D-004)|환경 변수 MAIL_USER 등 (backend/.env)|
+|SOLAPI|전화번호 인증 문자 (D-168)|환경 변수 SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER (backend/.env, 사용자가 발급·발신번호 등록). 건당 요금|
 |공공데이터포털 한국천문연구원 특일 정보 API|캘린더 공휴일 (D-107)|환경 변수 HOLIDAY_API_KEY (backend/.env, 사용자가 발급). 호출 주소 https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo (serviceKey, solYear, numOfRows, _type=json), 응답 response.body.items.item[] 의 locdate(YYYYMMDD)·dateName·isHoliday (2026-11-12 실제 호출로 확인). 별도 npm 패키지 없이 Node.js 기본 fetch 사용|
 
 ---
