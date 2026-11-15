@@ -36,7 +36,7 @@
 |프로젝트/frontend/src/views/DailyReportView_screen.md|일일보고 화면 설계 문서 (D-150)|
 |프로젝트/frontend/src/layouts/|공통 레이아웃 Vue 파일과 화면 설계 문서|
 |프로젝트/frontend/src/layouts/MainLayout_screen.md|공통 레이아웃 화면 설계 문서|
-|프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
+|프로젝트/.gitignore|git에서 제외할 파일 목록. node_modules/, dist/, .vite/(시안 서버 캐시), coverage/, .env, 로그, 개인 편집기 설정을 제외한다 (git.md 2번)|
 |프로젝트/backend/|백엔드 폴더 (Node.js 24 + Express 5)|
 |프로젝트/backend/package.json, package-lock.json|백엔드 의존성과 실행·테스트 명령 (spec.md). dev/start 는 node --env-file=.env 로 .env 를 읽는다|
 |프로젝트/backend/node_modules/|npm 설치 폴더 (git 제외)|
@@ -72,11 +72,12 @@
 |프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue, layouts/MainLayout.vue, TaskView.vue, TeamInfoView.vue, CalendarView.vue, HistoryView.vue, FindIdView.vue, FindPasswordView.vue, ProfileView.vue, DailyReportView.vue|
 |프로젝트/frontend/tests/|프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
-|프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, Node 24 경로 지정)|
+|프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, 시안 mockups 5199(프로젝트 루트를 Vite 로 띄움), Node 24 경로 지정)|
 |프로젝트/skills-lock.json|npx skills 로 설치한 스킬 목록과 해시|
 |프로젝트/docs/reference.md|reference 폴더 참고자료 목록 (파일명, 설명, 관련 작업). AI가 폴더를 볼 때 갱신|
 |프로젝트/docs/mockups/|화면 시안 HTML. 서버 없이 바로 열어 보는 파일 (loop.md 2번 와이어프레임)|
 |프로젝트/docs/mockups/login_view.html, signup_view.html, find_id_view.html, find_password_view.html|로그인·회원가입·아이디 찾기·비밀번호 찾기 시안|
+|프로젝트/docs/mockups/signup_view.js|회원가입 시안의 동작 스크립트. 이메일·전화번호 인증을 같은 흐름으로 흉내 낸다 (D-168 로 700줄을 넘어 나눔)|
 |프로젝트/docs/mockups/main_layout.html, task_view.html, calendar_view.html, team_info_view.html, history_view.html, profile_view.html|공통 레이아웃·작업·캘린더·팀 정보·히스토리·회원정보 수정 시안 (작업·캘린더·히스토리는 ?space=team 으로 팀 공간)|
 |프로젝트/docs/mockups/daily_report_view.html, daily_report_view.js|일일보고 시안과 동작 스크립트 (D-150, D-146)|
 |프로젝트/docs/mockups/vendor/tiptap.iife.js|시안용 Tiptap 묶음 (window.Tiptap). 서버 없이 연 시안은 ES 모듈을 못 불러와서 만든다. 직접 고치지 않고 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)|

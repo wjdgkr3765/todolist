@@ -3,6 +3,7 @@ node_modules/
 
 # 빌드 결과물
 dist/
+.vite/
 coverage/
 
 # 개인 설정과 비밀 정보

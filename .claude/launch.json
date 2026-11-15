@@ -12,6 +12,12 @@
       "runtimeExecutable": "C:/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2/node.exe",
       "runtimeArgs": ["frontend/node_modules/vite/bin/vite.js", "frontend"],
       "port": 5173
+    },
+    {
+      "name": "mockups",
+      "runtimeExecutable": "C:/Users/WJDGKR3386/AppData/Local/nvm/v24.22.2/node.exe",
+      "runtimeArgs": ["frontend/node_modules/vite/bin/vite.js", ".", "--port", "5199", "--strictPort"],
+      "port": 5199
     }
   ]
 }
