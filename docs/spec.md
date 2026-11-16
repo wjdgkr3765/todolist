@@ -50,6 +50,7 @@
 ## 3. 외부 서비스
 |이름|용도|설정|
 |---|---|---|
+|(내장) Node.js crypto|이메일·전화번호 AES-256-GCM 암호화, 찾기용 HMAC-SHA256 (D-172)|환경 변수 DATA_ENCRYPTION_KEY, DATA_HASH_KEY (backend/.env, 사용자가 만들고 따로 보관). 새 npm 패키지 없음|
 |Gmail SMTP|인증번호·팀 초대 메일 (D-004)|환경 변수 MAIL_USER 등 (backend/.env)|
 |SOLAPI|전화번호 인증 문자 (D-168)|환경 변수 SOLAPI_API_KEY, SOLAPI_API_SECRET, SOLAPI_SENDER (backend/.env, 사용자가 발급·발신번호 등록). 건당 요금|
 |공공데이터포털 한국천문연구원 특일 정보 API|캘린더 공휴일 (D-107)|환경 변수 HOLIDAY_API_KEY (backend/.env, 사용자가 발급). 호출 주소 https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo (serviceKey, solYear, numOfRows, _type=json), 응답 response.body.items.item[] 의 locdate(YYYYMMDD)·dateName·isHoliday (2026-11-12 실제 호출로 확인). 별도 npm 패키지 없이 Node.js 기본 fetch 사용|

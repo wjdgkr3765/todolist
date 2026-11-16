@@ -1487,3 +1487,17 @@
 - 이유: 사용자 답변 (발송 실패와 완전히 같게, 추천대로). 제한 기준을 드러내지 않아 우회를 어렵게 한다
 - 관련 문서/파일: api.md POST /api/phone-verifications, SignupView_screen.md, ProfileView_screen.md, 시안 signup_view·profile_view
 - 상태: 유효
+
+### D-172 이메일·전화번호 암호화 방식
+- 날짜: 2026-11-16
+- 질문/상황: D-170 작업 설계. 암호화하면 DB 에서 값으로 바로 찾을 수 없어(중복 확인, 아이디·비밀번호 찾기, 팀 초대) 찾기용 값이 따로 필요함. AI 가 방식·범위·기존 데이터를 물음
+- 결정:
+  1. 방식: 값은 AES-256-GCM 으로 암호화해 저장 (값마다 새 IV 12바이트, 저장 형식 `v1.{IV}.{인증태그}.{암호문}` 각각 base64url). 찾기·중복 확인은 HMAC-SHA256 해시(16진수 64자) 컬럼으로 한다. Node.js 기본 crypto 만 쓴다 (새 패키지 없음)
+  2. 해시 전 정리: 이메일은 앞뒤 공백을 지우고 소문자로 (지금처럼 대소문자 구분 없이 찾기·중복 확인), 전화번호는 그대로
+  3. 범위: users 의 email·phone, email_verifications 의 email, phone_verifications 의 phone. 비밀번호·인증번호는 지금처럼 bcrypt 단방향 (D-006)
+  4. 키: 환경 변수 DATA_ENCRYPTION_KEY(암호화), DATA_HASH_KEY(찾기용 해시) 각각 무작위 32바이트 base64. 사용자가 만들어 backend/.env 에 넣는다. 없거나 길이가 틀리면 서버를 시작하지 않는다. 키를 잃으면 암호화된 이메일·전화번호를 되살릴 수 없으므로 사용자가 따로 안전하게 보관한다
+  5. 기존 데이터: 한 번 실행하는 변환 스크립트(backend/scripts/encryptPersonalData.js)로 테이블 구조를 바꾸고 기존 값을 암호화한다
+  6. 화면과 API 요청·응답은 바뀌지 않는다 (서버가 읽을 때 복호화). 그래서 와이어프레임 단계는 해당 없음
+- 이유: 사용자 답변 (방식·범위·기존 데이터 모두 추천대로). 저장 형식, 키 이름, 해시 전 정리, 스크립트는 AI 가 정함
+- 관련 문서/파일: database.md users·email_verifications·phone_verifications, api.md 1, spec.md, structure.md, backend/src/utils/personalData.js
+- 상태: 유효

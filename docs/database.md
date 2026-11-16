@@ -11,6 +11,7 @@
 - **DB**: Microsoft SQL Server 2019, DB 이름 `todolist` (D-031)
 - **서버**: localhost\SQLEXPRESS (이름 있는 인스턴스, D-034). 환경 변수 DB_INSTANCE, DB_PORT 를 적으면 포트 우선
 - **접속**: SQL Server 인증(아이디/비밀번호). DB와 로그인 계정은 사용자가 SSMS에서 만들고, 접속 정보는 사용자가 직접 backend/.env 에 넣는다 (D-031, D-034)
+- **개인정보 암호화 (D-170, D-172)**: 이메일·전화번호는 AES-256-GCM 으로 암호화해 저장하고(`v1.{IV}.{인증태그}.{암호문}`, base64url), 찾기·중복 확인은 HMAC-SHA256 해시 컬럼(`email_hash`, `phone_hash`, 16진수 64자)으로 한다. 이메일은 앞뒤 공백을 지우고 소문자로 바꾼 값을 해시한다. 키는 환경 변수 DATA_ENCRYPTION_KEY, DATA_HASH_KEY. 비밀번호·인증번호는 bcrypt 단방향
 - **시각**: `DATETIME2`, UTC 저장, 기본값 `SYSUTCDATETIME()` (D-032). 단 할일·작업의 기간은 달력 날짜라 `DATE`, 기간 시간은 따로 `TIME(0)` 이고 입력한 한국 시간 그대로 저장한다 (시간대 변환 안 함, D-135)
 
 ---
@@ -102,14 +103,15 @@ CREATE TABLE users (
     login_id         NVARCHAR(15)  NOT NULL UNIQUE,                   -- 아이디
     password_hash    NVARCHAR(60)  NOT NULL,                          -- 비밀번호 bcrypt 해시 (60자)
     nickname         NVARCHAR(8)   NOT NULL,                          -- 닉네임 (중복 허용)
-    email            NVARCHAR(100) NOT NULL UNIQUE,                   -- 이메일
-    phone            NVARCHAR(11)  NOT NULL UNIQUE,                   -- 전화번호 (숫자 11자리, 인증 보류 D-005)
+    email            NVARCHAR(200) NOT NULL,                          -- 이메일 암호문 (AES-256-GCM, 원문 최대 100자, D-172)
+    email_hash       NVARCHAR(64)  NOT NULL UNIQUE,                   -- 이메일 찾기용 HMAC-SHA256 (소문자로 바꾼 값, 16진수 64자)
+    phone            NVARCHAR(80)  NOT NULL,                          -- 전화번호 암호문 (원문 010 으로 시작하는 숫자 11자리, D-167, D-172)
+    phone_hash       NVARCHAR(64)  NOT NULL UNIQUE,                   -- 전화번호 찾기용 HMAC-SHA256 (16진수 64자)
     login_fail_count INT           NOT NULL DEFAULT 0,                -- 연속으로 비밀번호를 틀린 횟수 (0~4, D-049)
     is_report_carry_over BIT       NOT NULL DEFAULT 0,                -- 일일보고 지난 보고 이어받기 켜짐 여부 (D-156)
     lock_expire_date DATETIME2     NULL,                              -- 로그인 잠금이 풀리는 시각 (UTC, 잠금 없으면 NULL)
     create_date      DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- 가입 시각 (UTC)
 
-    CHECK (LEN(phone) = 11 AND phone NOT LIKE '%[^0-9]%'),
     CHECK (login_fail_count BETWEEN 0 AND 5)
 );
 ```
@@ -142,7 +144,8 @@ CREATE INDEX idx_login_tokens_user_id ON login_tokens (user_id);
 ```sql
 CREATE TABLE email_verifications (
     id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
-    email       NVARCHAR(100) NOT NULL,                          -- 인증할 이메일
+    email       NVARCHAR(200) NOT NULL,                          -- 인증할 이메일 암호문 (D-172)
+    email_hash  NVARCHAR(64)  NOT NULL,                          -- 이메일 찾기용 HMAC-SHA256 (소문자로 바꾼 값)
     code_hash   NVARCHAR(60)  NOT NULL,                          -- 인증번호 bcrypt 해시
     purpose     NVARCHAR(20)  NOT NULL,                          -- 용도
     fail_count  INT           NOT NULL DEFAULT 0,                -- 틀린 횟수 (5가 되면 무효)
@@ -155,7 +158,7 @@ CREATE TABLE email_verifications (
     CHECK (fail_count BETWEEN 0 AND 5)
 );
 
-CREATE INDEX idx_email_verifications_email ON email_verifications (email, purpose, create_date);
+CREATE INDEX idx_email_verifications_email_hash ON email_verifications (email_hash, purpose, create_date);
 ```
 
 ### phone_verifications (전화번호 인증번호)
@@ -168,7 +171,8 @@ CREATE INDEX idx_email_verifications_email ON email_verifications (email, purpos
 ```sql
 CREATE TABLE phone_verifications (
     id          BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
-    phone       NVARCHAR(11)  NOT NULL,                          -- 인증할 전화번호 (010 으로 시작하는 숫자 11자리)
+    phone       NVARCHAR(80)  NOT NULL,                          -- 인증할 전화번호 암호문 (원문 010 으로 시작하는 숫자 11자리, D-172)
+    phone_hash  NVARCHAR(64)  NOT NULL,                          -- 전화번호 찾기용 HMAC-SHA256
     code_hash   NVARCHAR(60)  NOT NULL,                          -- 인증번호 bcrypt 해시
     purpose     NVARCHAR(20)  NOT NULL,                          -- 용도
     request_ip  NVARCHAR(45)  NOT NULL,                          -- 발송을 요청한 IP (IPv6 최대 45자, D-169)
@@ -178,12 +182,11 @@ CREATE TABLE phone_verifications (
     verify_date DATETIME2     NULL,                              -- 인증 완료 시각 (UTC)
     create_date DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(), -- 발송 시각 (UTC)
 
-    CHECK (LEN(phone) = 11 AND phone NOT LIKE '%[^0-9]%'),
     CHECK (purpose IN ('signup', 'change_phone')),
     CHECK (fail_count BETWEEN 0 AND 5)
 );
 
-CREATE INDEX idx_phone_verifications_phone ON phone_verifications (phone, create_date);
+CREATE INDEX idx_phone_verifications_phone_hash ON phone_verifications (phone_hash, create_date);
 CREATE INDEX idx_phone_verifications_request_ip ON phone_verifications (request_ip, create_date);
 ```
 
