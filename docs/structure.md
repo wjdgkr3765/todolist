@@ -73,6 +73,8 @@
 |프로젝트/frontend/src/views/*.vue, layouts/MainLayout.vue|화면 11개. overview.md 5 화면 목록과 같다. 만든 것: SignupView.vue, LoginView.vue, layouts/MainLayout.vue, TaskView.vue, TeamInfoView.vue, CalendarView.vue, HistoryView.vue, FindIdView.vue, FindPasswordView.vue, ProfileView.vue, DailyReportView.vue|
 |프로젝트/frontend/tests/|프론트엔드 테스트 (Vitest + @vue/test-utils + jsdom)|
 |프로젝트/.claude/skills/grilling/|grilling 스킬 (mattpocock/skills, 계획을 질문으로 검증하는 스킬. npx skills add 로 설치, D-132)|
+|프로젝트/.claude/settings.json|Claude Code 프로젝트 설정. PreToolUse 훅으로 hooks/protect-files.js 를 실행한다 (파일 도구 Read·Edit·Write·MultiEdit·NotebookEdit·Grep)|
+|프로젝트/.claude/hooks/protect-files.js|보호 훅: 수정 금지 문서(CLAUDE.md, docs/guide·loop·coding_rule·security·git·screen.md, docs/reference/)는 고치기·쓰기를 막고, .env(.env.example 제외)는 읽기·고치기·쓰기를 막는다. 셸 명령은 막지 않는다|
 |프로젝트/.claude/launch.json|Claude 브라우저 미리보기용 개발 서버 설정 (backend 3000, frontend 5173, 시안 mockups 5199(프로젝트 루트를 Vite 로 띄움), Node 24 경로 지정)|
 |프로젝트/skills-lock.json|npx skills 로 설치한 스킬 목록과 해시|
 |프로젝트/docs/reference.md|reference 폴더 참고자료 목록 (파일명, 설명, 관련 작업). AI가 폴더를 볼 때 갱신|
