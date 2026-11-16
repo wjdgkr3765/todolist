@@ -2,6 +2,7 @@
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { getPool, withTransaction, sql } from '../config/db.js';
+import { encryptText, hashPhone } from '../utils/personalData.js';
 import { sendSms } from '../config/sms.js';
 import { AppError, notFound } from '../utils/appError.js';
 
@@ -35,8 +36,8 @@ const sendFailed = () => new AppError(500, 'SMS_SEND_FAILED', '문자를 보내�
 export async function sendPhoneVerification({ phone, purpose, requestIp }) {
   const pool = await getPool();
   // 두 용도 모두 이미 가입된 번호(전화번호 변경은 내 번호 포함)면 보내지 않는다
-  const used = await pool.request().input('phone', sql.NVarChar(11), phone)
-    .query('SELECT TOP 1 id FROM users WHERE phone = @phone');
+  const used = await pool.request().input('phoneHash', sql.NVarChar(64), hashPhone(phone))
+    .query('SELECT TOP 1 id FROM users WHERE phone_hash = @phoneHash');
   if (used.recordset.length > 0) {
     throw duplicated();
   }
@@ -51,13 +52,13 @@ export async function sendPhoneVerification({ phone, purpose, requestIp }) {
     );
     // 같은 번호의 기록을 잠그고 1분 안 재발송, 24시간 발송 횟수를 본다 (동시 요청도 한 번만 통과)
     const sent = await new sql.Request(transaction)
-      .input('phone', sql.NVarChar(11), phone)
+      .input('phoneHash', sql.NVarChar(64), hashPhone(phone))
       .input('purpose', sql.NVarChar(20), purpose)
       .query(`SELECT
                 COUNT(*) AS daily_count,
                 SUM(CASE WHEN purpose = @purpose AND create_date > DATEADD(MINUTE, -1, SYSUTCDATETIME()) THEN 1 ELSE 0 END) AS recent_count
               FROM phone_verifications WITH (UPDLOCK, HOLDLOCK)
-              WHERE phone = @phone AND create_date > DATEADD(DAY, -1, SYSUTCDATETIME())`);
+              WHERE phone_hash = @phoneHash AND create_date > DATEADD(DAY, -1, SYSUTCDATETIME())`);
     const { daily_count: dailyCount, recent_count: recentCount } = sent.recordset[0];
     if (recentCount > 0) {
       throw new AppError(429, 'VERIFICATION_RESEND_TOO_SOON', '1분 뒤에 다시 발송할 수 있습니다.');
@@ -76,15 +77,16 @@ export async function sendPhoneVerification({ phone, purpose, requestIp }) {
     }
     // 재발송하면 이전 번호는 무효. 보낸 횟수를 세려고 행은 남기고 만료만 시킨다 (database.md phone_verifications)
     const inserted = await new sql.Request(transaction)
-      .input('phone', sql.NVarChar(11), phone)
+      .input('phoneHash', sql.NVarChar(64), hashPhone(phone))
       .input('purpose', sql.NVarChar(20), purpose)
       .input('codeHash', sql.NVarChar(60), codeHash)
       .input('requestIp', sql.NVarChar(45), requestIp)
+      .input('phoneEncrypted', sql.NVarChar(80), encryptText(phone))
       .query(`UPDATE phone_verifications SET expire_date = SYSUTCDATETIME()
-              WHERE phone = @phone AND purpose = @purpose AND expire_date > SYSUTCDATETIME();
-              INSERT INTO phone_verifications (phone, code_hash, purpose, request_ip, expire_date)
+              WHERE phone_hash = @phoneHash AND purpose = @purpose AND expire_date > SYSUTCDATETIME();
+              INSERT INTO phone_verifications (phone, phone_hash, code_hash, purpose, request_ip, expire_date)
               OUTPUT inserted.id, inserted.expire_date, inserted.create_date
-              VALUES (@phone, @codeHash, @purpose, @requestIp, DATEADD(MINUTE, 5, SYSUTCDATETIME()));`);
+              VALUES (@phoneEncrypted, @phoneHash, @codeHash, @purpose, @requestIp, DATEADD(MINUTE, 5, SYSUTCDATETIME()));`);
     return inserted.recordset[0];
   });
 
@@ -155,10 +157,10 @@ export async function checkPhoneVerified(runner, { phone, verificationId, purpos
   const request = runner.request ? runner.request() : new sql.Request(runner);
   const result = await request
     .input('id', sql.BigInt, verificationId)
-    .input('phone', sql.NVarChar(11), phone)
+    .input('phoneHash', sql.NVarChar(64), hashPhone(phone))
     .input('purpose', sql.NVarChar(20), purpose)
     .query(`SELECT TOP 1 id FROM phone_verifications
-            WHERE id = @id AND phone = @phone AND purpose = @purpose AND is_verified = 1
+            WHERE id = @id AND phone_hash = @phoneHash AND purpose = @purpose AND is_verified = 1
               AND verify_date > DATEADD(MINUTE, -30, SYSUTCDATETIME())`);
   if (result.recordset.length === 0) {
     throw new AppError(400, 'PHONE_NOT_VERIFIED', '전화번호 인증을 완료해 주세요.');

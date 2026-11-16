@@ -1,5 +1,6 @@
 // 팀 목록·만들기·순서 (api.md 6.6, D-071, D-073, D-078, D-089, D-152)
 import { getPool, withTransaction, sql } from '../config/db.js';
+import { decryptText } from '../utils/personalData.js';
 import { AppError, notFound } from '../utils/appError.js';
 import { DEFAULT_REPORT_HEADER, DEFAULT_REPORT_SECTIONS } from '../utils/reportDefaults.js';
 import { emitToUser, joinTeamRoom } from '../realtime/index.js';
@@ -47,7 +48,7 @@ export async function listMembers(userId, teamId) {
             WHERE m.team_id = @teamId
             ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, m.create_date, m.id`);
   return result.recordset.map((row) => ({
-    userId: Number(row.user_id), nickname: row.nickname, email: row.email, role: row.role, joinDate: row.create_date.toISOString(),
+    userId: Number(row.user_id), nickname: row.nickname, email: decryptText(row.email), role: row.role, joinDate: row.create_date.toISOString(),
   }));
 }
 

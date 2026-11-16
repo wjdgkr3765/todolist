@@ -1,6 +1,7 @@
 // 회원가입·아이디 중복 확인 (api.md 6.2, D-006, D-042, D-044)
 import bcrypt from 'bcrypt';
 import { getPool, withTransaction, isUniqueViolation, sql } from '../config/db.js';
+import { encryptText, hashEmail, hashPhone } from '../utils/personalData.js';
 import { AppError } from '../utils/appError.js';
 import { checkPhoneVerified } from './phoneVerificationService.js';
 
@@ -17,12 +18,12 @@ export async function isLoginIdAvailable(loginId) {
 async function checkDuplicates(pool, { loginId, email, phone }) {
   const result = await pool.request()
     .input('loginId', sql.NVarChar(15), loginId)
-    .input('email', sql.NVarChar(100), email)
-    .input('phone', sql.NVarChar(11), phone)
+    .input('emailHash', sql.NVarChar(64), hashEmail(email))
+    .input('phoneHash', sql.NVarChar(64), hashPhone(phone))
     .query(`SELECT
               CASE WHEN EXISTS (SELECT 1 FROM users WHERE login_id = @loginId) THEN 1 ELSE 0 END AS is_login_id_used,
-              CASE WHEN EXISTS (SELECT 1 FROM users WHERE email = @email) THEN 1 ELSE 0 END AS is_email_used,
-              CASE WHEN EXISTS (SELECT 1 FROM users WHERE phone = @phone) THEN 1 ELSE 0 END AS is_phone_used`);
+              CASE WHEN EXISTS (SELECT 1 FROM users WHERE email_hash = @emailHash) THEN 1 ELSE 0 END AS is_email_used,
+              CASE WHEN EXISTS (SELECT 1 FROM users WHERE phone_hash = @phoneHash) THEN 1 ELSE 0 END AS is_phone_used`);
   const row = result.recordset[0];
   if (row.is_login_id_used) {
     throw new AppError(409, 'LOGIN_ID_DUPLICATED', '이미 사용 중인 아이디입니다.');
@@ -39,9 +40,9 @@ async function checkDuplicates(pool, { loginId, email, phone }) {
 async function checkEmailVerified(pool, { email, verificationId }) {
   const result = await pool.request()
     .input('id', sql.BigInt, verificationId)
-    .input('email', sql.NVarChar(100), email)
+    .input('emailHash', sql.NVarChar(64), hashEmail(email))
     .query(`SELECT TOP 1 id FROM email_verifications
-            WHERE id = @id AND email = @email AND purpose = 'signup' AND is_verified = 1
+            WHERE id = @id AND email_hash = @emailHash AND purpose = 'signup' AND is_verified = 1
               AND verify_date > DATEADD(MINUTE, -30, SYSUTCDATETIME())`);
   if (result.recordset.length === 0) {
     throw new AppError(400, 'EMAIL_NOT_VERIFIED', '이메일 인증을 완료해 주세요.');
@@ -61,16 +62,18 @@ export async function createUser({ loginId, password, nickname, email, phone, ve
         .input('loginId', sql.NVarChar(15), loginId)
         .input('passwordHash', sql.NVarChar(60), passwordHash)
         .input('nickname', sql.NVarChar(8), nickname)
-        .input('email', sql.NVarChar(100), email)
-        .input('phone', sql.NVarChar(11), phone)
-        .query(`INSERT INTO users (login_id, password_hash, nickname, email, phone)
+        .input('emailHash', sql.NVarChar(64), hashEmail(email))
+        .input('phoneHash', sql.NVarChar(64), hashPhone(phone))
+        .input('emailEncrypted', sql.NVarChar(200), encryptText(email))
+        .input('phoneEncrypted', sql.NVarChar(80), encryptText(phone))
+        .query(`INSERT INTO users (login_id, password_hash, nickname, email, email_hash, phone, phone_hash)
                 OUTPUT inserted.id
-                VALUES (@loginId, @passwordHash, @nickname, @email, @phone)`);
+                VALUES (@loginId, @passwordHash, @nickname, @emailEncrypted, @emailHash, @phoneEncrypted, @phoneHash)`);
       // 가입에 성공하면 그 이메일의 인증 기록과 그 번호의 회원가입 인증 기록을 지운다
-      await new sql.Request(transaction).input('email', sql.NVarChar(100), email)
-        .query('DELETE FROM email_verifications WHERE email = @email');
-      await new sql.Request(transaction).input('phone', sql.NVarChar(11), phone)
-        .query("DELETE FROM phone_verifications WHERE phone = @phone AND purpose = 'signup'");
+      await new sql.Request(transaction).input('emailHash', sql.NVarChar(64), hashEmail(email))
+        .query('DELETE FROM email_verifications WHERE email_hash = @emailHash');
+      await new sql.Request(transaction).input('phoneHash', sql.NVarChar(64), hashPhone(phone))
+        .query("DELETE FROM phone_verifications WHERE phone_hash = @phoneHash AND purpose = 'signup'");
       return { userId: Number(inserted.recordset[0].id) };
     });
   } catch (error) {
@@ -86,10 +89,10 @@ export async function createUser({ loginId, password, nickname, email, phone, ve
 async function checkPurposeVerified(pool, { email, verificationId, purpose }) {
   const result = await pool.request()
     .input('id', sql.BigInt, verificationId)
-    .input('email', sql.NVarChar(100), email)
+    .input('emailHash', sql.NVarChar(64), hashEmail(email))
     .input('purpose', sql.NVarChar(20), purpose)
     .query(`SELECT TOP 1 id FROM email_verifications
-            WHERE id = @id AND email = @email AND purpose = @purpose AND is_verified = 1
+            WHERE id = @id AND email_hash = @emailHash AND purpose = @purpose AND is_verified = 1
               AND verify_date > DATEADD(MINUTE, -30, SYSUTCDATETIME())`);
   if (result.recordset.length === 0) {
     throw new AppError(400, 'EMAIL_NOT_VERIFIED', '이메일 인증을 완료해 주세요.');
@@ -100,9 +103,9 @@ async function checkPurposeVerified(pool, { email, verificationId, purpose }) {
 export async function findLoginId({ email, verificationId }) {
   const pool = await getPool();
   await checkPurposeVerified(pool, { email, verificationId, purpose: 'find_id' });
-  const result = await pool.request().input('email', sql.NVarChar(100), email)
-    .query(`SELECT login_id, create_date FROM users WHERE email = @email;
-            DELETE FROM email_verifications WHERE email = @email AND purpose = 'find_id';`);
+  const result = await pool.request().input('emailHash', sql.NVarChar(64), hashEmail(email))
+    .query(`SELECT login_id, create_date FROM users WHERE email_hash = @emailHash;
+            DELETE FROM email_verifications WHERE email_hash = @emailHash AND purpose = 'find_id';`);
   const user = result.recordset[0];
   if (!user) {
     throw new AppError(404, 'EMAIL_NOT_REGISTERED', '가입되지 않은 이메일입니다.');
@@ -113,8 +116,8 @@ export async function findLoginId({ email, verificationId }) {
 // 비밀번호 재설정 (api.md POST /api/users/reset-password, D-115, D-116). 커밋 뒤 실시간 연결 끊기는 라우트에서
 export async function resetPassword({ loginId, email, verificationId, password }) {
   const pool = await getPool();
-  const found = await pool.request().input('loginId', sql.NVarChar(15), loginId).input('email', sql.NVarChar(100), email)
-    .query('SELECT id FROM users WHERE login_id = @loginId AND email = @email');
+  const found = await pool.request().input('loginId', sql.NVarChar(15), loginId).input('emailHash', sql.NVarChar(64), hashEmail(email))
+    .query('SELECT id FROM users WHERE login_id = @loginId AND email_hash = @emailHash');
   if (!found.recordset[0]) {
     throw new AppError(404, 'ACCOUNT_NOT_FOUND', '아이디와 이메일이 일치하는 회원이 없습니다.');
   }
@@ -123,10 +126,10 @@ export async function resetPassword({ loginId, email, verificationId, password }
   const passwordHash = await bcrypt.hash(password, PASSWORD_HASH_ROUNDS);
   await withTransaction(async (transaction) => {
     await new sql.Request(transaction)
-      .input('id', sql.BigInt, userId).input('passwordHash', sql.NVarChar(60), passwordHash).input('email', sql.NVarChar(100), email)
+      .input('id', sql.BigInt, userId).input('passwordHash', sql.NVarChar(60), passwordHash).input('emailHash', sql.NVarChar(64), hashEmail(email))
       .query(`UPDATE users SET password_hash = @passwordHash, login_fail_count = 0, lock_expire_date = NULL WHERE id = @id;
               DELETE FROM login_tokens WHERE user_id = @id;
-              DELETE FROM email_verifications WHERE email = @email AND purpose = 'find_password';`);
+              DELETE FROM email_verifications WHERE email_hash = @emailHash AND purpose = 'find_password';`);
   });
   return userId;
 }

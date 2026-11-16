@@ -1,5 +1,6 @@
 // 회원정보 수정/탈퇴 (api.md 6.11, D-021, D-041, D-129~D-131, D-160)
 import { getPool, withTransaction, isUniqueViolation, sql } from '../config/db.js';
+import { decryptText, encryptText, hashEmail, hashPhone } from '../utils/personalData.js';
 import { AppError } from '../utils/appError.js';
 import { closeTeamRoom, emitToTeam, emitToUser } from '../realtime/index.js';
 import { checkPasswordWithLimit } from './sessionService.js';
@@ -10,7 +11,9 @@ const PASSWORD_HASH_ROUNDS = 10;
 const currentPasswordMismatch = () => new AppError(400, 'CURRENT_PASSWORD_MISMATCH', '현재 비밀번호가 맞지 않습니다.');
 
 function toMe(row) {
-  return { loginId: row.login_id, nickname: row.nickname, email: row.email, phone: row.phone, createDate: row.create_date.toISOString() };
+  return {
+    loginId: row.login_id, nickname: row.nickname, email: decryptText(row.email), phone: decryptText(row.phone), createDate: row.create_date.toISOString(),
+  };
 }
 
 export async function getMe(userId, runner = null) {
@@ -30,8 +33,8 @@ export async function changeNickname(userId, nickname) {
 // 전화번호 변경: 문자 인증을 마친 번호로만 (D-168). 성공하면 그 번호의 change_phone 인증 기록을 지운다
 export async function changePhone(userId, phone, verificationId) {
   const pool = await getPool();
-  const used = await pool.request().input('id', sql.BigInt, userId).input('phone', sql.NVarChar(11), phone)
-    .query('SELECT TOP 1 id FROM users WHERE phone = @phone AND id <> @id');
+  const used = await pool.request().input('id', sql.BigInt, userId).input('phoneHash', sql.NVarChar(64), hashPhone(phone))
+    .query('SELECT TOP 1 id FROM users WHERE phone_hash = @phoneHash AND id <> @id');
   const duplicated = () => new AppError(409, 'PHONE_DUPLICATED', '이미 가입된 전화번호입니다.');
   if (used.recordset.length > 0) {
     throw duplicated();
@@ -39,10 +42,11 @@ export async function changePhone(userId, phone, verificationId) {
   await checkPhoneVerified(pool, { phone, verificationId, purpose: 'change_phone' });
   try {
     await withTransaction(async (transaction) => {
-      await new sql.Request(transaction).input('id', sql.BigInt, userId).input('phone', sql.NVarChar(11), phone)
-        .query('UPDATE users SET phone = @phone WHERE id = @id AND phone <> @phone');
-      await new sql.Request(transaction).input('phone', sql.NVarChar(11), phone)
-        .query("DELETE FROM phone_verifications WHERE phone = @phone AND purpose = 'change_phone'");
+      await new sql.Request(transaction).input('id', sql.BigInt, userId).input('phoneHash', sql.NVarChar(64), hashPhone(phone))
+        .input('phoneEncrypted', sql.NVarChar(80), encryptText(phone))
+        .query('UPDATE users SET phone = @phoneEncrypted, phone_hash = @phoneHash WHERE id = @id AND phone_hash <> @phoneHash');
+      await new sql.Request(transaction).input('phoneHash', sql.NVarChar(64), hashPhone(phone))
+        .query("DELETE FROM phone_verifications WHERE phone_hash = @phoneHash AND purpose = 'change_phone'");
     });
   } catch (error) {
     throw isUniqueViolation(error) ? duplicated() : error;
@@ -52,18 +56,18 @@ export async function changePhone(userId, phone, verificationId) {
 
 export async function changeEmail(userId, email, verificationId) {
   const pool = await getPool();
-  const verified = await pool.request().input('id', sql.BigInt, verificationId).input('email', sql.NVarChar(100), email)
+  const verified = await pool.request().input('id', sql.BigInt, verificationId).input('emailHash', sql.NVarChar(64), hashEmail(email))
     .query(`SELECT TOP 1 id FROM email_verifications
-            WHERE id = @id AND email = @email AND purpose = 'change_email' AND is_verified = 1
+            WHERE id = @id AND email_hash = @emailHash AND purpose = 'change_email' AND is_verified = 1
               AND verify_date > DATEADD(MINUTE, -30, SYSUTCDATETIME())`);
   if (verified.recordset.length === 0) {
     throw new AppError(400, 'EMAIL_NOT_VERIFIED', '이메일 인증을 완료해 주세요.');
   }
   try {
     await withTransaction(async (transaction) => {
-      await new sql.Request(transaction).input('id', sql.BigInt, userId).input('email', sql.NVarChar(100), email)
-        .input('verificationId', sql.BigInt, verificationId)
-        .query(`UPDATE users SET email = @email WHERE id = @id;
+      await new sql.Request(transaction).input('id', sql.BigInt, userId).input('emailHash', sql.NVarChar(64), hashEmail(email))
+        .input('verificationId', sql.BigInt, verificationId).input('emailEncrypted', sql.NVarChar(200), encryptText(email))
+        .query(`UPDATE users SET email = @emailEncrypted, email_hash = @emailHash WHERE id = @id;
                 DELETE FROM email_verifications WHERE id = @verificationId;`);
     });
   } catch (error) {
@@ -160,7 +164,7 @@ export async function withdraw(user, password) {
       DELETE FROM task_assignees WHERE user_id = @userId;
       DELETE FROM team_invite_declines WHERE user_id = @userId;
       DELETE FROM login_tokens WHERE user_id = @userId;
-      DELETE FROM email_verifications WHERE email = (SELECT email FROM users WHERE id = @userId);
+      DELETE FROM email_verifications WHERE email_hash = (SELECT email_hash FROM users WHERE id = @userId);
       DELETE FROM users WHERE id = @userId;`);
     return { soloTeams: teams.soloTeams, changedTeams };
   });

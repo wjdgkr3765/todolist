@@ -1,5 +1,15 @@
 // 환경 변수 읽기 (security.md 1번: 비밀 정보는 backend/.env 에만 둔다. 값은 로그에 찍지 않는다)
 const REQUIRED_KEYS = ['DB_SERVER', 'DB_NAME', 'DB_USER', 'DB_PASSWORD', 'MAIL_USER', 'MAIL_PASSWORD'];
+const DATA_KEY_BYTES = 32;
+
+// base64 로 적은 32바이트 키 (D-172). 값은 오류 문구에 넣지 않는다
+function readKey(name) {
+  const key = Buffer.from(process.env[name] ?? '', 'base64');
+  if (key.length !== DATA_KEY_BYTES) {
+    throw new Error(`backend/.env 의 ${name} 는 base64 로 적은 ${DATA_KEY_BYTES}바이트 키여야 합니다`);
+  }
+  return key;
+}
 
 function readEnv() {
   const missingKeys = REQUIRED_KEYS.filter((key) => !process.env[key]);
@@ -28,6 +38,9 @@ function readEnv() {
     solapiApiKey: process.env.SOLAPI_API_KEY || '',
     solapiApiSecret: process.env.SOLAPI_API_SECRET || '',
     solapiSender: process.env.SOLAPI_SENDER || '',
+    // 이메일·전화번호 암호화 키와 찾기용 해시 키 (D-172). 없거나 32바이트가 아니면 시작하지 않는다
+    dataEncryptionKey: readKey('DATA_ENCRYPTION_KEY'),
+    dataHashKey: readKey('DATA_HASH_KEY'),
   };
 }
 

@@ -2,6 +2,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { getPool, withTransaction, sql } from '../config/db.js';
+import { decryptText } from '../utils/personalData.js';
 import { AppError } from '../utils/appError.js';
 
 export const SESSION_COOKIE_NAME = 'todo_session';
@@ -29,7 +30,7 @@ function loginLocked(remainingSeconds) {
 }
 
 function toSessionUser(row) {
-  return { userId: Number(row.id), loginId: row.login_id, nickname: row.nickname, email: row.email };
+  return { userId: Number(row.id), loginId: row.login_id, nickname: row.nickname, email: decryptText(row.email) };
 }
 
 // 잠금 시작: 지금 + 10분, 틀린 횟수 0 (D-049). 남은 초를 돌려준다

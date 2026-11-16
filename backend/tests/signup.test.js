@@ -5,6 +5,7 @@ import { createApp } from '../src/app.js';
 import { closePool } from '../src/config/db.js';
 import {
   captureMails, captureSms, cleanupTestRows, clearTestPhoneVerifications, lastSentCode, lastSentSmsCode, runSql, sentMails, sentSms, sql, testPhone, uniqueSuffix,
+  hashEmail, hashPhone, encryptText, decryptText,
 } from './helpers.js';
 import { setSendSmsOverride } from '../src/config/sms.js';
 
@@ -142,8 +143,8 @@ describe('POST /api/email-verifications', () => {
     expect(again.status).toBe(429);
     expect(again.body.error.code).toBe('VERIFICATION_RESEND_TOO_SOON');
     // 발송 시각을 61초 전으로 돌려 1분이 지난 상황을 만든다
-    await runSql('UPDATE email_verifications SET create_date = DATEADD(SECOND, -61, create_date) WHERE email = @email',
-      { email: [sql.NVarChar(100), email] });
+    await runSql('UPDATE email_verifications SET create_date = DATEADD(SECOND, -61, create_date) WHERE email_hash = @emailHash',
+      { emailHash: [sql.NVarChar(64), hashEmail(email)] });
     const resent = await sendCode(email);
     expect(resent.status).toBe(200);
     const old = await request(app).post(`/api/email-verifications/${first.body.data.verificationId}/verify`).send({ code: '000000' });
@@ -152,8 +153,8 @@ describe('POST /api/email-verifications', () => {
   test('경계: 발송 59초 뒤는 429', async () => {
     const { email } = newMember();
     await sendCode(email);
-    await runSql('UPDATE email_verifications SET create_date = DATEADD(SECOND, -59, create_date) WHERE email = @email',
-      { email: [sql.NVarChar(100), email] });
+    await runSql('UPDATE email_verifications SET create_date = DATEADD(SECOND, -59, create_date) WHERE email_hash = @emailHash',
+      { emailHash: [sql.NVarChar(64), hashEmail(email)] });
     expect((await sendCode(email)).status).toBe(429);
   });
   test('메일 발송 실패 → 500 MAIL_SEND_FAILED, 기록을 지워 바로 다시 보낼 수 있음', async () => {
@@ -210,8 +211,8 @@ describe('POST /api/email-verifications/{id}/verify', () => {
   });
   test('만료 → VERIFICATION_EXPIRED (틀린 횟수 올리지 않음)', async () => {
     const { id, code, email } = await sent();
-    await runSql('UPDATE email_verifications SET expire_date = DATEADD(SECOND, -1, SYSUTCDATETIME()) WHERE email = @email',
-      { email: [sql.NVarChar(100), email] });
+    await runSql('UPDATE email_verifications SET expire_date = DATEADD(SECOND, -1, SYSUTCDATETIME()) WHERE email_hash = @emailHash',
+      { emailHash: [sql.NVarChar(64), hashEmail(email)] });
     expect((await verify(id, code)).body.error.code).toBe('VERIFICATION_EXPIRED');
     const row = await runSql('SELECT fail_count FROM email_verifications WHERE id = @id', { id: [sql.BigInt, id] });
     expect(row.recordset[0].fail_count).toBe(0);
@@ -262,8 +263,8 @@ describe('POST /api/phone-verifications (D-168)', () => {
     const first = (await sendPhoneCode(phone)).body.data.verificationId;
     const firstCode = lastSentSmsCode();
     expect((await sendPhoneCode(phone)).body.error.code).toBe('VERIFICATION_RESEND_TOO_SOON');
-    const back = (seconds) => runSql('UPDATE phone_verifications SET create_date = DATEADD(SECOND, -@s, create_date) WHERE phone = @phone',
-      { s: [sql.Int, seconds], phone: [sql.NVarChar(11), phone] });
+    const back = (seconds) => runSql('UPDATE phone_verifications SET create_date = DATEADD(SECOND, -@s, create_date) WHERE phone_hash = @phoneHash',
+      { s: [sql.Int, seconds], phoneHash: [sql.NVarChar(64), hashPhone(phone)] });
     await back(59);
     expect((await sendPhoneCode(phone)).status).toBe(429);
     await back(2);
@@ -273,8 +274,8 @@ describe('POST /api/phone-verifications (D-168)', () => {
   });
   test('경계: 같은 번호로 24시간 안에 5번까지, 6번째는 429 PHONE_DAILY_LIMIT, 하루 지난 기록은 세지 않음', async () => {
     const phone = testPhone();
-    const backAll = () => runSql('UPDATE phone_verifications SET create_date = DATEADD(SECOND, -61, create_date) WHERE phone = @phone',
-      { phone: [sql.NVarChar(11), phone] });
+    const backAll = () => runSql('UPDATE phone_verifications SET create_date = DATEADD(SECOND, -61, create_date) WHERE phone_hash = @phoneHash',
+      { phoneHash: [sql.NVarChar(64), hashPhone(phone)] });
     for (let i = 0; i < 5; i += 1) {
       expect((await sendPhoneCode(phone)).status).toBe(200);
       await backAll();
@@ -284,7 +285,7 @@ describe('POST /api/phone-verifications (D-168)', () => {
     expect(sixth.body.error.code).toBe('PHONE_DAILY_LIMIT');
     // 가장 오래된 기록을 하루 넘게 되돌리면 다시 보낼 수 있다
     await runSql(`UPDATE phone_verifications SET create_date = DATEADD(HOUR, -25, create_date)
-                  WHERE id = (SELECT MIN(id) FROM phone_verifications WHERE phone = @phone)`, { phone: [sql.NVarChar(11), phone] });
+                  WHERE id = (SELECT MIN(id) FROM phone_verifications WHERE phone_hash = @phoneHash)`, { phoneHash: [sql.NVarChar(64), hashPhone(phone)] });
     expect((await sendPhoneCode(phone)).status).toBe(200);
   });
   test('경계: 같은 IP 에서 24시간 20번까지, 21번째는 발송 실패와 같은 응답, 하루 지난 기록은 세지 않음 (D-169, D-171)', async () => {
@@ -295,8 +296,10 @@ describe('POST /api/phone-verifications (D-168)', () => {
       WHERE request_ip = @ip AND create_date > DATEADD(DAY, -1, SYSUTCDATETIME())`, { ip: [sql.NVarChar(45), ip] });
     // 같은 IP 의 기록을 19개로 채운다 (다른 번호, 테스트 번호라 정리된다)
     for (let n = counted.recordset[0].n; n < 19; n += 1) {
-      await runSql(`INSERT INTO phone_verifications (phone, code_hash, purpose, request_ip, expire_date)
-        VALUES (@phone, 'x', 'signup', @ip, SYSUTCDATETIME())`, { phone: [sql.NVarChar(11), testPhone()], ip: [sql.NVarChar(45), ip] });
+      const phone = testPhone();
+      await runSql(`INSERT INTO phone_verifications (phone, phone_hash, code_hash, purpose, request_ip, expire_date)
+        VALUES (@phone, @phoneHash, 'x', 'signup', @ip, SYSUTCDATETIME())`,
+      { phone: [sql.NVarChar(80), encryptText(phone)], phoneHash: [sql.NVarChar(64), hashPhone(phone)], ip: [sql.NVarChar(45), ip] });
     }
     expect((await sendPhoneCode(testPhone())).status).toBe(200);
     sentSms.length = 0;
@@ -316,7 +319,7 @@ describe('POST /api/phone-verifications (D-168)', () => {
     const res = await sendPhoneCode(phone);
     expect(res.status).toBe(500);
     expect(res.body.error.code).toBe('SMS_SEND_FAILED');
-    const left = await runSql('SELECT COUNT(*) AS n FROM phone_verifications WHERE phone = @phone', { phone: [sql.NVarChar(11), phone] });
+    const left = await runSql('SELECT COUNT(*) AS n FROM phone_verifications WHERE phone_hash = @phoneHash', { phoneHash: [sql.NVarChar(64), hashPhone(phone)] });
     expect(left.recordset[0].n).toBe(0);
   });
 });
@@ -357,10 +360,28 @@ describe('POST /api/users', () => {
     expect(res.body.data.userId).toBeGreaterThan(0);
     const user = await runSql('SELECT password_hash FROM users WHERE id = @id', { id: [sql.BigInt, res.body.data.userId] });
     expect(user.recordset[0].password_hash).toMatch(/^\$2b\$10\$/);
-    const left = await runSql('SELECT COUNT(*) AS n FROM email_verifications WHERE email = @email', { email: [sql.NVarChar(100), member.email] });
+    const left = await runSql('SELECT COUNT(*) AS n FROM email_verifications WHERE email_hash = @emailHash', { emailHash: [sql.NVarChar(64), hashEmail(member.email)] });
     expect(left.recordset[0].n).toBe(0);
-    const phoneLeft = await runSql('SELECT COUNT(*) AS n FROM phone_verifications WHERE phone = @phone', { phone: [sql.NVarChar(11), member.phone] });
+    const phoneLeft = await runSql('SELECT COUNT(*) AS n FROM phone_verifications WHERE phone_hash = @phoneHash', { phoneHash: [sql.NVarChar(64), hashPhone(member.phone)] });
     expect(phoneLeft.recordset[0].n).toBe(0);
+  });
+  test('이메일·전화번호는 암호문으로 저장, 풀면 원문, 찾기용 해시는 64자 (D-172)', async () => {
+    const member = await verifiedMember();
+    const { userId } = (await request(app).post('/api/users').send(member)).body.data;
+    const row = (await runSql('SELECT email, email_hash, phone, phone_hash FROM users WHERE id = @id', { id: [sql.BigInt, userId] })).recordset[0];
+    expect(row.email).toMatch(/^v1\.[\w-]+\.[\w-]+\.[\w-]+$/);
+    expect(row.email).not.toContain(member.email);
+    expect(row.phone).not.toContain(member.phone);
+    expect(decryptText(row.email)).toBe(member.email);
+    expect(decryptText(row.phone)).toBe(member.phone);
+    expect(row.email_hash).toMatch(/^[0-9a-f]{64}$/);
+    expect(row.phone_hash).toBe(hashPhone(member.phone));
+  });
+  test('이메일 중복은 대소문자·앞뒤 공백과 상관없이 찾는다 (D-172)', async () => {
+    const first = await verifiedMember();
+    await request(app).post('/api/users').send(first);
+    const res = await request(app).post('/api/email-verifications').send({ email: first.email.toUpperCase(), purpose: 'signup' });
+    expect(res.body.error.code).toBe('EMAIL_DUPLICATED');
   });
   test.each([
     ['loginId', 'abc12'], ['password', 'abcd1234'], ['nickname', '홍길동abc123'],
@@ -383,12 +404,12 @@ describe('POST /api/users', () => {
   });
   test('경계: 인증 29분 59초 뒤 가입 성공, 30분 지나면 EMAIL_NOT_VERIFIED', async () => {
     const ok = await verifiedMember();
-    await runSql('UPDATE email_verifications SET verify_date = DATEADD(SECOND, -1799, verify_date) WHERE email = @email',
-      { email: [sql.NVarChar(100), ok.email] });
+    await runSql('UPDATE email_verifications SET verify_date = DATEADD(SECOND, -1799, verify_date) WHERE email_hash = @emailHash',
+      { emailHash: [sql.NVarChar(64), hashEmail(ok.email)] });
     expect((await request(app).post('/api/users').send(ok)).status).toBe(200);
     const late = await verifiedMember();
-    await runSql('UPDATE email_verifications SET verify_date = DATEADD(SECOND, -1801, verify_date) WHERE email = @email',
-      { email: [sql.NVarChar(100), late.email] });
+    await runSql('UPDATE email_verifications SET verify_date = DATEADD(SECOND, -1801, verify_date) WHERE email_hash = @emailHash',
+      { emailHash: [sql.NVarChar(64), hashEmail(late.email)] });
     expect((await request(app).post('/api/users').send(late)).body.error.code).toBe('EMAIL_NOT_VERIFIED');
   });
   test('전화번호 인증 안 함·다른 번호의 인증 → 400 PHONE_NOT_VERIFIED (D-168)', async () => {
@@ -399,12 +420,12 @@ describe('POST /api/users', () => {
   });
   test('경계: 전화번호 인증 29분 59초 뒤 가입 성공, 30분 지나면 PHONE_NOT_VERIFIED', async () => {
     const ok = await verifiedMember();
-    await runSql('UPDATE phone_verifications SET verify_date = DATEADD(SECOND, -1799, verify_date) WHERE phone = @phone',
-      { phone: [sql.NVarChar(11), ok.phone] });
+    await runSql('UPDATE phone_verifications SET verify_date = DATEADD(SECOND, -1799, verify_date) WHERE phone_hash = @phoneHash',
+      { phoneHash: [sql.NVarChar(64), hashPhone(ok.phone)] });
     expect((await request(app).post('/api/users').send(ok)).status).toBe(200);
     const late = await verifiedMember();
-    await runSql('UPDATE phone_verifications SET verify_date = DATEADD(SECOND, -1801, verify_date) WHERE phone = @phone',
-      { phone: [sql.NVarChar(11), late.phone] });
+    await runSql('UPDATE phone_verifications SET verify_date = DATEADD(SECOND, -1801, verify_date) WHERE phone_hash = @phoneHash',
+      { phoneHash: [sql.NVarChar(64), hashPhone(late.phone)] });
     expect((await request(app).post('/api/users').send(late)).body.error.code).toBe('PHONE_NOT_VERIFIED');
   });
   test('중복은 아이디 → 이메일 → 전화번호 순서로 첫 번째만', async () => {

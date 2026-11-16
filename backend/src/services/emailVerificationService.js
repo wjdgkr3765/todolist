@@ -2,6 +2,7 @@
 import { randomInt } from 'node:crypto';
 import bcrypt from 'bcrypt';
 import { getPool, withTransaction, sql } from '../config/db.js';
+import { encryptText, hashEmail } from '../utils/personalData.js';
 import { sendMail } from '../config/mail.js';
 import { AppError, notFound } from '../utils/appError.js';
 import { buildVerificationMail } from '../utils/mailTemplate.js';
@@ -23,17 +24,17 @@ export function isSupportedPurpose(purpose) {
 
 // 용도에 따른 사전 확인 (api.md POST /api/email-verifications)
 async function checkPurpose(pool, { email, purpose, loginId }) {
-  const request = pool.request().input('email', sql.NVarChar(100), email);
+  const request = pool.request().input('emailHash', sql.NVarChar(64), hashEmail(email));
   if (purpose === 'find_password') {
     const result = await request
       .input('loginId', sql.NVarChar(15), loginId)
-      .query('SELECT TOP 1 id FROM users WHERE login_id = @loginId AND email = @email');
+      .query('SELECT TOP 1 id FROM users WHERE login_id = @loginId AND email_hash = @emailHash');
     if (result.recordset.length === 0) {
       throw new AppError(404, 'ACCOUNT_NOT_FOUND', '아이디와 이메일이 일치하는 회원이 없습니다.');
     }
     return;
   }
-  const result = await request.query('SELECT TOP 1 id FROM users WHERE email = @email');
+  const result = await request.query('SELECT TOP 1 id FROM users WHERE email_hash = @emailHash');
   const isRegistered = result.recordset.length > 0;
   // 이메일 변경은 내 이메일도 이미 가입된 이메일로 본다 (D-129)
   if ((purpose === 'signup' || purpose === 'change_email') && isRegistered) {
@@ -58,23 +59,24 @@ export async function sendVerification({ email, purpose, loginId }) {
     );
     // 같은 이메일·용도의 기록을 잠그고 1분 안에 보낸 기록이 있는지 본다 (동시 요청도 한 번만 통과)
     const recent = await new sql.Request(transaction)
-      .input('email', sql.NVarChar(100), email)
+      .input('emailHash', sql.NVarChar(64), hashEmail(email))
       .input('purpose', sql.NVarChar(20), purpose)
       .query(`SELECT TOP 1 id FROM email_verifications WITH (UPDLOCK, HOLDLOCK)
-              WHERE email = @email AND purpose = @purpose
+              WHERE email_hash = @emailHash AND purpose = @purpose
                 AND create_date > DATEADD(MINUTE, -1, SYSUTCDATETIME())`);
     if (recent.recordset.length > 0) {
       throw new AppError(429, 'VERIFICATION_RESEND_TOO_SOON', '1분 뒤에 다시 발송할 수 있습니다.');
     }
     // 재발송하면 이전 번호는 무효 (D-045)
     const inserted = await new sql.Request(transaction)
-      .input('email', sql.NVarChar(100), email)
+      .input('emailHash', sql.NVarChar(64), hashEmail(email))
       .input('purpose', sql.NVarChar(20), purpose)
       .input('codeHash', sql.NVarChar(60), codeHash)
-      .query(`DELETE FROM email_verifications WHERE email = @email AND purpose = @purpose;
-              INSERT INTO email_verifications (email, code_hash, purpose, expire_date)
+      .input('emailEncrypted', sql.NVarChar(200), encryptText(email))
+      .query(`DELETE FROM email_verifications WHERE email_hash = @emailHash AND purpose = @purpose;
+              INSERT INTO email_verifications (email, email_hash, code_hash, purpose, expire_date)
               OUTPUT inserted.id, inserted.expire_date, inserted.create_date
-              VALUES (@email, @codeHash, @purpose, DATEADD(MINUTE, 5, SYSUTCDATETIME()));`);
+              VALUES (@emailEncrypted, @emailHash, @codeHash, @purpose, DATEADD(MINUTE, 5, SYSUTCDATETIME()));`);
     return inserted.recordset[0];
   });
 

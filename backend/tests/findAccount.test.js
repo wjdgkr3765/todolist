@@ -3,7 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { closePool } from '../src/config/db.js';
-import { captureMails, cleanupTestRows, createTestUser, lastSentCode, runSql, sentMails, sessionCookie, sql } from './helpers.js';
+import { captureMails, cleanupTestRows, createTestUser, lastSentCode, runSql, sentMails, sessionCookie, sql, hashEmail } from './helpers.js';
 
 const app = createApp();
 const post = (path, body) => request(app).post(path).send(body);
@@ -41,8 +41,8 @@ describe('아이디 찾기', () => {
     const passwordVerification = await verified(user.email, 'find_password', { loginId: user.loginId });
     expect((await post('/api/users/find-id', { email: user.email, verificationId: passwordVerification })).body.error.code).toBe('EMAIL_NOT_VERIFIED');
     const verificationId = await verified(user.email, 'find_id');
-    await runSql("UPDATE email_verifications SET verify_date = DATEADD(MINUTE, -31, verify_date) WHERE email = @email AND purpose = 'find_id'",
-      { email: [sql.NVarChar(100), user.email] });
+    await runSql("UPDATE email_verifications SET verify_date = DATEADD(MINUTE, -31, verify_date) WHERE email_hash = @emailHash AND purpose = 'find_id'",
+      { emailHash: [sql.NVarChar(64), hashEmail(user.email)] });
     expect((await post('/api/users/find-id', { email: user.email, verificationId })).body.error.code).toBe('EMAIL_NOT_VERIFIED');
     expect((await post('/api/users/find-id', { email: 'bad', verificationId })).status).toBe(400);
   });

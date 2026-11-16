@@ -1,5 +1,6 @@
 // 팀 초대·초대 목록·초대 취소 (api.md 6.7, D-008, D-009, D-092, D-093, D-120, D-121, D-122)
 import { getPool, isUniqueViolation, sql } from '../config/db.js';
+import { decryptText, hashEmail } from '../utils/personalData.js';
 import { sendMail } from '../config/mail.js';
 import { AppError, notFound } from '../utils/appError.js';
 import { buildTeamInviteMail } from '../utils/mailTemplate.js';
@@ -11,8 +12,8 @@ const invitationDuplicated = () => new AppError(409, 'INVITATION_DUPLICATED', '�
 export async function inviteMember(user, teamId, email) {
   const team = await getMyTeam(user.userId, teamId);
   const pool = await getPool();
-  const found = await pool.request().input('email', sql.NVarChar(100), email)
-    .query('SELECT id FROM users WHERE email = @email');
+  const found = await pool.request().input('emailHash', sql.NVarChar(64), hashEmail(email))
+    .query('SELECT id FROM users WHERE email_hash = @emailHash');
   if (!found.recordset[0]) {
     throw new AppError(404, 'USER_NOT_FOUND', '가입된 회원이 아닙니다.');
   }
@@ -69,7 +70,7 @@ export async function listInvitations(userId, teamId) {
   return result.recordset.map((row) => ({
     notificationId: Number(row.id),
     nickname: row.nickname,
-    email: row.email,
+    email: decryptText(row.email),
     senderNickname: row.sender_nickname,
     canCancel: isManager || Number(row.sender_user_id) === userId,
     createDate: row.create_date.toISOString(),
