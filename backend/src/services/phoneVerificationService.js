@@ -9,6 +9,8 @@ const CODE_HASH_ROUNDS = 10;
 const MAX_FAIL_COUNT = 5;
 // 같은 번호로 24시간 동안 보낼 수 있는 문자 수 (건당 요금, D-168)
 const DAILY_SEND_LIMIT = 5;
+// 같은 IP 에서 24시간 동안 보낼 수 있는 문자 수 (D-169)
+const IP_DAILY_SEND_LIMIT = 20;
 
 // 용도별 문자 문구. change_phone 은 로그인한 회원만 (routes/phoneVerifications.js 에서 확인)
 const PURPOSE_LABELS = {
@@ -26,8 +28,11 @@ export function buildVerificationSms(label, code) {
 }
 
 const duplicated = () => new AppError(409, 'PHONE_DUPLICATED', '이미 가입된 전화번호입니다.');
+// IP 하루 제한도 이 오류로 응답해 제한을 드러내지 않는다 (D-171)
+const sendFailed = () => new AppError(500, 'SMS_SEND_FAILED', '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
 
-export async function sendPhoneVerification({ phone, purpose }) {
+// requestIp: 요청한 IP (req.ip). IPv6 최대 45자
+export async function sendPhoneVerification({ phone, purpose, requestIp }) {
   const pool = await getPool();
   // 두 용도 모두 이미 가입된 번호(전화번호 변경은 내 번호 포함)면 보내지 않는다
   const used = await pool.request().input('phone', sql.NVarChar(11), phone)
@@ -60,16 +65,26 @@ export async function sendPhoneVerification({ phone, purpose }) {
     if (dailyCount >= DAILY_SEND_LIMIT) {
       throw new AppError(429, 'PHONE_DAILY_LIMIT', '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.');
     }
+    // 같은 IP 의 기록도 잠그고 24시간 발송 횟수를 본다 (D-169). 넘으면 발송 실패와 같은 응답 (D-171)
+    const ipSent = await new sql.Request(transaction)
+      .input('requestIp', sql.NVarChar(45), requestIp)
+      .query(`SELECT COUNT(*) AS ip_count FROM phone_verifications WITH (UPDLOCK, HOLDLOCK)
+              WHERE request_ip = @requestIp AND create_date > DATEADD(DAY, -1, SYSUTCDATETIME())`);
+    if (ipSent.recordset[0].ip_count >= IP_DAILY_SEND_LIMIT) {
+      console.error('인증 문자 발송 막음: IP 하루 제한');
+      throw sendFailed();
+    }
     // 재발송하면 이전 번호는 무효. 보낸 횟수를 세려고 행은 남기고 만료만 시킨다 (database.md phone_verifications)
     const inserted = await new sql.Request(transaction)
       .input('phone', sql.NVarChar(11), phone)
       .input('purpose', sql.NVarChar(20), purpose)
       .input('codeHash', sql.NVarChar(60), codeHash)
+      .input('requestIp', sql.NVarChar(45), requestIp)
       .query(`UPDATE phone_verifications SET expire_date = SYSUTCDATETIME()
               WHERE phone = @phone AND purpose = @purpose AND expire_date > SYSUTCDATETIME();
-              INSERT INTO phone_verifications (phone, code_hash, purpose, expire_date)
+              INSERT INTO phone_verifications (phone, code_hash, purpose, request_ip, expire_date)
               OUTPUT inserted.id, inserted.expire_date, inserted.create_date
-              VALUES (@phone, @codeHash, @purpose, DATEADD(MINUTE, 5, SYSUTCDATETIME()));`);
+              VALUES (@phone, @codeHash, @purpose, @requestIp, DATEADD(MINUTE, 5, SYSUTCDATETIME()));`);
     return inserted.recordset[0];
   });
 
@@ -80,7 +95,7 @@ export async function sendPhoneVerification({ phone, purpose }) {
     await pool.request().input('id', sql.BigInt, saved.id)
       .query('DELETE FROM phone_verifications WHERE id = @id').catch(() => {});
     console.error('인증 문자 발송 실패:', error?.name);
-    throw new AppError(500, 'SMS_SEND_FAILED', '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    throw sendFailed();
   }
 
   return {

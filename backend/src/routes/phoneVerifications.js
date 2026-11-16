@@ -17,7 +17,8 @@ phoneVerificationsRouter.post('/', async (req, res) => {
   if (purpose === 'change_phone' && !(await findSessionUser(req.cookies?.[SESSION_COOKIE_NAME]))) {
     throw unauthorized();
   }
-  res.json({ data: await sendPhoneVerification({ phone, purpose }) });
+  // IP 별 하루 제한 (D-169). 프록시 없이 받으므로 연결한 주소를 쓴다
+  res.json({ data: await sendPhoneVerification({ phone, purpose, requestIp: String(req.ip ?? '').slice(0, 45) }) });
 });
 
 phoneVerificationsRouter.post('/:id/verify', async (req, res) => {

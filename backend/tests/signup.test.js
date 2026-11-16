@@ -4,7 +4,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { closePool } from '../src/config/db.js';
 import {
-  captureMails, captureSms, cleanupTestRows, lastSentCode, lastSentSmsCode, runSql, sentMails, sentSms, sql, testPhone, uniqueSuffix,
+  captureMails, captureSms, cleanupTestRows, clearTestPhoneVerifications, lastSentCode, lastSentSmsCode, runSql, sentMails, sentSms, sql, testPhone, uniqueSuffix,
 } from './helpers.js';
 import { setSendSmsOverride } from '../src/config/sms.js';
 
@@ -47,9 +47,10 @@ async function verifiedMember() {
 }
 
 beforeAll(cleanupTestRows);
-beforeEach(() => {
+beforeEach(async () => {
   captureMails();
   captureSms();
+  await clearTestPhoneVerifications();
 });
 afterAll(async () => {
   await cleanupTestRows();
@@ -285,6 +286,29 @@ describe('POST /api/phone-verifications (D-168)', () => {
     await runSql(`UPDATE phone_verifications SET create_date = DATEADD(HOUR, -25, create_date)
                   WHERE id = (SELECT MIN(id) FROM phone_verifications WHERE phone = @phone)`, { phone: [sql.NVarChar(11), phone] });
     expect((await sendPhoneCode(phone)).status).toBe(200);
+  });
+  test('경계: 같은 IP 에서 24시간 20번까지, 21번째는 발송 실패와 같은 응답, 하루 지난 기록은 세지 않음 (D-169, D-171)', async () => {
+    // 이 요청의 IP 를 첫 발송 기록에서 알아낸다
+    const firstId = (await sendPhoneCode(testPhone())).body.data.verificationId;
+    const ip = (await runSql('SELECT request_ip FROM phone_verifications WHERE id = @id', { id: [sql.BigInt, firstId] })).recordset[0].request_ip;
+    const counted = await runSql(`SELECT COUNT(*) AS n FROM phone_verifications
+      WHERE request_ip = @ip AND create_date > DATEADD(DAY, -1, SYSUTCDATETIME())`, { ip: [sql.NVarChar(45), ip] });
+    // 같은 IP 의 기록을 19개로 채운다 (다른 번호, 테스트 번호라 정리된다)
+    for (let n = counted.recordset[0].n; n < 19; n += 1) {
+      await runSql(`INSERT INTO phone_verifications (phone, code_hash, purpose, request_ip, expire_date)
+        VALUES (@phone, 'x', 'signup', @ip, SYSUTCDATETIME())`, { phone: [sql.NVarChar(11), testPhone()], ip: [sql.NVarChar(45), ip] });
+    }
+    expect((await sendPhoneCode(testPhone())).status).toBe(200);
+    sentSms.length = 0;
+    const blocked = await sendPhoneCode(testPhone());
+    expect(blocked.status).toBe(500);
+    expect(blocked.body).toEqual({ error: { code: 'SMS_SEND_FAILED', message: '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.' } });
+    expect(sentSms).toHaveLength(0);
+    // 가장 오래된 기록을 하루 넘게 되돌리면 다시 보낼 수 있다
+    await runSql(`UPDATE phone_verifications SET create_date = DATEADD(HOUR, -25, create_date)
+                  WHERE id = (SELECT MIN(id) FROM phone_verifications WHERE request_ip = @ip
+                              AND create_date > DATEADD(DAY, -1, SYSUTCDATETIME()))`, { ip: [sql.NVarChar(45), ip] });
+    expect((await sendPhoneCode(testPhone())).status).toBe(200);
   });
   test('문자 발송 실패 → 500 SMS_SEND_FAILED, 기록을 지워 횟수에 세지 않음', async () => {
     const phone = testPhone();

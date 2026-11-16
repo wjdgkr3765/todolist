@@ -4,7 +4,7 @@ import request from 'supertest';
 import { createApp } from '../src/app.js';
 import { closePool } from '../src/config/db.js';
 import {
-  captureMails, captureSms, cleanupTestRows, lastSentCode, lastSentSmsCode, loginTestUser, runSql, sessionCookieLine, sql, testPhone,
+  captureMails, captureSms, cleanupTestRows, clearTestPhoneVerifications, lastSentCode, lastSentSmsCode, loginTestUser, runSql, sessionCookieLine, sql, testPhone,
 } from './helpers.js';
 
 const app = createApp();
@@ -13,9 +13,10 @@ const post = (path, user, body = {}) => request(app).post(path).set('Cookie', us
 const TODO = { title: '작업', content: '내용', isPeriodUndecided: true, startDate: null, endDate: null, startTime: null, endTime: null };
 
 beforeAll(cleanupTestRows);
-beforeEach(() => {
+beforeEach(async () => {
   captureMails();
   captureSms();
+  await clearTestPhoneVerifications();
 });
 afterAll(async () => {
   await cleanupTestRows();

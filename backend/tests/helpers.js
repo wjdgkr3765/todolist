@@ -25,6 +25,11 @@ export function lastSentSmsCode() {
   return sentSms.at(-1).text.match(/\[(\d{6})\]/)[1];
 }
 
+// 테스트 전화번호의 인증 기록을 지운다. 테스트끼리 같은 IP 라 IP 하루 제한(D-169)에 걸리지 않게 테스트마다 부른다
+export async function clearTestPhoneVerifications() {
+  await runSql("DELETE FROM phone_verifications WHERE phone LIKE '01098%'");
+}
+
 // 테스트 전화번호: 01098 로 시작 (정리할 때 찾는다)
 export function testPhone() {
   return `01098${String(Math.floor(Math.random() * 1e6)).padStart(6, '0')}`;
