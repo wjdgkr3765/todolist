@@ -61,6 +61,7 @@ CREATE TABLE phone_verifications (
     phone       NVARCHAR(11)  NOT NULL,                          -- 인증할 전화번호 (010 으로 시작하는 숫자 11자리)
     code_hash   NVARCHAR(60)  NOT NULL,                          -- 인증번호 bcrypt 해시
     purpose     NVARCHAR(20)  NOT NULL,                          -- 용도
+    request_ip  NVARCHAR(45)  NOT NULL,                          -- 발송을 요청한 IP (IPv6 최대 45자, D-169)
     fail_count  INT           NOT NULL DEFAULT 0,                -- 틀린 횟수 (5가 되면 무효)
     is_verified BIT           NOT NULL DEFAULT 0,                -- 인증 완료 여부
     expire_date DATETIME2     NOT NULL,                          -- 인증번호 만료 시각 (발송 + 5분, 재발송하면 그때로, UTC)
@@ -73,6 +74,7 @@ CREATE TABLE phone_verifications (
 );
 
 CREATE INDEX idx_phone_verifications_phone ON phone_verifications (phone, create_date);
+CREATE INDEX idx_phone_verifications_request_ip ON phone_verifications (request_ip, create_date);
 
 -- teams (팀)
 CREATE TABLE teams (

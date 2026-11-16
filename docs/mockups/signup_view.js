@@ -1,6 +1,6 @@
 // 회원가입 시안 동작 (signup_view.html). 상태 막대로 미리 정해 둔 상태를 보거나, 화면을 직접 눌러 동작을 확인한다 (D-146, D-149)
 // 시안 규칙: 사용 중인 아이디 todo2026·admin123, 가입된 이메일 user@example.com·used@example.com, 인증번호 123456,
-// 가입된 전화번호 01000000000, 하루 발송 제한 번호 01099999999, 문자 발송 실패 번호 01088888888 (D-168)
+// 가입된 전화번호 01000000000, 하루 발송 제한 번호 01099999999, IP 하루 제한 번호 01077777777(발송 실패와 같은 문구, D-171), 문자 발송 실패 번호 01088888888 (D-168, D-169)
 const $ = (id) => document.getElementById(id);
 const SAMPLE = { loginId: 'todo2026', nickname: '홍길동', email: 'user@example.com', phone: '01012345678', pw: 'abcd123!' };
 const FIELD_IDS = ['login-id', 'password', 'password-confirm', 'nickname', 'email', 'code', 'phone', 'phone-code'];
@@ -164,6 +164,7 @@ const phoneAuth = makeVerifier({
   serverError: (value) => ({
     '01000000000': '이미 가입된 전화번호입니다.',
     '01099999999': '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.',
+    '01077777777': '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.',
     '01088888888': '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.',
   })[value] ?? null,
 });
@@ -268,6 +269,12 @@ const STATES = {
     $('phone').value = '01099999999';
     markInvalid('phone');
     setText('phone-invalid', '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.');
+    show('phone-invalid');
+  },
+  'phone-ip-limit': () => {
+    $('phone').value = '01077777777';
+    markInvalid('phone');
+    setText('phone-invalid', '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.');
     show('phone-invalid');
   },
   'verified': () => showAllVerified(),

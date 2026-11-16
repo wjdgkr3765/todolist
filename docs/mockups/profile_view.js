@@ -1,6 +1,6 @@
 // 회원정보 수정 시안 동작 (D-146, D-149). ProfileView_screen.md "4. 동작"을 서버 없이 흉내 낸다
 // 시안 규칙: 현재 비밀번호 abcd123!, 인증번호 123456, 중복 이메일 used@example.com, 중복 전화번호 01000000000,
-// 하루 발송 제한 번호 01099999999, 문자 발송 실패 번호 01088888888 (D-168)
+// 하루 발송 제한 번호 01099999999, IP 하루 제한 번호 01077777777(발송 실패와 같은 문구, D-171), 문자 발송 실패 번호 01088888888 (D-168, D-169)
 renderLayout({ space: 'none', tab: null, hideTabs: true });
 
 const DEMO_PASSWORD = 'abcd123!';
@@ -176,6 +176,7 @@ $('phone-input').addEventListener('input', () => {
 const PHONE_SERVER_ERRORS = {
   '01000000000': '이미 가입된 전화번호입니다.',
   '01099999999': '오늘은 이 번호로 더 보낼 수 없습니다. 내일 다시 시도해 주세요.',
+  '01077777777': '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.',
   '01088888888': '문자를 보내지 못했습니다. 잠시 후 다시 시도해 주세요.',
 };
 async function sendPhoneCode() {
@@ -324,6 +325,7 @@ const STATES = {
   'phone-format': { label: '전화번호 형식 오류', run: () => { typePhone('02123456789'); $('ctl-phone').classList.add('is-invalid'); phoneMessage('is-error', '010으로 시작하는 숫자 11자리로 입력해 주세요.'); } },
   'phone-duplicated': { label: '전화번호 중복', run: () => { typePhone('01000000000'); $('ctl-phone').classList.add('is-invalid'); phoneMessage('is-error', PHONE_SERVER_ERRORS['01000000000']); } },
   'phone-daily-limit': { label: '전화번호 하루 발송 제한', run: () => { typePhone('01099999999'); $('ctl-phone').classList.add('is-invalid'); phoneMessage('is-error', PHONE_SERVER_ERRORS['01099999999']); } },
+  'phone-ip-limit': { label: 'IP 하루 발송 제한 (발송 실패와 같은 문구, D-171)', run: () => { typePhone('01077777777'); $('ctl-phone').classList.add('is-invalid'); phoneMessage('is-error', PHONE_SERVER_ERRORS['01077777777']); } },
   'phone-sent': { label: '전화번호 인증번호 발송 후', run: () => { typePhone('01098765432'); phoneState = 'sent'; show('phone-code-row'); phoneMessage('is-success', '인증번호를 보냈습니다. 문자를 확인해 주세요.'); phoneTimer.start(300); } },
   'phone-verified': { label: '전화번호 인증 완료 ([전화번호 변경])', run: () => { typePhone('01098765432'); phoneState = 'sent'; $('phone-code-input').value = DEMO_CODE; verifyPhoneCode(); } },
   'password-error': { label: '비밀번호 입력 오류', run: () => { $('new-password').value = 'abc'; $('new-password-check').value = 'abd'; $('current-password').value = 'x'; error('ctl-new', 'new-error', true); error('ctl-check', 'check-error', true); } },

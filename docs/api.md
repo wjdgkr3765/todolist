@@ -82,9 +82,8 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 | 400 | EMAIL_NOT_VERIFIED | 이메일 인증을 하지 않았거나 인증이 유효하지 않음 |
 | 500 | MAIL_SEND_FAILED | 메일 발송 실패 |
 | 429 | PHONE_DAILY_LIMIT | 같은 전화번호로 24시간 안에 인증 문자를 5번 보냄 (D-168) |
-| 429 | SMS_IP_DAILY_LIMIT | 같은 IP 에서 24시간 안에 인증 문자를 20번 보냄 (D-169) |
 | 400 | PHONE_NOT_VERIFIED | 전화번호 인증을 하지 않았거나 인증 후 30분이 지남 (D-168) |
-| 500 | SMS_SEND_FAILED | 문자 발송 실패 (D-168) |
+| 500 | SMS_SEND_FAILED | 문자 발송 실패 (D-168). IP 하루 제한(D-169)에 걸려도 같은 응답 (D-171) |
 | 401 | LOGIN_FAILED | 아이디 또는 비밀번호가 틀림 (어느 쪽인지 알려주지 않음) |
 | 423 | LOGIN_LOCKED | 비밀번호를 연속 5번 틀려 10분 동안 로그인 잠김 (메시지에 남은 분 표시) |
 | 409 | TEAM_LIMIT_EXCEEDED | 가입된 팀이 이미 20개라 팀을 만들거나 가입할 수 없음 (D-078) |
@@ -183,9 +182,9 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | phone | string | O | 010 으로 시작하는 숫자 11자리 (D-167) |
   | purpose | string | O | signup / change_phone |
 - **응답 data**: POST /api/email-verifications 와 같음 (`verificationId`, `expireDate` 발송 + 5분, `resendAvailableDate` 발송 + 1분)
-- **오류**: 400 INVALID_INPUT, 401 UNAUTHORIZED (change_phone), 409 PHONE_DUPLICATED, 429 VERIFICATION_RESEND_TOO_SOON, 429 PHONE_DAILY_LIMIT, 429 SMS_IP_DAILY_LIMIT, 500 SMS_SEND_FAILED
+- **오류**: 400 INVALID_INPUT, 401 UNAUTHORIZED (change_phone), 409 PHONE_DUPLICATED, 429 VERIFICATION_RESEND_TOO_SOON, 429 PHONE_DAILY_LIMIT, 500 SMS_SEND_FAILED
 - **사용 테이블**: users, phone_verifications
-- **처리 순서**: 입력 검사 → 중복 확인 → (트랜잭션, 같은 번호 잠금) 하루 지난 행 삭제 → 같은 번호·용도로 1분 안에 보낸 행이 있으면 429 VERIFICATION_RESEND_TOO_SOON → 같은 번호(모든 용도)로 24시간 안에 보낸 행이 5개면 429 PHONE_DAILY_LIMIT → 같은 IP(요청 IP, 모든 번호·용도)에서 24시간 안에 보낸 행이 20개면 429 SMS_IP_DAILY_LIMIT (D-169) → 같은 번호·용도의 이전 행을 무효(expire_date = 지금) → 새 행 저장 → 커밋 뒤 문자 발송. 발송에 실패하면 새 행을 지우고 500 SMS_SEND_FAILED (횟수에 세지 않음)
+- **처리 순서**: 입력 검사 → 중복 확인 → (트랜잭션, 같은 번호 잠금) 하루 지난 행 삭제 → 같은 번호·용도로 1분 안에 보낸 행이 있으면 429 VERIFICATION_RESEND_TOO_SOON → 같은 번호(모든 용도)로 24시간 안에 보낸 행이 5개면 429 PHONE_DAILY_LIMIT → 같은 IP(요청 IP, 모든 번호·용도)에서 24시간 안에 보낸 행이 20개면 500 SMS_SEND_FAILED (D-169. 제한을 드러내지 않도록 발송 실패와 같은 응답, 서버 로그에만 남김, D-171) → 같은 번호·용도의 이전 행을 무효(expire_date = 지금) → 새 행 저장 → 커밋 뒤 문자 발송. 발송에 실패하면 새 행을 지우고 500 SMS_SEND_FAILED (횟수에 세지 않음)
 
 #### POST /api/phone-verifications/{id}/verify
 - **설명**: 전화번호 인증번호 확인. POST /api/email-verifications/{id}/verify 와 같은 규칙·처리 순서·오류 (D-168)
