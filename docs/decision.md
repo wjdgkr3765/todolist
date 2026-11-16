@@ -1501,3 +1501,11 @@
 - 이유: 사용자 답변 (방식·범위·기존 데이터 모두 추천대로). 저장 형식, 키 이름, 해시 전 정리, 스크립트는 AI 가 정함
 - 관련 문서/파일: database.md users·email_verifications·phone_verifications, api.md 1, spec.md, structure.md, backend/src/utils/personalData.js
 - 상태: 유효
+
+### D-173 암호화 전 원문이 든 Windows 스냅샷 백업은 그대로 둔다
+- 날짜: 2026-11-16
+- 질문/상황: D-172 보안 체크에서 msdb 에 2026-11-10 07:48·08:18 todolist 백업 기록 2개가 있음. 확인해 보니 .bak 파일이 아니라 Windows 볼륨 섀도 복사본(VSS) 스냅샷(NT AUTHORITY\SYSTEM, is_snapshot)이라 그 시점 디스크 전체에 암호화 전 DB 가 들어 있음. AI 가 확인·삭제 방법(vssadmin list shadows, 시스템 보호 → 삭제)과 지우면 복원 지점이 모두 사라진다는 점을 알림
+- 결정: 그대로 둔다 (사용자 답 "백업 파일은 냅둬")
+- 이유: 사용자 결정. 실제 사용자 데이터가 없던 시점이고 관리자만 열 수 있으며 공간이 모자라면 자동으로 지워진다
+- 관련 문서/파일: 없음
+- 상태: 유효

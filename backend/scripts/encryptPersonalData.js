@@ -88,7 +88,8 @@ async function main() {
 try {
   await main();
 } catch (error) {
-  console.error('변환 실패 (바뀐 것은 모두 되돌렸습니다):', error?.message);
+  // SQL 오류 문구에는 값이 들어갈 수 있어 종류와 번호만 찍는다 (security.md 1번)
+  console.error('변환 실패 (바뀐 것은 모두 되돌렸습니다):', error?.name, error?.number ?? '');
   process.exitCode = 1;
 } finally {
   await closePool();
