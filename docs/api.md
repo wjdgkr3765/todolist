@@ -810,7 +810,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | draftDate | string 또는 null | 마지막 임시저장 시각 (내 보고만, 남의 보고는 null) |
   | submitDate | string 또는 null | 처음 제출 시각 |
   | updateDate | string 또는 null | 마지막 수정 제출 시각 (있으면 화면에 "수정됨 · 시각") |
-- 기본 양식 (D-152): header `{날짜} 진행 사항입니다.`, sections ◆ 통계(stats, sinceLastReport) / ◆ 진행(tasks, [progress]) / ◆ 대기(tasks, [waiting]) / ◆ 완료(tasks, [done], sinceLastReport) / ◆ 기타(text, 빈 기본 내용). 제목 앞 ◆ 도 제목 글자에 들어간다
+- 기본 양식 (D-152, D-176): header `{날짜} 진행 사항입니다.`, sections `기본`(text, 빈 기본 내용) 하나. 새로 만드는 팀에만 쓰고 이미 있는 팀의 양식은 바꾸지 않는다
 
 #### GET /api/teams/{id}/reports
 - **설명**: 팀원 보고 현황 (왼쪽 목록, D-158)

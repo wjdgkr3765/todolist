@@ -64,7 +64,7 @@ describe('팀 목록·만들기', () => {
     expect((await get('/api/teams', user)).body.data.teams.map((t) => t.name)).toEqual(['vt둘째팀', 'vt첫팀']);
     const template = await runSql('SELECT header, sections FROM report_templates WHERE team_id = @id', { id: [sql.BigInt, second.teamId] });
     expect(template.recordset[0].header).toBe('{날짜} 진행 사항입니다.');
-    expect(JSON.parse(template.recordset[0].sections).map((s) => s.title)).toEqual(['◆ 통계', '◆ 진행', '◆ 대기', '◆ 완료', '◆ 기타']);
+    expect(JSON.parse(template.recordset[0].sections)).toEqual([{ title: '기본', type: 'text', statuses: [], doneRange: null, defaultHtml: '' }]);
   });
   test.each([[''], ['   '], ['a'.repeat(21)], [1], [null]])('팀 이름 %j → 400', async (name) => {
     const user = await loginTestUser(app);

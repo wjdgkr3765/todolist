@@ -35,15 +35,11 @@ const MONITOR_DEFAULT = '<table><tbody><tr><th><p>담당시스템</p></th><th><p
   + '<tr><td><p>총무포탈</p></td><td><p>3등급</p></td><td><p></p></td><td><p></p></td><td><p></p></td><td><p></p></td><td><p></p></td><td><p>N/A</p></td></tr></tbody></table>';
 const MONITOR_MON_TUE = MONITOR_DEFAULT.replace(/(<td><p>[34]등급<\/p><\/td>)<td><p><\/p><\/td><td><p><\/p><\/td>/g, '$1<td><p>○</p></td><td><p>○</p></td>');
 
-// 기본 양식 (팀을 만들면 들어가는 양식, D-152)
+// 기본 양식 (팀을 만들면 들어가는 양식, D-152, D-176)
 const DEFAULT_TEMPLATE = () => ({
   header: '{날짜} 진행 사항입니다.',
   sections: [
-    { title: '◆ 통계', type: 'stats', statuses: [], doneRange: { kind: 'sinceLastReport' }, defaultHtml: '' },
-    { title: '◆ 진행', type: 'tasks', statuses: ['progress'], doneRange: null, defaultHtml: '' },
-    { title: '◆ 대기', type: 'tasks', statuses: ['waiting'], doneRange: null, defaultHtml: '' },
-    { title: '◆ 완료', type: 'tasks', statuses: ['done'], doneRange: { kind: 'sinceLastReport' }, defaultHtml: '' },
-    { title: '◆ 기타', type: 'text', statuses: [], doneRange: null, defaultHtml: '' },
+    { title: '기본', type: 'text', statuses: [], doneRange: null, defaultHtml: '' },
   ],
 });
 // 이 팀이 고쳐 둔 양식 (사용자 보고 모양을 흉내 냄)

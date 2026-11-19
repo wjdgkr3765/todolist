@@ -18,12 +18,26 @@ async function addMember(teamId, user, role = 'member', joinedDaysAgo = 0) {
   { role: [sql.NVarChar(10), role], teamId: [sql.BigInt, teamId], userId: [sql.BigInt, user.userId], days: [sql.Int, joinedDaysAgo] });
 }
 
-async function setupTeam() {
+// 자동 채우기를 확인하려고 쓰는 5구역 양식 (D-176 전의 기본 양식)
+const SINCE_LAST_REPORT = { kind: 'sinceLastReport', weekday: null, day: null };
+const FULL_SECTIONS = [
+  { title: '◆ 통계', type: 'stats', statuses: [], doneRange: SINCE_LAST_REPORT, defaultHtml: '' },
+  { title: '◆ 진행', type: 'tasks', statuses: ['progress'], doneRange: null, defaultHtml: '' },
+  { title: '◆ 대기', type: 'tasks', statuses: ['waiting'], doneRange: null, defaultHtml: '' },
+  { title: '◆ 완료', type: 'tasks', statuses: ['done'], doneRange: SINCE_LAST_REPORT, defaultHtml: '' },
+  { title: '◆ 기타', type: 'text', statuses: [], doneRange: null, defaultHtml: '' },
+];
+
+async function setupTeam({ isDefaultTemplate = false } = {}) {
   const owner = await loginTestUser(app);
   const member = await loginTestUser(app);
   const team = (await post('/api/teams', owner, { name: 'vt보고팀' })).body.data;
   await runSql('UPDATE team_members SET create_date = DATEADD(DAY, -30, create_date) WHERE team_id = @teamId',
     { teamId: [sql.BigInt, team.teamId] });
+  if (!isDefaultTemplate) {
+    await runSql('UPDATE report_templates SET sections = @sections WHERE team_id = @teamId',
+      { sections: [sql.NVarChar(sql.MAX), JSON.stringify(FULL_SECTIONS)], teamId: [sql.BigInt, team.teamId] });
+  }
   await addMember(team.teamId, member, 'member', 20);
   return { owner, member, teamId: team.teamId, base: `/api/teams/${team.teamId}` };
 }
@@ -70,7 +84,14 @@ afterAll(async () => {
 });
 
 describe('내 오늘 보고 (초안)', () => {
-  test('기본 양식 초안: 머리말 날짜, 내가 작업자인 작업만, 저장하지 않는다', async () => {
+  test('새 팀 기본 양식 초안: 머리말과 빈 글 구역 "기본" 하나 (D-176)', async () => {
+    const { owner, teamId, base } = await setupTeam({ isDefaultTemplate: true });
+    await insertTask(teamId, owner, { title: '완료A', status: 'done' });
+    const { report } = (await get(`${base}/reports/today`, owner)).body.data;
+    expect(report.header).toBe(`${md(today)} 진행 사항입니다.`);
+    expect(report.sections).toEqual([{ title: '기본', type: 'text', statuses: [], doneRange: null, html: '' }]);
+  });
+  test('5구역 양식 초안: 머리말 날짜, 내가 작업자인 작업만, 저장하지 않는다', async () => {
     const { owner, member, teamId, base } = await setupTeam();
     await insertTask(teamId, owner, { title: '진행A', status: 'progress', start: today, end: addDays(today, 3) });
     await insertTask(teamId, owner, { title: '대기A', status: 'waiting' });
