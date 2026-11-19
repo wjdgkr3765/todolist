@@ -21,7 +21,7 @@ const TYPE_LABELS = { stats: '통계', tasks: '작업 목록', text: '글' };
 const STATUS_LABELS = { waiting: '대기', progress: '진행', done: '완료' };
 const STATUSES = ['waiting', 'progress', 'done'];
 const RANGE_LABELS = {
-  sinceLastReport: '지난 보고 이후', weekday: '지난 특정 요일 이후', monthDay: '매달 특정 날짜 이후', lastWeek: '지난 주', lastMonth: '지난 달',
+  sinceLastReport: '지난 보고 이후', weekday: '지난 특정 요일 이후', monthDay: '매달 특정 날짜 이후', lastWeek: '지난 주', lastMonth: '지난 달', today: '오늘',
 };
 const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 

@@ -63,6 +63,8 @@ export function resolveDoneRange(range, today, lastSubmitDate) {
       const monday = addDays(today, -((weekdayOf(today) + 6) % 7));
       return { from: koreaMidnight(addDays(monday, -7)), to: koreaMidnight(monday), isHistoryExcluded: false };
     }
+    case 'today': // D-175
+      return { from: koreaMidnight(today), to: null, isHistoryExcluded: false };
     default:
       return { from: koreaMidnight(monthDate(year, month - 1, 1)), to: koreaMidnight(monthDate(year, month, 1)), isHistoryExcluded: false };
   }

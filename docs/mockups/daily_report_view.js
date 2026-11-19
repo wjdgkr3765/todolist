@@ -3,14 +3,13 @@
 // 편집기 내용은 Tiptap 이 다룬다. 사용자 입력은 escapeHtml 로만 HTML 에 넣는다
 renderLayout({ space: 'team', tab: 'reports', hideTabs: false });
 
-const { Editor, StarterKit, Table, TableRow, TableHeader, TableCell, TextStyle, Color } = window.Tiptap;
 const TODAY = '2026-11-11';
 const ME = '홍길동';
 const MAX_TEXT = 5000;
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const STATUS_LABEL = { waiting: '대기', progress: '진행', done: '완료' };
 const TYPE_LABEL = { stats: '통계', tasks: '작업 목록', text: '글' };
-const RANGE_LABEL = { sinceLastReport: '지난 보고 이후', weekday: '지난 특정 요일 이후', monthDay: '매달 특정 날짜 이후', lastWeek: '지난 주', lastMonth: '지난 달' };
+const RANGE_LABEL = { sinceLastReport: '지난 보고 이후', weekday: '지난 특정 요일 이후', monthDay: '매달 특정 날짜 이후', lastWeek: '지난 주', lastMonth: '지난 달', today: '오늘' };
 
 // ---------- 날짜 ----------
 const parse = (ymd) => { const [y, m, d] = ymd.split('-').map(Number); return new Date(y, m - 1, d); };
@@ -109,6 +108,7 @@ function rangeOf(range) {
     lastMonday.setDate(lastMonday.getDate() - 7);
     return [atMidnight(lastMonday), atMidnight(monday)];
   }
+  if (range.kind === 'today') { return [atMidnight(today), null]; } // D-175
   return [atMidnight(new Date(today.getFullYear(), today.getMonth() - 1, 1)), atMidnight(new Date(today.getFullYear(), today.getMonth(), 1))];
 }
 function doneInRange(range) {
@@ -218,146 +218,6 @@ function renderStatus() {
   }).join('');
 }
 
-// ---------- 편집기 (D-155) ----------
-// 표 셀 배경색·정렬 (D-163). 클릭한 셀 또는 드래그로 고른 셀들에 setCellAttribute 로 넣는다
-const styleOf = (el, re) => ((el.getAttribute('style') || '').match(re) || [])[1] || null;
-const CELL_ATTRS = {
-  backgroundColor: {
-    default: null,
-    // 브라우저는 #RRGGBB 를 rgb(r, g, b) 로 바꿔 적으므로 둘 다 읽어 #RRGGBB 로 맞춘다
-    parseHTML: (el) => {
-      const rgb = el.style.backgroundColor.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-      if (rgb) { return `#${rgb.slice(1).map((n) => Number(n).toString(16).padStart(2, '0')).join('').toUpperCase()}`; }
-      return styleOf(el, /background-color:\s*(#[0-9a-fA-F]{6})/);
-    },
-    renderHTML: (attrs) => (attrs.backgroundColor ? { style: `background-color: ${attrs.backgroundColor}` } : {}),
-  },
-  textAlign: {
-    default: null,
-    parseHTML: (el) => styleOf(el, /text-align:\s*(center|right)/),
-    renderHTML: (attrs) => (attrs.textAlign ? { style: `text-align: ${attrs.textAlign}` } : {}),
-  },
-};
-const StyledCell = TableCell.extend({ addAttributes() { return { ...this.parent?.(), ...CELL_ATTRS }; } });
-const StyledHeader = TableHeader.extend({ addAttributes() { return { ...this.parent?.(), ...CELL_ATTRS }; } });
-const cellAttrs = (editor) => (editor.isActive('tableHeader') ? editor.getAttributes('tableHeader') : editor.getAttributes('tableCell'));
-
-function makeEditor(element, html, editable, onChange) {
-  const editor = new Editor({
-    element,
-    editable,
-    content: html,
-    extensions: [
-      StarterKit.configure({ heading: false, code: false, codeBlock: false, blockquote: false, underline: false, link: { openOnClick: !editable, autolink: true, protocols: ['mailto'], HTMLAttributes: { target: '_blank', rel: 'noopener noreferrer' } } }),
-      Table.configure({ resizable: false }),
-      TableRow,
-      StyledHeader,
-      StyledCell,
-      TextStyle,
-      Color,
-    ],
-    // 표 뒤 빈 줄 자동 추가처럼 편집기가 스스로 고친 것은 수정으로 보지 않는다 (사용자 입력만 docChanged)
-    onUpdate: ({ transaction }) => { refreshEmpty(); if (onChange && transaction.docChanged) { onChange(editor); } },
-    onFocus: () => focusEditor(editor),
-    onSelectionUpdate: () => refreshToolbar(),
-    onTransaction: () => refreshToolbar(),
-  });
-  const box = element;
-  const refreshEmpty = () => box.classList.toggle('is-empty', editor.isEmpty);
-  refreshEmpty();
-  editor.box = box;
-  return editor;
-}
-const textLength = (editor) => editor.state.doc.textContent.length;
-
-function focusEditor(editor) {
-  ui.focused = editor;
-  document.querySelectorAll('.editor-box.is-focused').forEach((box) => box.classList.remove('is-focused'));
-  editor.box.classList.add('is-focused');
-  editor.box.parentNode.insertBefore($('toolbar'), editor.box);
-  show('toolbar');
-  refreshToolbar();
-}
-function hideToolbar() {
-  hide('toolbar', 'color-pop', 'link-pop', 'cell-pop');
-  document.querySelectorAll('.editor-box.is-focused').forEach((box) => box.classList.remove('is-focused'));
-  document.body.appendChild($('toolbar'));
-  ui.focused = null;
-}
-function refreshToolbar() {
-  const editor = ui.focused;
-  if (!editor || $('toolbar').classList.contains('is-hidden')) { return; }
-  const on = { bold: 'bold', italic: 'italic', strike: 'strike', bullet: 'bulletList', ordered: 'orderedList', link: 'link' };
-  $('toolbar').querySelectorAll('button[data-cmd]').forEach((b) => b.classList.toggle('is-on', Boolean(on[b.dataset.cmd]) && editor.isActive(on[b.dataset.cmd])));
-  $('toolbar').querySelector('[data-cmd=indent]').disabled = !editor.can().sinkListItem('listItem');
-  $('toolbar').querySelector('[data-cmd=outdent]').disabled = !editor.can().liftListItem('listItem');
-  const inTable = editor.isActive('table');
-  $('toolbar').querySelectorAll('.table-only').forEach((el) => el.classList.toggle('is-hidden', !inTable));
-  if (inTable) {
-    const align = cellAttrs(editor).textAlign || 'left';
-    ['left', 'center', 'right'].forEach((a) => $('toolbar').querySelector(`[data-cmd=align-${a}]`).classList.toggle('is-on', align === a));
-  } else { hide('cell-pop'); }
-}
-function runCommand(cmd) {
-  const editor = ui.focused;
-  if (!editor) { return; }
-  const chain = () => editor.chain().focus();
-  const actions = {
-    bold: () => chain().toggleBold().run(),
-    italic: () => chain().toggleItalic().run(),
-    strike: () => chain().toggleStrike().run(),
-    color: () => { hide('link-pop', 'cell-pop'); $('color-pop').classList.toggle('is-hidden'); },
-    cellColor: () => { hide('link-pop', 'color-pop'); $('cell-pop').classList.toggle('is-hidden'); },
-    'align-left': () => chain().setCellAttribute('textAlign', null).run(),
-    'align-center': () => chain().setCellAttribute('textAlign', 'center').run(),
-    'align-right': () => chain().setCellAttribute('textAlign', 'right').run(),
-    bullet: () => chain().toggleBulletList().run(),
-    ordered: () => chain().toggleOrderedList().run(),
-    indent: () => chain().sinkListItem('listItem').run(),
-    outdent: () => chain().liftListItem('listItem').run(),
-    table: () => chain().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run(),
-    hr: () => chain().setHorizontalRule().run(),
-    link: () => { hide('color-pop', 'cell-pop'); $('link-input').value = editor.getAttributes('link').href || ''; $('link-pop').classList.toggle('is-hidden'); if (!$('link-pop').classList.contains('is-hidden')) { $('link-input').focus(); } },
-    rowAdd: () => chain().addRowAfter().run(),
-    rowDel: () => chain().deleteRow().run(),
-    colAdd: () => chain().addColumnAfter().run(),
-    colDel: () => chain().deleteColumn().run(),
-    tableDel: () => chain().deleteTable().run(),
-  };
-  actions[cmd]();
-}
-$('toolbar').addEventListener('mousedown', (event) => { if (event.target.closest('button') && !event.target.closest('#link-pop')) { event.preventDefault(); } });
-$('toolbar').addEventListener('click', (event) => {
-  const cmdButton = event.target.closest('button[data-cmd]');
-  if (cmdButton) { runCommand(cmdButton.dataset.cmd); return; }
-  const colorButton = event.target.closest('button[data-color]');
-  if (colorButton && ui.focused) {
-    const color = colorButton.dataset.color;
-    if (color) { ui.focused.chain().focus().setColor(color).run(); } else { ui.focused.chain().focus().unsetColor().run(); }
-    hide('color-pop');
-    return;
-  }
-  const bgButton = event.target.closest('button[data-bg]');
-  if (bgButton && ui.focused) {
-    ui.focused.chain().focus().setCellAttribute('backgroundColor', bgButton.dataset.bg || null).run();
-    hide('cell-pop');
-  }
-});
-// 링크: http·https·mailto 만 (D-155)
-function setLink() {
-  const href = $('link-input').value.trim();
-  if (!/^(https?:\/\/|mailto:)\S+$/i.test(href)) { flash('error', '링크는 http://, https://, mailto: 로 시작해야 합니다.'); return; }
-  ui.focused.chain().focus().extendMarkRange('link').setLink({ href }).run();
-  hide('link-pop');
-}
-$('btn-link-set').addEventListener('click', setLink);
-$('link-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') { event.preventDefault(); setLink(); } });
-$('btn-link-unset').addEventListener('click', () => { ui.focused.chain().focus().extendMarkRange('link').unsetLink().run(); hide('link-pop'); });
-document.addEventListener('mousedown', (event) => {
-  if (!ui.focused) { return; }
-  if (event.target.closest('.editor-box, #toolbar')) { return; }
-  hideToolbar();
-});
 
 // ---------- 보고 영역 ----------
 function destroyEditors() {
@@ -559,156 +419,6 @@ async function save(action) {
 $('btn-draft').addEventListener('click', () => save('draft'));
 $('btn-submit').addEventListener('click', () => save('submit'));
 
-// ---------- 양식 설정 모달 (D-152, D-154) ----------
-let tplDraft = null;
-let tplEditors = [];
-let tplSortable = null;
-function rangeControls(s, i) {
-  const r = s.doneRange || { kind: 'sinceLastReport' };
-  return `<div class="range"><span class="label">완료 범위</span>
-    <select data-field="kind" data-i="${i}">${Object.entries(RANGE_LABEL).map(([k, v]) => `<option value="${k}"${r.kind === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
-    ${r.kind === 'weekday' ? `<select data-field="weekday" data-i="${i}">${[1, 2, 3, 4, 5, 6, 7].map((w) => `<option value="${w}"${r.weekday === w ? ' selected' : ''}>${WEEKDAYS[w % 7]}요일</option>`).join('')}</select>` : ''}
-    ${r.kind === 'monthDay' ? `<select data-field="day" data-i="${i}">${Array.from({ length: 31 }, (_, k) => k + 1).map((d) => `<option value="${d}"${r.day === d ? ' selected' : ''}>${d}일</option>`).join('')}</select>` : ''}</div>`;
-}
-function syncTplEditors() { tplEditors.forEach((e, i) => { if (e && tplDraft.sections[i]) { tplDraft.sections[i].defaultHtml = e.getHTML() === '<p></p>' ? '' : e.getHTML(); } }); }
-function renderTpl(errors = {}) {
-  hideToolbar();
-  tplEditors.forEach((e) => e && e.destroy());
-  tplEditors = [];
-  $('tpl-sections').innerHTML = tplDraft.sections.map((s, i) => `
-    <div class="tpl-card" data-i="${i}">
-      <div class="tpl-row">
-        <i class="bi bi-grip-vertical grip" aria-label="끌어서 순서 바꾸기"></i>
-        <input type="text" data-field="title" data-i="${i}" maxlength="30" value="${escapeHtml(s.title)}" class="${errors[i] ? 'is-invalid' : ''}" aria-label="구역 제목" />
-        <select data-field="type" data-i="${i}" aria-label="구역 종류">${Object.entries(TYPE_LABEL).map(([k, v]) => `<option value="${k}"${s.type === k ? ' selected' : ''}>${v}</option>`).join('')}</select>
-        <button type="button" class="icon-button" data-remove="${i}" aria-label="구역 삭제"${tplDraft.sections.length <= 1 ? ' disabled' : ''}><i class="bi bi-trash"></i></button>
-      </div>
-      ${errors[i] ? `<div class="message is-error" style="margin-left:26px"><i class="bi bi-exclamation-circle"></i>${escapeHtml(errors[i])}</div>` : ''}
-      <div class="tpl-sub">
-        ${s.type === 'tasks' ? `<div class="checks"><span class="label">상태</span>${['waiting', 'progress', 'done'].map((st) => `<label><input type="checkbox" data-field="status" data-status="${st}" data-i="${i}"${s.statuses.includes(st) ? ' checked' : ''} /> ${STATUS_LABEL[st]}</label>`).join('')}</div>` : ''}
-        ${s.type === 'stats' || (s.type === 'tasks' && s.statuses.includes('done')) ? rangeControls(s, i) : ''}
-        ${s.type === 'text' ? '<span class="label">기본 내용</span><div class="editor-box tpl-editor"></div>' : ''}
-      </div>
-    </div>`).join('');
-  document.querySelectorAll('#tpl-sections .tpl-card').forEach((card, i) => {
-    const box = card.querySelector('.tpl-editor');
-    tplEditors[i] = box ? makeEditor(box, tplDraft.sections[i].defaultHtml, true) : null;
-  });
-  $('btn-tpl-add').disabled = tplDraft.sections.length >= 20;
-  if (tplSortable) { tplSortable.destroy(); }
-  tplSortable = Sortable.create($('tpl-sections'), {
-    handle: '.grip', animation: 150, forceFallback: true, fallbackTolerance: 5,
-    onEnd: (event) => {
-      syncTplEditors();
-      const [moved] = tplDraft.sections.splice(event.oldIndex, 1);
-      tplDraft.sections.splice(event.newIndex, 0, moved);
-      renderTpl();
-    },
-  });
-}
-async function openTemplate() {
-  setLoading($('btn-template'), '양식 설정');
-  await wait(250);
-  setLabel($('btn-template'), '<i class="bi bi-sliders"></i>양식 설정');
-  tplDraft = structuredClone(model.template);
-  $('tpl-header').value = tplDraft.header;
-  show('tpl-modal');
-  renderTpl();
-}
-function closeTemplate() {
-  hideToolbar();
-  tplEditors.forEach((e) => e && e.destroy());
-  tplEditors = [];
-  hide('tpl-modal');
-}
-$('btn-template').addEventListener('click', openTemplate);
-$('tpl-sections').addEventListener('input', (event) => {
-  const el = event.target;
-  if (el.dataset.field === 'title') { tplDraft.sections[Number(el.dataset.i)].title = el.value; el.classList.remove('is-invalid'); }
-});
-$('tpl-sections').addEventListener('change', (event) => {
-  const el = event.target;
-  const i = Number(el.dataset.i);
-  const s = tplDraft.sections[i];
-  if (!s) { return; }
-  syncTplEditors();
-  if (el.dataset.field === 'type') {
-    s.type = el.value;
-    s.statuses = s.type === 'tasks' ? ['progress'] : [];
-    s.doneRange = s.type === 'stats' ? { kind: 'sinceLastReport' } : null;
-  } else if (el.dataset.field === 'status') {
-    s.statuses = ['waiting', 'progress', 'done'].filter((st) => (st === el.dataset.status ? el.checked : s.statuses.includes(st)));
-    s.doneRange = s.statuses.includes('done') ? (s.doneRange || { kind: 'sinceLastReport' }) : null;
-  } else if (el.dataset.field === 'kind') {
-    s.doneRange = { kind: el.value, weekday: el.value === 'weekday' ? 1 : null, day: el.value === 'monthDay' ? 1 : null };
-  } else if (el.dataset.field === 'weekday') {
-    s.doneRange.weekday = Number(el.value);
-  } else if (el.dataset.field === 'day') {
-    s.doneRange.day = Number(el.value);
-  } else { return; }
-  renderTpl();
-});
-$('tpl-sections').addEventListener('click', (event) => {
-  const button = event.target.closest('[data-remove]');
-  if (!button || button.disabled) { return; }
-  syncTplEditors();
-  tplDraft.sections.splice(Number(button.dataset.remove), 1);
-  renderTpl();
-});
-$('btn-tpl-add').addEventListener('click', () => {
-  syncTplEditors();
-  let name = '새 구역';
-  for (let n = 2; tplDraft.sections.some((s) => s.title === name); n += 1) { name = `새 구역 ${n}`; }
-  tplDraft.sections.push({ title: name, type: 'text', statuses: [], doneRange: null, defaultHtml: '' });
-  renderTpl();
-  const inputs = document.querySelectorAll('#tpl-sections input[data-field=title]');
-  inputs[inputs.length - 1].focus();
-});
-// 화면 검사 (DailyReportView_screen.md 모달 [저장])
-function validateTpl() {
-  const errors = {};
-  tplDraft.sections.forEach((s, i) => {
-    const title = s.title.trim();
-    if (!title) { errors[i] = '구역 제목을 입력해 주세요.'; }
-    else if (title.length > 30) { errors[i] = '구역 제목은 30자 이하로 입력해 주세요.'; }
-    else if (tplDraft.sections.some((o, j) => j !== i && o.title.trim() === title)) { errors[i] = '구역 제목이 겹칩니다.'; }
-    else if (s.type === 'tasks' && !s.statuses.length) { errors[i] = '상태를 하나 이상 골라 주세요.'; }
-    else if (s.type === 'text' && tplEditors[i] && textLength(tplEditors[i]) > MAX_TEXT) { errors[i] = '기본 내용은 5,000자 이하로 입력해 주세요.'; }
-  });
-  return errors;
-}
-async function saveTemplate() {
-  syncTplEditors();
-  tplDraft.header = $('tpl-header').value.trim();
-  const errors = validateTpl();
-  if (Object.keys(errors).length) {
-    renderTpl(errors);
-    document.querySelector('#tpl-sections input.is-invalid, #tpl-sections .message')?.closest('.tpl-card').querySelector('input').focus();
-    return;
-  }
-  setLoading($('btn-tpl-save'), '저장 중...');
-  await wait(500);
-  setLabel($('btn-tpl-save'), '저장');
-  if (model.role === 'member') {
-    closeTemplate();
-    hide('btn-template');
-    flash('error', '권한이 없습니다.');
-    return;
-  }
-  tplDraft.sections.forEach((s) => { s.title = s.title.trim(); });
-  model.template = structuredClone(tplDraft);
-  closeTemplate();
-  flash('success', '양식을 저장했습니다.', '새로 여는 보고부터 적용됩니다.');
-}
-$('btn-tpl-save').addEventListener('click', saveTemplate);
-$('btn-tpl-cancel').addEventListener('click', closeTemplate);
-$('tpl-x').addEventListener('click', closeTemplate);
-closeOnBackdrop('tpl-modal', closeTemplate);
-escapeHandlers.push(() => {
-  if (!$('confirm').classList.contains('is-hidden')) { hide('confirm'); confirmAction = null; return; }
-  if (['color-pop', 'link-pop', 'cell-pop'].some((id) => !$(id).classList.contains('is-hidden'))) { hide('color-pop', 'link-pop', 'cell-pop'); return; }
-  if (!$('tpl-modal').classList.contains('is-hidden')) { closeTemplate(); }
-});
 
 // ---------- 실시간 반영 흉내 (D-159) ----------
 function liveSubmit(name) {

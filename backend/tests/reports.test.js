@@ -204,6 +204,13 @@ describe('다시 불러오기·양식 (D-152)', () => {
       .toBe('<p>: 완료 0건, 진행 1건, 대기 0건</p>');
     expect((await get(`${base}/reports/section-content?type=stats`, owner)).status).toBe(400);
   });
+  test('다시 불러오기: 완료 범위 오늘은 오늘 완료한 작업만 (D-175)', async () => {
+    const { owner, teamId, base } = await setupTeam();
+    await insertTask(teamId, owner, { title: '오늘완료', status: 'done' });
+    await insertTask(teamId, owner, { title: '그제완료', status: 'done', doneHoursAgo: 48 });
+    expect((await get(`${base}/reports/section-content?type=tasks&statuses=done&doneKind=today`, owner)).body.data.html)
+      .toBe('<ul><li><p>[미정] 오늘완료 - [완료]</p></li></ul>');
+  });
   test('양식: 팀원은 읽기만(canEdit false, 저장 403), 관리자 저장은 새 초안부터 적용', async () => {
     const { owner, member, base } = await setupTeam();
     const before = (await get(`${base}/reports/today`, owner)).body.data.report;

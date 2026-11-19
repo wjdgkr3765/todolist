@@ -782,7 +782,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | statuses | string[] | tasks 만. waiting / progress / done 중 1개 이상 (중복 없음). 다른 종류면 빈 배열 |
   | doneRange | DoneRange 또는 null | stats, 그리고 statuses 에 done 이 있는 tasks 만. 나머지는 null |
   | defaultHtml | string | text 만. 기본 내용 (정화한 HTML, 빈 문자열 가능). 다른 종류면 빈 문자열 |
-- 완료 범위 (DoneRange, D-154): `kind` string — sinceLastReport / weekday / monthDay / lastWeek / lastMonth, `weekday` number — weekday 만 1(월)~7(일), `day` number — monthDay 만 1~31. 해당 없는 값은 null
+- 완료 범위 (DoneRange, D-154, D-175): `kind` string — sinceLastReport / weekday / monthDay / lastWeek / lastMonth / today, `weekday` number — weekday 만 1(월)~7(일), `day` number — monthDay 만 1~31. 해당 없는 값은 null
 
   | kind | 완료로 옮겨진 시각(done_date)의 범위 (한국 시간) |
   |---|---|
@@ -791,6 +791,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | monthDay | 오늘 전의 가장 가까운 그 날짜 0시 이후 (오늘이 그 날짜면 지난 달. 그 달에 없는 날짜는 그 달 마지막 날) |
   | lastWeek | 지난 주 월요일 0시 이상, 이번 주 월요일 0시 미만 |
   | lastMonth | 지난 달 1일 0시 이상, 이번 달 1일 0시 미만 |
+  | today | 오늘 0시 이후 (D-175) |
 - 자동 채우기 (D-153): 대상은 이 팀의 tasks 중 task_assignees 에 내가 있는 작업. 대기·진행은 지금 그 상태인 작업 전부, 완료는 status = done 이고 done_date 가 완료 범위 안인 작업 (히스토리 작업 포함)
   - stats: `<p>: 완료 {N}건, 진행 {N}건, 대기 {N}건</p>`
   - tasks: 진행 → 대기 → 완료, 같은 상태 안은 sort_order 순 (완료 중 히스토리 작업은 done_date 늦은 순으로 뒤에). 작업 하나가 `<li>` 하나인 `<ul>`. 글은 `[기간] 제목 - [상태]` (기간: 월/일, 시간 없음. 시작·종료가 보고일과 해가 다르면 `YYYY/M/D`, 같은 날이면 `[M/D]`, 미정이면 `[미정]`. 상태: 대기 / 진행 / 완료). 제목은 HTML 이스케이프

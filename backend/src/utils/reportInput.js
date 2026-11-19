@@ -7,7 +7,7 @@ import {
 
 const TYPES = ['stats', 'tasks', 'text'];
 const STATUSES = ['waiting', 'progress', 'done'];
-const DONE_KINDS = ['sinceLastReport', 'weekday', 'monthDay', 'lastWeek', 'lastMonth'];
+const DONE_KINDS = ['sinceLastReport', 'weekday', 'monthDay', 'lastWeek', 'lastMonth', 'today'];
 const MAX_SECTIONS = 20;
 const MAX_TITLE = 30;
 const MAX_HEADER = 100;

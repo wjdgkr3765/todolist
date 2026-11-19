@@ -63,6 +63,14 @@ describe('완료 범위 (D-154). 오늘 2026-11-11 (수)', () => {
   ])('지난 달: 오늘 %s → %s ~ %s', (day, from, to) => {
     expect(fromOf({ kind: 'lastMonth' }, day)).toEqual({ from: kst(`${from}T00:00:00`), to: kst(`${to}T00:00:00`), isHistoryExcluded: false });
   });
+  test.each([['2026-11-11'], ['2026-01-01'], ['2026-03-01']])('오늘 (D-175): 오늘 %s 0시 이후', (day) => {
+    expect(fromOf({ kind: 'today' }, day)).toEqual({ from: kst(`${day}T00:00:00`), to: null, isHistoryExcluded: false });
+  });
+  test('오늘 (D-175): 어제 23:59:59 는 빼고 오늘 0시 정각부터 넣는다', () => {
+    const done = (taskId, at) => ({ taskId, title: `t${taskId}`, startDate: null, endDate: null, status: 'done', sortOrder: taskId, doneDate: kst(at), isHistory: false });
+    const context = { today, lastSubmitDate: null, tasks: [done(1, '2026-11-10T23:59:59'), done(2, '2026-11-11T00:00:00'), done(3, '2026-11-11T23:59:59')] };
+    expect(autoSectionHtml(context, { type: 'stats', statuses: [], doneRange: { kind: 'today' } })).toBe('<p>: 완료 2건, 진행 0건, 대기 0건</p>');
+  });
 });
 
 describe('자동 채우기 (D-153)', () => {
@@ -140,6 +148,8 @@ describe('입력 검사 (D-161)', () => {
     expect(readSectionQuery({ type: 'tasks', statuses: 'progress,done', doneKind: 'monthDay', doneDay: '31' }))
       .toEqual({ type: 'tasks', statuses: ['progress', 'done'], doneRange: { kind: 'monthDay', weekday: null, day: 31 } });
     expect(readSectionQuery({ type: 'stats', doneKind: 'lastWeek' }).doneRange.kind).toBe('lastWeek');
+    expect(readSectionQuery({ type: 'stats', doneKind: 'today', doneDay: '3' }).doneRange).toEqual({ kind: 'today', weekday: null, day: null });
+    expect(() => readSectionQuery({ type: 'stats', doneKind: 'Today' })).toThrow();
     expect(() => readSectionQuery({ type: 'text' })).toThrow();
     expect(() => readSectionQuery({ type: 'tasks', statuses: 'progress,' })).toThrow();
     expect(() => readSectionQuery({ type: 'stats' })).toThrow();

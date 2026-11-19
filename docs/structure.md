@@ -83,6 +83,7 @@
 |프로젝트/docs/mockups/signup_view.js|회원가입 시안의 동작 스크립트. 이메일·전화번호 인증을 같은 흐름으로 흉내 낸다 (D-168 로 700줄을 넘어 나눔)|
 |프로젝트/docs/mockups/main_layout.html, task_view.html, calendar_view.html, team_info_view.html, history_view.html, profile_view.html|공통 레이아웃·작업·캘린더·팀 정보·히스토리·회원정보 수정 시안 (작업·캘린더·히스토리는 ?space=team 으로 팀 공간)|
 |프로젝트/docs/mockups/daily_report_view.html, daily_report_view.js|일일보고 시안과 동작 스크립트 (D-150, D-146)|
+|프로젝트/docs/mockups/daily_report_view_editor.js, daily_report_view_template.js|일일보고 시안 스크립트의 편집기·도구 막대, 양식 설정 모달 부분 (700줄을 넘어 역할별로 나눔, 2026-11-19). html 에서 daily_report_view.js 보다 먼저 불러온다|
 |프로젝트/docs/mockups/vendor/tiptap.iife.js|시안용 Tiptap 묶음 (window.Tiptap). 서버 없이 연 시안은 ES 모듈을 못 불러와서 만든다. 직접 고치지 않고 `npm run mockup:tiptap` 으로 다시 만든다 (D-162)|
 |프로젝트/frontend/scripts/build-mockup-tiptap.js, mockup-tiptap-entry.js|시안용 Tiptap 묶음을 만드는 스크립트와 묶을 목록 (Vite 라이브러리 빌드, D-162)|
 |프로젝트/docs/mockups/task_view.js|작업 시안의 동작 스크립트 (D-146). 서버 없이 시안 안에서만 버튼·저장·삭제·드래그·입력 검사를 흉내 낸다|
