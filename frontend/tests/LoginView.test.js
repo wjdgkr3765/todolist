@@ -23,6 +23,8 @@ beforeEach(() => {
     'GET /api/sessions/me': () => fail(401, 'UNAUTHORIZED'),
     'GET /api/teams': () => ok({ teams: [] }),
     'GET /api/notifications': () => ok({ notifications: [], unreadCount: 0 }),
+    'GET /api/alarms': () => ok({ alarms: [] }),
+    'POST /api/alarms/check': () => ok({ fired: [], unreadCount: 0 }),
   };
   fetchMock = vi.fn(async (url, options = {}) => {
     const key = `${options.method} ${url.split('?')[0]}`;

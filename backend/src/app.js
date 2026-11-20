@@ -11,6 +11,7 @@ import { notificationsRouter } from './routes/notifications.js';
 import { workRouter } from './routes/work.js';
 import { calendarRouter } from './routes/calendar.js';
 import { reportsRouter } from './routes/reports.js';
+import { alarmsRouter } from './routes/alarms.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 
 const LARGE_BODY_PATH = /^\/api\/teams\/[^/]+\/(reports\/today\/save|report-template\/update)$/;
@@ -39,6 +40,7 @@ export function createApp() {
   app.use('/api/sessions', sessionsRouter);
   app.use('/api/teams', teamsRouter);
   app.use('/api/notifications', notificationsRouter);
+  app.use('/api/alarms', alarmsRouter);
   // 할일·작업: /api/personal/..., /api/teams/{id}/todos·tasks, /api/todos/..., /api/tasks/...
   app.use('/api', workRouter);
   app.use('/api', calendarRouter);

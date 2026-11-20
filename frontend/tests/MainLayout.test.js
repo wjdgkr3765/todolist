@@ -31,6 +31,8 @@ beforeEach(() => {
     'GET /api/sessions/me': () => ok(ME),
     'GET /api/teams': () => ok({ teams: TEAMS }),
     'GET /api/notifications': () => ok({ notifications: [INVITE, ASSIGNED, DUE], unreadCount: 2 }),
+    'GET /api/alarms': () => ok({ alarms: [] }),
+    'POST /api/alarms/check': () => ok({ fired: [], unreadCount: 0 }),
     'POST /api/notifications/read': () => ok({ unreadCount: 0 }),
   };
   // 작업 화면이 부르는 목록 (개인·팀)

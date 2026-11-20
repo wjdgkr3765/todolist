@@ -153,6 +153,7 @@ export async function withdraw(user, password) {
       -- 4. 받은 알림 삭제, 보낸 알림은 보낸 회원만 비운다
       DELETE FROM notifications WHERE user_id = @userId;
       UPDATE notifications SET sender_user_id = NULL WHERE sender_user_id = @userId;
+      DELETE FROM alarms WHERE user_id = @userId; -- 내 알람 (D-177)
       -- 5. 개인 작업의 알림 → 개인 작업(수정 내역 함께) → 개인 할일
       DELETE FROM notifications WHERE task_id IN (SELECT id FROM tasks WHERE user_id = @userId);
       DELETE FROM tasks WHERE user_id = @userId;

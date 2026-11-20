@@ -81,6 +81,7 @@ export async function cleanupTestRows() {
                  OR user_id IN ${TEST_USERS})`, ids);
   await runSql(`DELETE FROM teams WHERE id IN ${TEST_TEAMS}`, ids);
   await runSql(`DELETE FROM notifications WHERE user_id IN ${TEST_USERS} OR sender_user_id IN ${TEST_USERS}`, ids);
+  await runSql(`DELETE FROM alarms WHERE user_id IN ${TEST_USERS}`, ids);
   await runSql(`DELETE FROM tasks WHERE user_id IN ${TEST_USERS}`, ids);
   await runSql(`DELETE FROM todos WHERE user_id IN ${TEST_USERS}`, ids);
   await runSql(`DELETE FROM team_invite_declines WHERE user_id IN ${TEST_USERS}`, ids);

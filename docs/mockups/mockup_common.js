@@ -124,6 +124,13 @@ const NOTIFICATION_ITEMS = `
       <span class="notification-time">2026.11.11 09:00</span>
     </a>
     <button type="button" class="notification-close" aria-label="알림 지우기" data-action="remove"><i class="bi bi-x-lg"></i></button>
+  </div>
+  <div class="notification-item">
+    <i class="bi bi-alarm"></i>
+    <a href="#" class="notification-link" data-open-alarms>놓친 알람: 출근
+      <span class="notification-time">2026.11.10 06:00</span>
+    </a>
+    <button type="button" class="notification-close" aria-label="알림 지우기" data-action="remove"><i class="bi bi-x-lg"></i></button>
   </div>`;
 
 function teamNavHtml(team, active) {
@@ -194,6 +201,8 @@ function renderLayout(options) {
     </div>`;
   document.body.appendChild(modal);
   bindLayout();
+  // 알람 버튼·창·모달·팝업 (main_layout_alarm.js, D-177)
+  if (typeof renderAlarmUi === 'function') { renderAlarmUi(); }
 }
 
 // ---------- 공통 레이아웃 동작 (MainLayout_screen.md "4. 동작") ----------
@@ -201,9 +210,11 @@ function closePopovers() {
   hide('notification-box', 'profile-menu');
   $('bell').classList.remove('is-open');
   $('profile-button').classList.remove('is-open');
+  if (typeof closeAlarmBox === 'function') { closeAlarmBox(); }
 }
 function openNotificationBox() {
   hide('profile-menu');
+  if (typeof closeAlarmBox === 'function') { closeAlarmBox(); }
   $('profile-button').classList.remove('is-open');
   show('notification-box');
   $('bell').classList.add('is-open');
@@ -310,6 +321,7 @@ function resetLayout() {
   document.querySelectorAll('#team-list .nav-item').forEach((item) => item.classList.remove('is-dragging'));
   document.querySelectorAll('.nav-drop-line').forEach((line) => line.remove());
   $('btn-logout').innerHTML = '<i class="bi bi-box-arrow-right"></i>로그아웃';
+  if (typeof resetAlarmUi === 'function') { resetAlarmUi(); }
 }
 
 // ---------- 로그인·회원가입·찾기 화면의 브랜드 영역 (AuthBrandPanel, SignupView_screen.md) ----------

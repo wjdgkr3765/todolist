@@ -23,6 +23,8 @@ beforeEach(() => {
     'GET /api/sessions/me': () => ok(SESSION),
     'GET /api/teams': () => ok({ teams: [] }),
     'GET /api/notifications': () => ok({ notifications: [], unreadCount: 0 }),
+    'GET /api/alarms': () => ok({ alarms: [] }),
+    'POST /api/alarms/check': () => ok({ fired: [], unreadCount: 0 }),
     'GET /api/users/me': () => ok(ME),
   };
   vi.stubGlobal('fetch', vi.fn(async (url, options = {}) => {

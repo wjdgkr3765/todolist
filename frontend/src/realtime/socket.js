@@ -8,7 +8,7 @@ function dispatch(event, data) {
   (handlers.get(event) ?? []).forEach((handler) => handler(data));
 }
 
-const EVENTS = ['notifications:changed', 'teams:changed', 'team:todos-changed', 'team:tasks-changed', 'team:reports-changed'];
+const EVENTS = ['notifications:changed', 'teams:changed', 'team:todos-changed', 'team:tasks-changed', 'team:reports-changed', 'alarms:changed'];
 
 // 로그인한 화면이 열리면 연결한다. 다시 연결되면 'reconnected', 끊기면 'disconnected' 를 알린다
 export function connectRealtime() {

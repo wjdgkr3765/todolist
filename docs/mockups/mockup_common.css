@@ -264,3 +264,48 @@ body { font-family: var(--font-base); color: var(--color-ink); background: var(-
   .form-subheading { margin-bottom: 20px; }
   .card-x { padding: 16px; }
 }
+
+/* ---------- 알람 (MainLayout_screen.md 7, D-177~D-180) ---------- */
+.nav-top-actions { display: flex; align-items: center; gap: 4px; }
+.alarm-title { display: flex; align-items: center; justify-content: space-between; padding-top: 10px; padding-bottom: 10px; }
+.alarm-title-tools { display: flex; align-items: center; gap: 6px; }
+.alarm-browser { display: inline-flex; align-items: center; gap: 6px; }
+.alarm-browser-label { font-size: 12px; font-weight: 600; color: var(--color-sub); }
+.alarm-denied { padding: 8px 12px; background: var(--color-danger-soft); color: var(--color-danger); font-size: 12px; line-height: 1.45; border-bottom: 1px solid var(--color-border); }
+.alarm-item { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid var(--color-border); }
+.alarm-item:last-child { border-bottom: 0; }
+.alarm-item:hover { background: var(--color-input-bg); }
+.alarm-item-main { flex: 1 1 auto; min-width: 0; border: 0; background: transparent; padding: 0; text-align: left; display: flex; flex-direction: column; color: var(--color-ink); }
+.alarm-item-time { font-size: 20px; font-weight: 700; line-height: 1.3; }
+.alarm-item-sub { font-size: 13px; color: var(--color-sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alarm-item-name { font-size: 14px; font-weight: 600; color: var(--color-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.alarm-item-time-line { display: flex; align-items: baseline; gap: 6px; }
+.alarm-item-holiday { font-size: 11px; color: var(--color-muted); white-space: nowrap; }
+.alarm-item-name, .alarm-item-sub { display: block; max-width: 100%; }
+.alarm-item.is-off .alarm-item-time, .alarm-item.is-off .alarm-item-name, .alarm-item.is-off .alarm-item-sub { color: var(--color-muted); }
+.form-switch .form-check-input:checked { background-color: var(--color-primary); border-color: var(--color-primary); }
+.form-switch .form-check-input:focus { box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+.alarm-time { display: flex; align-items: center; gap: 8px; margin-bottom: 18px; }
+.alarm-time select { flex: 1 1 0; min-width: 0; height: 48px; border: 1px solid var(--color-border); border-radius: var(--radius-control); background: var(--color-input-bg); font-size: 20px; font-weight: 700; color: var(--color-ink); padding: 0 10px; }
+.alarm-time select:focus { outline: 0; background: #fff; border-color: var(--color-primary); box-shadow: 0 0 0 4px rgba(31, 170, 89, 0.14); }
+.alarm-time + .message { margin: -10px 0 12px; }
+.alarm-date-line { position: relative; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-size: 14px; font-weight: 600; color: var(--color-primary-dark); }
+.alarm-date-button { width: 32px; height: 32px; border-radius: 50%; border: 0; background: transparent; color: var(--color-sub); font-size: 16px; display: grid; place-items: center; }
+.alarm-date-button:hover { background: var(--color-hover-bg); }
+.alarm-date-input { position: absolute; right: 0; bottom: 0; width: 1px; height: 1px; opacity: 0; border: 0; padding: 0; }
+.alarm-weekdays { display: flex; justify-content: space-between; margin-bottom: 18px; }
+.alarm-day { width: 36px; height: 36px; border-radius: 50%; border: 1px solid var(--color-border); background: #fff; color: var(--color-sub); font-size: 14px; font-weight: 600; }
+.alarm-day.is-sun { color: var(--color-danger); }
+.alarm-day.is-sat { color: var(--color-progress); }
+.alarm-day.is-on { background: var(--color-primary); border-color: var(--color-primary); color: #fff; }
+.alarm-switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 18px; }
+.alarm-switch-row.is-disabled { opacity: 0.5; }
+.alarm-switch-label { font-size: 14px; font-weight: 600; }
+.alarm-switch-help { font-size: 12px; color: var(--color-sub); margin-top: 2px; }
+.alarm-actions { align-items: center; }
+.alarm-popup { width: 320px; padding: 28px; text-align: center; }
+.alarm-popup-icon { font-size: 40px; color: var(--color-primary); }
+.alarm-popup-item { margin-top: 8px; }
+.alarm-popup-time { font-size: 28px; font-weight: 800; }
+.alarm-popup-name { font-size: 15px; color: var(--color-sub); }
+.alarm-popup-ok { width: 100%; height: 48px; margin-top: 20px; }

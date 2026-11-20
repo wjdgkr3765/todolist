@@ -253,32 +253,58 @@ CREATE TABLE task_log_assignees (
 
 CREATE INDEX idx_task_log_assignees_task_log_id ON task_log_assignees (task_log_id);
 
+-- alarms (알람, D-177)
+CREATE TABLE alarms (
+    id             BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
+    title          NVARCHAR(30) NULL,                               -- 알람 이름 (없으면 NULL)
+    alarm_time     TIME(0)      NOT NULL,                           -- 울릴 시각 (한국 시간, 분 단위)
+    alarm_date     DATE         NULL,                               -- 한 번 울리는 날짜 (요일 알람이면 NULL)
+    weekdays       TINYINT      NOT NULL DEFAULT 0,                 -- 반복 요일 비트 (월 1 ~ 일 64, 0 이면 한 번)
+    user_id        BIGINT       NOT NULL,                           -- 알람 주인
+    is_on          BIT          NOT NULL DEFAULT 1,                 -- 켜짐 여부
+    is_holiday_off BIT          NOT NULL DEFAULT 0,                 -- 공휴일에는 끄기 (요일 알람만)
+    next_fire_date DATETIME2    NULL,                               -- 다음에 울릴 시각 (UTC, 꺼져 있으면 NULL)
+    create_date    DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),  -- 생성 시각 (UTC)
+
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    CHECK (weekdays BETWEEN 0 AND 127),
+    CHECK ((weekdays = 0 AND alarm_date IS NOT NULL AND is_holiday_off = 0) OR (weekdays > 0 AND alarm_date IS NULL)),
+    CHECK ((is_on = 1 AND next_fire_date IS NOT NULL) OR (is_on = 0 AND next_fire_date IS NULL))
+);
+
+CREATE INDEX idx_alarms_user_id ON alarms (user_id, next_fire_date);
+
 -- notifications (알림)
 CREATE TABLE notifications (
     id                BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
-    notification_type NVARCHAR(20) NOT NULL,                           -- 종류 (team_invite / task_assigned / due_soon)
-    sender_nickname   NVARCHAR(8)  NULL,                               -- 보낸 회원의 그 시점 닉네임 (due_soon 이면 NULL)
+    notification_type NVARCHAR(20) NOT NULL,                           -- 종류 (team_invite / task_assigned / due_soon / alarm_missed)
+    sender_nickname   NVARCHAR(8)  NULL,                               -- 보낸 회원의 그 시점 닉네임 (due_soon·alarm_missed 이면 NULL)
     user_id           BIGINT       NOT NULL,                           -- 받는 회원
     sender_user_id    BIGINT       NULL,                               -- 보낸 회원 (초대 취소 권한 확인용, 탈퇴하면 NULL)
-    team_id           BIGINT       NULL,                               -- 팀 (개인 작업의 due_soon 이면 NULL)
-    task_id           BIGINT       NULL,                               -- 작업 (team_invite 이면 NULL)
+    team_id           BIGINT       NULL,                               -- 팀 (개인 작업의 due_soon·alarm_missed 이면 NULL)
+    task_id           BIGINT       NULL,                               -- 작업 (team_invite·alarm_missed 이면 NULL)
+    alarm_id          BIGINT       NULL,                               -- 알람 (alarm_missed 만)
     is_read           BIT          NOT NULL DEFAULT 0,                 -- 알림 창에서 본 여부
-    create_date       DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),  -- 알림 시각 (UTC)
+    create_date       DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),  -- 알림 시각 (UTC). alarm_missed 는 울렸어야 할 시각
 
     FOREIGN KEY (user_id)        REFERENCES users(id),
     FOREIGN KEY (sender_user_id) REFERENCES users(id),
     FOREIGN KEY (team_id)        REFERENCES teams(id) ON DELETE CASCADE,
     FOREIGN KEY (task_id)        REFERENCES tasks(id),
-    CHECK (notification_type IN ('team_invite', 'task_assigned', 'due_soon')),
+    FOREIGN KEY (alarm_id)       REFERENCES alarms(id) ON DELETE CASCADE,
+    CHECK (notification_type IN ('team_invite', 'task_assigned', 'due_soon', 'alarm_missed')),
     CHECK (
-        (notification_type = 'team_invite' AND team_id IS NOT NULL AND task_id IS NULL AND sender_nickname IS NOT NULL)
-        OR (notification_type = 'task_assigned' AND team_id IS NOT NULL AND task_id IS NOT NULL AND sender_nickname IS NOT NULL)
-        OR (notification_type = 'due_soon' AND task_id IS NOT NULL AND sender_nickname IS NULL AND sender_user_id IS NULL)
+        (notification_type = 'team_invite' AND team_id IS NOT NULL AND task_id IS NULL AND alarm_id IS NULL AND sender_nickname IS NOT NULL)
+        OR (notification_type = 'task_assigned' AND team_id IS NOT NULL AND task_id IS NOT NULL AND alarm_id IS NULL AND sender_nickname IS NOT NULL)
+        OR (notification_type = 'due_soon' AND task_id IS NOT NULL AND alarm_id IS NULL AND sender_nickname IS NULL AND sender_user_id IS NULL)
+        OR (notification_type = 'alarm_missed' AND alarm_id IS NOT NULL AND team_id IS NULL AND task_id IS NULL AND sender_nickname IS NULL AND sender_user_id IS NULL)
     )
 );
 
 CREATE UNIQUE INDEX idx_notifications_user_id_team_id ON notifications (user_id, team_id) WHERE notification_type = 'team_invite';
 CREATE UNIQUE INDEX idx_notifications_user_id_task_id ON notifications (user_id, task_id) WHERE notification_type = 'due_soon';
+CREATE UNIQUE INDEX idx_notifications_user_id_alarm_id ON notifications (user_id, alarm_id) WHERE notification_type = 'alarm_missed';
+CREATE INDEX idx_notifications_alarm_id ON notifications (alarm_id);
 CREATE INDEX idx_notifications_user_id ON notifications (user_id, create_date);
 CREATE INDEX idx_notifications_task_id ON notifications (task_id);
 

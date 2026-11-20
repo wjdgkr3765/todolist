@@ -5,11 +5,15 @@ import { useRoute, useRouter } from 'vue-router';
 import { storeToRefs } from 'pinia';
 import draggable from 'vuedraggable';
 import NotificationPanel from '../components/NotificationPanel.vue';
+import AlarmPanel from '../components/AlarmPanel.vue';
+import AlarmFormModal from '../components/AlarmFormModal.vue';
+import AlarmPopup from '../components/AlarmPopup.vue';
 import TeamCreateModal from '../components/TeamCreateModal.vue';
 import LoadingLabel from '../components/LoadingLabel.vue';
 import { useAuthStore } from '../stores/auth.js';
 import { useTeamsStore } from '../stores/teams.js';
 import { useNotificationsStore } from '../stores/notifications.js';
+import { useAlarmsStore } from '../stores/alarms.js';
 import { useToastStore } from '../stores/toast.js';
 import { connectRealtime, disconnectRealtime, onRealtime } from '../realtime/socket.js';
 
@@ -26,12 +30,17 @@ const router = useRouter();
 const auth = useAuthStore();
 const teamsStore = useTeamsStore();
 const notificationsStore = useNotificationsStore();
+const alarmsStore = useAlarmsStore();
 const toastStore = useToastStore();
 const { user } = storeToRefs(auth);
 const { teams } = storeToRefs(teamsStore);
 const { unreadCount } = storeToRefs(notificationsStore);
+const { fired } = storeToRefs(alarmsStore);
 
 const isNotificationOpen = ref(false);
+const isAlarmOpen = ref(false);
+// 알람 설정 모달: undefined 면 닫힘, null 이면 추가, 알람이면 수정
+const formAlarm = ref(undefined);
 const isProfileMenuOpen = ref(false);
 const isTeamModalOpen = ref(false);
 const isLoggingOut = ref(false);
@@ -52,8 +61,45 @@ function tabPath(key) {
 
 function closePopovers() {
   isNotificationOpen.value = false;
+  isAlarmOpen.value = false;
   isProfileMenuOpen.value = false;
   notificationsStore.isOpen = false;
+}
+
+// 알람 창 (D-180). 열 때 목록을 다시 불러온다
+async function toggleAlarms() {
+  const opening = !isAlarmOpen.value;
+  closePopovers();
+  if (!opening) {
+    return;
+  }
+  isAlarmOpen.value = true;
+  await alarmsStore.fetchAlarms().catch(() => {});
+}
+
+function openAlarmForm(alarm) {
+  closePopovers();
+  formAlarm.value = alarm;
+}
+
+// 놓친 알람 알림을 누르면 알림 창을 닫고 알람 창을 연다
+async function openAlarmsFromNotification() {
+  isNotificationOpen.value = false;
+  notificationsStore.isOpen = false;
+  await toggleAlarms();
+}
+
+// 울릴 때가 된 알람 확인 (D-179). 안 본 알림 개수도 맞춘다
+async function checkAlarms() {
+  const data = await alarmsStore.check().catch(() => null);
+  if (data) {
+    notificationsStore.unreadCount = data.unreadCount;
+  }
+}
+function onVisibilityChange() {
+  if (document.visibilityState === 'visible') {
+    checkAlarms();
+  }
 }
 
 async function toggleNotifications() {
@@ -90,6 +136,7 @@ async function logout() {
     disconnectRealtime();
     teamsStore.clear();
     notificationsStore.clear();
+    alarmsStore.clear();
     await router.push('/login');
   } catch {
     // 오류 토스트는 API 공통 처리가 띄운다
@@ -132,7 +179,15 @@ function onDocumentClick() {
   closePopovers();
 }
 function onKeydown(event) {
-  if (event.key === 'Escape') {
+  if (event.key !== 'Escape') {
+    return;
+  }
+  // 알람 팝업 → 알람 설정 모달 → 나머지 순으로 하나씩 닫는다
+  if (fired.value.length > 0) {
+    alarmsStore.closePopup();
+  } else if (formAlarm.value !== undefined) {
+    formAlarm.value = undefined;
+  } else {
     closePopovers();
     isTeamModalOpen.value = false;
   }
@@ -142,6 +197,7 @@ const offHandlers = [];
 onMounted(async () => {
   document.addEventListener('click', onDocumentClick);
   document.addEventListener('keydown', onKeydown);
+  document.addEventListener('visibilitychange', onVisibilityChange);
   connectRealtime();
   offHandlers.push(
     onRealtime('notifications:changed', async (data) => {
@@ -160,9 +216,15 @@ onMounted(async () => {
       }
     }),
     onRealtime('reconnected', async () => {
-      await Promise.all([notificationsStore.fetchNotifications(), teamsStore.fetchTeams()]).catch(() => {});
+      await Promise.all([notificationsStore.fetchNotifications(), teamsStore.fetchTeams(), alarmsStore.fetchAlarms()]).catch(() => {});
+    }),
+    // 다른 탭에서 알람을 바꾸거나 처리함: 목록과 타이머만 맞춘다 (팝업은 띄우지 않는다)
+    onRealtime('alarms:changed', async () => {
+      await alarmsStore.fetchAlarms().catch(() => {});
     }),
   );
+  // 알람 확인(놓친 알람·제때 울린 알람) 뒤 알림 개수를 불러온다
+  await checkAlarms();
   await Promise.all([teamsStore.fetchTeams(), notificationsStore.fetchNotifications()]).catch(() => {});
   await checkTeamRoute();
 });
@@ -170,6 +232,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', onDocumentClick);
   document.removeEventListener('keydown', onKeydown);
+  document.removeEventListener('visibilitychange', onVisibilityChange);
   offHandlers.forEach((off) => off());
 });
 
@@ -186,11 +249,17 @@ watch(() => route.fullPath, async () => {
     <nav class="side-nav" aria-label="공간">
       <div class="nav-top">
         <RouterLink to="/personal/tasks" class="logo"><span class="logo-mark"><i class="bi bi-check2-square"></i></span>TODO</RouterLink>
-        <button type="button" class="bell-button" :class="{ 'is-open': isNotificationOpen }" aria-label="알림" @click.stop="toggleNotifications">
-          <i class="bi bi-bell"></i>
-          <span v-if="unreadCount > 0" class="bell-badge">{{ badgeText }}</span>
-        </button>
-        <NotificationPanel v-if="isNotificationOpen" @close="closePopovers" />
+        <div class="nav-top-actions">
+          <button type="button" class="bell-button" :class="{ 'is-open': isNotificationOpen }" aria-label="알림" @click.stop="toggleNotifications">
+            <i class="bi bi-bell"></i>
+            <span v-if="unreadCount > 0" class="bell-badge">{{ badgeText }}</span>
+          </button>
+          <button type="button" class="bell-button" :class="{ 'is-open': isAlarmOpen }" aria-label="알람" @click.stop="toggleAlarms">
+            <i class="bi bi-alarm"></i>
+          </button>
+        </div>
+        <NotificationPanel v-if="isNotificationOpen" @close="closePopovers" @open-alarms="openAlarmsFromNotification" />
+        <AlarmPanel v-if="isAlarmOpen" @close="closePopovers" @open-form="openAlarmForm" />
       </div>
 
       <RouterLink to="/personal/tasks" class="nav-item" :class="{ 'is-active': space === 'personal' }">
@@ -236,5 +305,7 @@ watch(() => route.fullPath, async () => {
     </main>
 
     <TeamCreateModal v-if="isTeamModalOpen" @close="isTeamModalOpen = false" />
+    <AlarmFormModal v-if="formAlarm !== undefined" :alarm="formAlarm" @close="formAlarm = undefined" />
+    <AlarmPopup v-if="fired.length > 0" />
   </div>
 </template>

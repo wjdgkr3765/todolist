@@ -100,6 +100,8 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 | 409 | INVITATION_DUPLICATED | 그 회원에게 답을 기다리는 그 팀의 초대가 이미 있음 (D-093) |
 | 409 | REPORT_NOT_TODAY | 오늘(한국 시간)이 아닌 날짜의 일일보고를 저장하려 함. 자정이 지난 경우 (D-158) |
 | 409 | REPORT_ALREADY_SUBMITTED | 이미 제출한 일일보고를 임시저장하려 함 (D-157) |
+| 409 | ALARM_LIMIT_EXCEEDED | 알람이 이미 30개라 더 만들 수 없음 (D-180) |
+| 400 | ALARM_TIME_PASSED | 직접 고른 날짜와 시각이 이미 지남 (D-178) |
 
 ---
 
@@ -542,16 +544,18 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
   | 필드 | 타입 | 설명 |
   |---|---|---|
   | notificationId | number | 알림 id |
-  | notificationType | string | 종류 team_invite(팀 초대) / task_assigned(작업자 지정) / due_soon(마감 임박) |
+  | notificationType | string | 종류 team_invite(팀 초대) / task_assigned(작업자 지정) / due_soon(마감 임박) / alarm_missed(놓친 알람, D-179) |
   | teamId | number \| null | 팀 id (개인 작업의 마감 임박이면 null) |
   | teamName | string \| null | 팀의 지금 이름 |
   | taskId | number \| null | 작업 id (팀 초대면 null) |
   | taskTitle | string \| null | 작업의 지금 제목 |
   | taskEndDate | string \| null | 작업의 지금 종료일 YYYY-MM-DD (마감 임박만) |
   | taskEndTime | string \| null | 작업의 지금 종료 시각 HH:mm (마감 임박이고 시간이 있을 때만, D-138) |
-  | senderNickname | string \| null | 보낸 회원의 그 시점 닉네임 (마감 임박이면 null) |
+  | senderNickname | string \| null | 보낸 회원의 그 시점 닉네임 (마감 임박·놓친 알람이면 null) |
+  | alarmId | number \| null | 알람 id (놓친 알람만) |
+  | alarmTitle | string \| null | 알람의 지금 이름 (놓친 알람이고 이름이 있을 때만) |
   | isRead | boolean | 알림 창에서 본 여부 |
-  | createDate | string | 알림 시각 |
+  | createDate | string | 알림 시각. 놓친 알람은 울렸어야 할 시각 |
 - 알림은 받는 회원 자신의 것만 다룬다. 남의 알림 id 면 404 NOT_FOUND
 
 #### POST /api/teams/{id}/invitations
@@ -578,7 +582,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **사용 테이블**: notifications, users, team_members
 
 #### POST /api/notifications/{id}/delete
-- **설명**: 작업자 지정·마감 임박 알림 지우기 ([X], D-127, D-128). 팀 초대는 수락·거절로만 지운다 (team_invite 면 400 INVALID_INPUT)
+- **설명**: 작업자 지정·마감 임박·놓친 알람 알림 지우기 ([X], D-127, D-128, D-179). 팀 초대는 수락·거절로만 지운다 (team_invite 면 400 INVALID_INPUT)
 - **응답 data**: `unreadCount` number
 - **오류**: 400, 401, 404
 - **사용 테이블**: notifications
@@ -587,7 +591,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **설명**: 내 알림 목록 (알림 창). 최근 것이 위. 목록을 만들기 전에 마감 임박 알림을 만든다 (아래)
 - **응답 data**: `notifications` Notification[] (없으면 빈 배열), `unreadCount` number — 안 본 알림 수 (D-096)
 - **오류**: 401
-- **사용 테이블**: notifications, teams, tasks, task_assignees
+- **사용 테이블**: notifications, teams, tasks, task_assignees, alarms
 - **마감 임박 알림 만들기 (D-128, D-138)**: 예약 작업 없이 이 API 가 불릴 때 만든다. 대상은 종료일 전날 00시 00분(한국 시간)부터 마감 전까지인 작업, 즉 오늘(한국 시간)이 종료일 전날이거나 종료일이고 아직 기한 지남이 아닌(시간이 있으면 종료 시각 전, D-137) 대기·진행 작업 중 내 개인 작업과 내가 작업자인 팀 작업. 아직 due_soon 알림이 없는 작업마다 하나 만든다 (UNIQUE 필터 인덱스로 겹치지 않게, 동시 요청의 UNIQUE 위반은 무시). 단 기간을 정한 시각(tasks.period_update_date)이 이미 종료일 전날 00시 00분(한국 시간) 이후인 작업은 만들지 않는다 (D-166)
 
 #### POST /api/notifications/read
@@ -629,6 +633,7 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 | `team:reports-changed` | `team:{팀 id}` | 팀원이 일일보고를 제출하거나 수정 제출함 (임시저장은 보내지 않는다, D-159) | `teamId` number, `reportDate` string (YYYY-MM-DD), `reportId` number, `userId` number, `action` string (submit / update), `actorUserId` number |
 | `notifications:changed` | `user:{회원 id}` | 그 회원에게 초대·작업자 지정 알림이 옴, 초대가 취소됨, 그 회원의 알림이 지워짐(작업 삭제 등), 그 회원이 수락·거절·읽음·지우기 처리 (다른 탭 맞춤). 마감 임박 알림은 알림을 불러올 때 생기므로 보내지 않는다 | `unreadCount` number |
 | `teams:changed` | `user:{회원 id}` | 그 회원이 팀에서 내보내짐, 팀이 해체됨, 그 회원이 팀을 만들거나 가입하거나 탈퇴함 (다른 탭 맞춤) | `teamId` number, `reason` string (removed / dissolved / joined / left) |
+| `alarms:changed` | `user:{회원 id}` | 그 회원이 알람을 만들거나 고치거나 켜고 끄거나 지움, 울릴 때가 된 알람을 처리함 (다른 탭이 알람 목록과 타이머를 맞춘다. 팝업은 check 를 부른 탭만 띄운다, D-179) | `action` string (create / update / toggle / delete / check) |
 
 - `actorUserId`: 바꾼 회원. 화면은 내가 바꾼 것이면 D-103 의 안내를 띄우지 않는다
 - 팀 해체는 방에서 빼기 전에 그 팀의 모든 팀원에게 `teams:changed` (dissolved) 를 보낸다. 내보내기는 내보낸 회원에게 `teams:changed` (removed) 를 보낸다
@@ -750,12 +755,12 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **요청**: `password` string 필수 — 현재 비밀번호 1~15자
 - **응답 data**: `isWithdrawn` boolean — 항상 true. 로그인 쿠키를 만료시킨다
 - **오류**: 400 INVALID_INPUT, 400 CURRENT_PASSWORD_MISMATCH, 401, 409 TEAM_OWNER_CANNOT_WITHDRAW (error 에 막는 팀 이름을 담는다: `teams` { teamId, name }[]), 423 LOGIN_LOCKED
-- **사용 테이블**: users, login_tokens, email_verifications, teams, team_members, todos, tasks, task_assignees, task_logs, task_log_assignees, notifications, team_invite_declines, daily_reports
+- **사용 테이블**: users, login_tokens, email_verifications, teams, team_members, todos, tasks, task_assignees, task_logs, task_log_assignees, notifications, team_invite_declines, daily_reports, alarms
 - **처리 순서**: 입력 검사 → 현재 비밀번호 확인 → 한 트랜잭션에서 내 users 행과 내 team_members 행을 잠그고
   1. 다른 팀원이 있는 팀의 관리자면 409 TEAM_OWNER_CANNOT_WITHDRAW (D-131)
   2. 나 혼자인 팀을 해체한다 (팀 해체와 같은 처리: 그 팀 작업의 알림을 먼저 지우고 teams 삭제, D-131)
   3. 남은 팀마다 팀 탈퇴와 같은 작업자 정리를 한다 (작업자에서 빼고 "작업자 변경" 기록, 닉네임은 탈퇴하는 회원, D-041, D-100, D-148) → 내 team_members 삭제
-  4. 내가 받은 알림 삭제, 내가 보낸 알림의 sender_user_id 를 NULL 로 (sender_nickname 은 남김)
+  4. 내가 받은 알림 삭제, 내가 보낸 알림의 sender_user_id 를 NULL 로 (sender_nickname 은 남김) → 내 알람 삭제 (D-177)
   5. 내 개인 작업의 알림 삭제 → 개인 tasks 삭제 (수정 내역 함께) → 개인 todos 삭제
   6. 내 일일보고 중 draft 행 삭제, submitted 행은 user_id 를 NULL 로 (닉네임은 남김, D-160)
   7. 내 team_invite_declines, login_tokens, 내 이메일의 email_verifications 삭제 → users 삭제
@@ -885,3 +890,76 @@ API의 기준 문서다. API를 추가하거나 바꾸는 작업에서는 이 �
 - **응답 data**: `isCarryOver` boolean
 - **오류**: 400, 401
 - **사용 테이블**: users
+
+### 6.13 알람 (D-177~D-180)
+
+#### 알람 공통
+- 모두 회원 전용 (requireLogin). 알람은 주인만 다룬다. 남의 알람 id 면 404 NOT_FOUND
+- 시각은 한국 시간(Asia/Seoul) 기준으로 계산하고, nextFireDate·fireDate 는 UTC ISO 로 준다
+- 알람 형식 (Alarm):
+  | 필드 | 타입 | 설명 |
+  |---|---|---|
+  | alarmId | number | 알람 id |
+  | title | string \| null | 알람 이름 (없으면 null) |
+  | time | string | 울릴 시각 HH:mm (한국 시간, 24시간제) |
+  | date | string \| null | 한 번 울리는 날짜 YYYY-MM-DD (요일 알람이면 null) |
+  | weekdays | number[] | 반복 요일 1(월)~7(일), 작은 순 (한 번 울리는 알람이면 빈 배열) |
+  | isHolidayOff | boolean | 공휴일에는 끄기 |
+  | isOn | boolean | 켜짐 여부 |
+  | nextFireDate | string \| null | 다음에 울릴 시각 (꺼져 있으면 null) |
+- 알람 입력 (AlarmInput, 만들기·수정 요청):
+  | 필드 | 타입 | 필수 | 설명 |
+  |---|---|---|---|
+  | title | string \| null | X | 앞뒤 공백을 지우고 0~30자. 비면 null 로 저장 |
+  | time | string | O | HH:mm, 00:00~23:59 |
+  | date | string \| null | X | YYYY-MM-DD 실제 있는 날짜, 오늘(한국 시간)~오늘+365일. weekdays 와 함께 오면 400 |
+  | weekdays | number[] | O | 0~7개, 1~7 정수, 겹침 없음 |
+  | isHolidayOff | boolean | O | weekdays 가 비어 있는데 true 면 400 |
+- 다음 울릴 시각 계산 (D-178): 지금 시각(한국 시간) 기준
+  - weekdays 가 있으면: 오늘부터 하루씩 보며 고른 요일이고 그 날 time 이 지금보다 뒤인 첫 날. isHolidayOff 면 공휴일(GET /api/holidays 와 같은 정보, 그 해와 다음 해)인 날은 건너뛴다. 공휴일 정보를 가져오지 못하면 공휴일이 없는 것으로 본다. 400일 안에 없으면 공휴일을 보지 않고 다시 찾는다
+  - date 가 있으면: 그 날 time. 이미 지났거나 지금과 같으면 400 ALARM_TIME_PASSED (만들기·수정)
+  - 둘 다 없으면: time 이 지금보다 뒤면 오늘, 아니면 내일. 그 날짜를 alarm_date 에 저장한다
+- 울리기 처리 (D-179, POST /api/alarms/check): 예약 작업 없이 화면이 부를 때 한다. 한 트랜잭션에서 켜져 있고 next_fire_date 가 지금 이전인 내 알람을 잠그고(UPDLOCK) 하나씩
+  - next_fire_date 가 지금부터 5분 안이면 "제때 울림" → 응답 fired 에 넣는다
+  - 5분보다 오래되었으면 "놓침" → 그 알람의 놓친 알람 알림(alarm_missed)을 지우고 새로 만든다 (create_date = 놓친 시각, 반복 알람을 여러 번 놓쳐도 마지막 1번만)
+  - 그다음 반복 알람은 지금 기준 다음 울릴 시각으로, 한 번 알람은 is_on = 0, next_fire_date = NULL 로 바꾼다
+- 커밋 뒤 만들기·수정·켜기/끄기·삭제·울리기 처리(처리한 알람이 있을 때)는 `alarms:changed` 를 보내고, 놓친 알람 알림을 만들었으면 `notifications:changed` 도 보낸다 (6.8)
+
+#### GET /api/alarms
+- **설명**: 내 알람 목록 (알람 창). 시각(time) 순, 같으면 알람 id 순
+- **응답 data**: `alarms` Alarm[] (없으면 빈 배열)
+- **오류**: 401
+- **사용 테이블**: alarms
+
+#### POST /api/alarms
+- **설명**: 알람 만들기. 켜진 상태로 만들고 다음 울릴 시각을 계산한다. 내 users 행을 잠그고 개수를 센다
+- **요청**: AlarmInput
+- **응답 data**: `alarm` Alarm
+- **오류**: 400 INVALID_INPUT, 400 ALARM_TIME_PASSED, 401, 409 ALARM_LIMIT_EXCEEDED
+- **사용 테이블**: users, alarms
+
+#### POST /api/alarms/{id}/update
+- **설명**: 알람 수정. 모든 값을 요청 값으로 바꾸고 켜진 상태로 다음 울릴 시각을 다시 계산한다. 그 알람의 놓친 알람 알림은 그대로 둔다
+- **요청**: AlarmInput
+- **응답 data**: `alarm` Alarm
+- **오류**: 400 INVALID_INPUT, 400 ALARM_TIME_PASSED, 401, 404
+- **사용 테이블**: alarms
+
+#### POST /api/alarms/{id}/toggle
+- **설명**: 켜기/끄기. 끄면 next_fire_date = NULL. 켜면 다음 울릴 시각을 다시 계산하는데, 한 번 알람의 alarm_date 가 이미 지났으면(그 날 time 이 지금 이전) 둘 다 고르지 않은 규칙으로 오늘/내일을 다시 정한다 (D-178)
+- **요청**: `isOn` boolean 필수
+- **응답 data**: `alarm` Alarm
+- **오류**: 400, 401, 404
+- **사용 테이블**: alarms
+
+#### POST /api/alarms/{id}/delete
+- **설명**: 알람 삭제 (놓친 알람 알림도 함께 지워진다)
+- **응답 data**: `isDeleted` true
+- **오류**: 400, 401, 404
+- **사용 테이블**: alarms, notifications
+
+#### POST /api/alarms/check
+- **설명**: 울릴 때가 된 내 알람을 처리한다 (알람 공통 "울리기 처리"). 화면이 열릴 때, 다음 울릴 시각이 되었을 때, 탭이 다시 보일 때 부른다
+- **응답 data**: `fired` { alarmId: number, title: string \| null, fireDate: string }[] — 제때 울린 알람 (팝업·브라우저 알림용, 없으면 빈 배열), `unreadCount` number — 안 본 알림 수
+- **오류**: 401
+- **사용 테이블**: alarms, notifications

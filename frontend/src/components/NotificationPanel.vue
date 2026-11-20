@@ -8,7 +8,7 @@ import { useTeamsStore } from '../stores/teams.js';
 import { useToastStore } from '../stores/toast.js';
 import { formatDateTime, formatMonthDay } from '../utils/format.js';
 
-const emit = defineEmits(['close']);
+const emit = defineEmits(['close', 'open-alarms']);
 const router = useRouter();
 const store = useNotificationsStore();
 const teamsStore = useTeamsStore();
@@ -90,6 +90,15 @@ function openTask(item) {
               <button type="button" class="btn-x btn-outline-x" :disabled="Boolean(busy[item.notificationId])" @click="decline(item)">거절</button>
             </div>
           </div>
+        </template>
+        <!-- 놓친 알람 (D-179): 누르면 알람 창을 연다 -->
+        <template v-else-if="item.notificationType === 'alarm_missed'">
+          <i class="bi bi-alarm"></i>
+          <a href="#" class="notification-link" @click.prevent="emit('open-alarms')">
+            <span class="task-title">{{ item.alarmTitle ? `놓친 알람: ${item.alarmTitle}` : '놓친 알람' }}</span>
+            <span class="notification-time">{{ formatDateTime(item.createDate) }}</span>
+          </a>
+          <button type="button" class="notification-close" aria-label="알림 지우기" @click.stop="remove(item)"><i class="bi bi-x-lg"></i></button>
         </template>
         <template v-else>
           <i class="bi" :class="item.notificationType === 'due_soon' ? 'bi-alarm is-alarm' : 'bi-person-check'"></i>

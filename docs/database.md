@@ -88,7 +88,7 @@ CREATE TABLE users (
 ## 4. 실제 사용할 테이블 생성 코드
 <!-- 실제 테이블 생성 코드를 이 아래에 작성 -->
 
-- 생성 순서 (FK 때문에): users → login_tokens → email_verifications → phone_verifications → teams → team_members → todos → tasks → task_assignees → task_logs → task_log_assignees → notifications → team_invite_declines → report_templates → daily_reports
+- 생성 순서 (FK 때문에): users → login_tokens → email_verifications → phone_verifications → teams → team_members → todos → tasks → task_assignees → task_logs → task_log_assignees → alarms → notifications → team_invite_declines → report_templates → daily_reports
 - 만료 데이터 정리 (D-122): 로그인할 때 만료된 login_tokens(모든 회원), 인증번호를 보낼 때 하루 지난 email_verifications·phone_verifications, 초대·거절할 때 24시간 지난 team_invite_declines 를 함께 지운다
 - 회원 탈퇴 처리 순서는 api.md 6.11 POST /api/users/me/withdraw 에 있다
 
@@ -428,11 +428,43 @@ CREATE UNIQUE INDEX idx_team_members_team_id ON team_members (team_id) WHERE rol
 CREATE INDEX idx_team_members_user_id ON team_members (user_id, sort_order);
 ```
 
+### alarms (알람)
+- 회원이 직접 거는 알람 (D-177). 회원마다 30개까지 (D-180, 만들 때 내 users 행을 잠그고 센다)
+- alarm_time: 울릴 시각. 입력한 한국 시간 그대로, 분 단위(초는 0) (D-135 와 같은 방식)
+- 날짜·요일 (D-178): weekdays 가 0 이면 한 번 울리는 알람이고 alarm_date 에 그 날짜가 있다(직접 고른 날짜 또는 서버가 정한 오늘/내일). weekdays 가 1~127 이면 매주 반복이고 alarm_date 는 NULL
+  - weekdays 비트: 월 1, 화 2, 수 4, 목 8, 금 16, 토 32, 일 64 (7개 모두 127 = 매일)
+- is_holiday_off: 요일 알람만 1 이 될 수 있다. 1 이면 공휴일인 날을 건너뛰고 다음 고른 요일로 next_fire_date 를 잡는다 (D-178)
+- next_fire_date: 다음에 울릴 시각 (UTC). 켜져 있으면 언제나 있고 꺼져 있으면 NULL. 만들기·수정·켜기, 그리고 울린 뒤(반복이면 다음 날짜, 한 번이면 끄고 NULL) 서버가 다시 계산한다 (api.md 6.13)
+- 지우는 때: 회원이 지우거나 회원이 탈퇴하면 지운다 (그 알람의 놓친 알람 알림은 함께 지워진다, notifications.alarm_id ON DELETE CASCADE)
+
+```sql
+CREATE TABLE alarms (
+    id             BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
+    title          NVARCHAR(30) NULL,                               -- 알람 이름 (없으면 NULL)
+    alarm_time     TIME(0)      NOT NULL,                           -- 울릴 시각 (한국 시간, 분 단위)
+    alarm_date     DATE         NULL,                               -- 한 번 울리는 날짜 (요일 알람이면 NULL)
+    weekdays       TINYINT      NOT NULL DEFAULT 0,                 -- 반복 요일 비트 (월 1 ~ 일 64, 0 이면 한 번)
+    user_id        BIGINT       NOT NULL,                           -- 알람 주인
+    is_on          BIT          NOT NULL DEFAULT 1,                 -- 켜짐 여부
+    is_holiday_off BIT          NOT NULL DEFAULT 0,                 -- 공휴일에는 끄기 (요일 알람만)
+    next_fire_date DATETIME2    NULL,                               -- 다음에 울릴 시각 (UTC, 꺼져 있으면 NULL)
+    create_date    DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),  -- 생성 시각 (UTC)
+
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    CHECK (weekdays BETWEEN 0 AND 127),
+    CHECK ((weekdays = 0 AND alarm_date IS NOT NULL AND is_holiday_off = 0) OR (weekdays > 0 AND alarm_date IS NULL)),
+    CHECK ((is_on = 1 AND next_fire_date IS NOT NULL) OR (is_on = 0 AND next_fire_date IS NULL))
+);
+
+CREATE INDEX idx_alarms_user_id ON alarms (user_id, next_fire_date);
+```
+
 ### notifications (알림)
-- 회원에게 보내는 알림. notification_type (D-024 → D-127, D-128):
+- 회원에게 보내는 알림. notification_type (D-024 → D-127, D-128, D-179):
   - team_invite(팀 초대): team_id, sender_nickname, sender_user_id 있음, task_id 없음. 한 행이 곧 답을 기다리는 초대. 수락·거절·취소하면 지운다 (D-095, D-120). 유효기간 없음 (D-094)
   - task_assigned(작업자 지정): team_id, task_id, sender_nickname, sender_user_id 있음 (D-127)
   - due_soon(마감 임박): task_id 있음, sender 없음. 팀 작업이면 team_id 있음, 개인 작업이면 NULL (D-128)
+  - alarm_missed(놓친 알람): alarm_id 만 있음 (D-179). create_date 는 놓친 알람이 울렸어야 할 시각(UTC). 알람마다 회원당 1개 (alarm_missed 조건의 UNIQUE 필터 인덱스). 또 놓치면 있던 행을 지우고 새로 만든다 (가장 최근 1번만)
 - 한 팀에서 한 회원에게 답을 기다리는 초대는 1개 (D-093, team_invite 조건의 UNIQUE 필터 인덱스). 마감 임박은 작업마다 회원당 1개 (due_soon 조건의 UNIQUE 필터 인덱스)
 - sender_nickname: 보낸 회원의 그 시점 닉네임 (보낸 회원이 탈퇴하거나 팀을 나가도 남는다). sender_user_id: 초대 취소 권한 확인용 (D-120). 보낸 회원이 탈퇴하면 NULL 로 바꾼다
 - is_read: 알림 창을 열면 그 회원의 알림을 모두 1로 바꾼다 (D-096)
@@ -442,33 +474,40 @@ CREATE INDEX idx_team_members_user_id ON team_members (user_id, sort_order);
   - 회원이 팀을 나가면(탈퇴·내보내기) 그 회원이 받은 그 팀의 task_assigned·due_soon 알림을 지운다 (D-127)
   - due_soon 은 작업이 완료되거나 기간이 바뀌거나 그 회원이 작업자에서 빠지면 지운다 (D-128)
   - 회원이 탈퇴하면 그 회원이 받은 알림을 모두 지운다
+  - alarm_missed 는 회원이 [X] 로 지우거나 그 알람을 지우면 지운다 (alarm_id ON DELETE CASCADE)
+- 기존 DB 바꾸기 (D-179): alarms 를 만든 뒤 notifications 에 alarm_id 컬럼·FK·인덱스를 더하고 두 CHECK 를 아래 것으로 바꾼다. 구현 단계에서 SQL 을 만들고 사용자가 SSMS 에서 실행한다
 
 ```sql
 CREATE TABLE notifications (
     id                BIGINT IDENTITY(1,1) PRIMARY KEY,                -- 기본키
-    notification_type NVARCHAR(20) NOT NULL,                           -- 종류 (team_invite / task_assigned / due_soon)
-    sender_nickname   NVARCHAR(8)  NULL,                               -- 보낸 회원의 그 시점 닉네임 (due_soon 이면 NULL)
+    notification_type NVARCHAR(20) NOT NULL,                           -- 종류 (team_invite / task_assigned / due_soon / alarm_missed)
+    sender_nickname   NVARCHAR(8)  NULL,                               -- 보낸 회원의 그 시점 닉네임 (due_soon·alarm_missed 이면 NULL)
     user_id           BIGINT       NOT NULL,                           -- 받는 회원
     sender_user_id    BIGINT       NULL,                               -- 보낸 회원 (초대 취소 권한 확인용, 탈퇴하면 NULL)
-    team_id           BIGINT       NULL,                               -- 팀 (개인 작업의 due_soon 이면 NULL)
-    task_id           BIGINT       NULL,                               -- 작업 (team_invite 이면 NULL)
+    team_id           BIGINT       NULL,                               -- 팀 (개인 작업의 due_soon·alarm_missed 이면 NULL)
+    task_id           BIGINT       NULL,                               -- 작업 (team_invite·alarm_missed 이면 NULL)
+    alarm_id          BIGINT       NULL,                               -- 알람 (alarm_missed 만)
     is_read           BIT          NOT NULL DEFAULT 0,                 -- 알림 창에서 본 여부
-    create_date       DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),  -- 알림 시각 (UTC)
+    create_date       DATETIME2    NOT NULL DEFAULT SYSUTCDATETIME(),  -- 알림 시각 (UTC). alarm_missed 는 울렸어야 할 시각
 
     FOREIGN KEY (user_id)        REFERENCES users(id),
     FOREIGN KEY (sender_user_id) REFERENCES users(id),
     FOREIGN KEY (team_id)        REFERENCES teams(id) ON DELETE CASCADE,
     FOREIGN KEY (task_id)        REFERENCES tasks(id),
-    CHECK (notification_type IN ('team_invite', 'task_assigned', 'due_soon')),
+    FOREIGN KEY (alarm_id)       REFERENCES alarms(id) ON DELETE CASCADE,
+    CHECK (notification_type IN ('team_invite', 'task_assigned', 'due_soon', 'alarm_missed')),
     CHECK (
-        (notification_type = 'team_invite' AND team_id IS NOT NULL AND task_id IS NULL AND sender_nickname IS NOT NULL)
-        OR (notification_type = 'task_assigned' AND team_id IS NOT NULL AND task_id IS NOT NULL AND sender_nickname IS NOT NULL)
-        OR (notification_type = 'due_soon' AND task_id IS NOT NULL AND sender_nickname IS NULL AND sender_user_id IS NULL)
+        (notification_type = 'team_invite' AND team_id IS NOT NULL AND task_id IS NULL AND alarm_id IS NULL AND sender_nickname IS NOT NULL)
+        OR (notification_type = 'task_assigned' AND team_id IS NOT NULL AND task_id IS NOT NULL AND alarm_id IS NULL AND sender_nickname IS NOT NULL)
+        OR (notification_type = 'due_soon' AND task_id IS NOT NULL AND alarm_id IS NULL AND sender_nickname IS NULL AND sender_user_id IS NULL)
+        OR (notification_type = 'alarm_missed' AND alarm_id IS NOT NULL AND team_id IS NULL AND task_id IS NULL AND sender_nickname IS NULL AND sender_user_id IS NULL)
     )
 );
 
 CREATE UNIQUE INDEX idx_notifications_user_id_team_id ON notifications (user_id, team_id) WHERE notification_type = 'team_invite';
 CREATE UNIQUE INDEX idx_notifications_user_id_task_id ON notifications (user_id, task_id) WHERE notification_type = 'due_soon';
+CREATE UNIQUE INDEX idx_notifications_user_id_alarm_id ON notifications (user_id, alarm_id) WHERE notification_type = 'alarm_missed';
+CREATE INDEX idx_notifications_alarm_id ON notifications (alarm_id);
 CREATE INDEX idx_notifications_user_id ON notifications (user_id, create_date);
 CREATE INDEX idx_notifications_task_id ON notifications (task_id);
 ```

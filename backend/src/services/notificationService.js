@@ -18,6 +18,8 @@ function toNotification(row) {
     taskEndDate: row.notification_type === 'due_soon' ? toDateText(row.task_end_date) : null,
     taskEndTime: row.notification_type === 'due_soon' ? toTimeText(row.task_end_time) : null,
     senderNickname: row.sender_nickname,
+    alarmId: row.alarm_id === null ? null : Number(row.alarm_id),
+    alarmTitle: row.alarm_title,
     isRead: Boolean(row.is_read),
     createDate: row.create_date.toISOString(),
   };
@@ -80,10 +82,12 @@ export async function listNotifications(userId) {
   await createDueSoonNotifications(pool, userId);
   const result = await pool.request().input('userId', sql.BigInt, userId)
     .query(`SELECT n.id, n.notification_type, n.team_id, tm.name AS team_name, n.task_id, tk.title AS task_title,
-                   tk.end_date AS task_end_date, tk.end_time AS task_end_time, n.sender_nickname, n.is_read, n.create_date
+                   tk.end_date AS task_end_date, tk.end_time AS task_end_time, n.sender_nickname, n.is_read, n.create_date,
+                   n.alarm_id, al.title AS alarm_title
             FROM notifications n
               LEFT JOIN teams tm ON tm.id = n.team_id
               LEFT JOIN tasks tk ON tk.id = n.task_id
+              LEFT JOIN alarms al ON al.id = n.alarm_id
             WHERE n.user_id = @userId
             ORDER BY n.create_date DESC, n.id DESC`);
   const notifications = result.recordset.map(toNotification);
@@ -109,7 +113,7 @@ async function findMyNotification(runner, userId, notificationId, { isLocked = f
   return result.recordset[0];
 }
 
-// 작업자 지정·마감 임박 알림만 [X] 로 지운다. 팀 초대는 400
+// 작업자 지정·마감 임박·놓친 알람 알림만 [X] 로 지운다. 팀 초대는 400 (D-179)
 export async function deleteNotification(userId, notificationId) {
   const pool = await getPool();
   const found = await findMyNotification(pool, userId, notificationId);

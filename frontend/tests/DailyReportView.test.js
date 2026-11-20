@@ -55,6 +55,8 @@ beforeEach(() => {
     'GET /api/sessions/me': () => ok(ME),
     'GET /api/teams': () => ok({ teams: [{ teamId: 7, name: '디자인팀', myRole: 'owner' }] }),
     'GET /api/notifications': () => ok({ notifications: [], unreadCount: 0 }),
+    'GET /api/alarms': () => ok({ alarms: [] }),
+    'POST /api/alarms/check': () => ok({ fired: [], unreadCount: 0 }),
     'GET /api/teams/7/reports': (url) => ok({
       date: new URL(url, 'http://x').searchParams.get('date'), isToday: true,
       items: [item(1, '홍길동', 'none'), item(2, '이영희', 'submitted'), item(3, '김민수', 'none')],

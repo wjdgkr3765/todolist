@@ -25,6 +25,8 @@ beforeEach(() => {
     'GET /api/sessions/me': () => ok(ME),
     'GET /api/teams': () => ok({ teams: [{ teamId: 2, name: '디자인팀', myRole: 'owner' }] }),
     'GET /api/notifications': () => ok({ notifications: [], unreadCount: 0 }),
+    'GET /api/alarms': () => ok({ alarms: [] }),
+    'POST /api/alarms/check': () => ok({ fired: [], unreadCount: 0 }),
   };
   vi.stubGlobal('fetch', vi.fn(async (url, options = {}) => {
     const [path, query] = url.split('?');
